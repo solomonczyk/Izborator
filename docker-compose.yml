@@ -1,0 +1,81 @@
+services:
+  # 1. Основная база данных (Canonical Data)
+  postgres:
+    image: postgres:15-alpine
+    container_name: izborator_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-izborator}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Поисковый движок (Fast Search)
+  meilisearch:
+    image: getmeili/meilisearch:v1.3
+    container_name: izborator_meilisearch
+    restart: always
+    environment:
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-masterKey123}
+      MEILI_ENV: development
+    ports:
+      - "7700:7700"
+    volumes:
+      - meili_data:/meili_data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. Кеш и очереди (Cache & Rate Limiting)
+  redis:
+    image: redis:7-alpine
+    container_name: izborator_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 4. История цен (Time-Series)
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: izborator_influx
+    restart: always
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD:-adminpassword}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG:-izborator_org}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET:-price_history}
+    ports:
+      - "8086:8086"
+    volumes:
+      - influx_data:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  meili_data:
+  redis_data:
+  influx_data:
+
