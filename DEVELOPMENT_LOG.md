@@ -4,7 +4,7 @@
 
 ---
 
-## 2024 - Старт проекта
+## 2025 - Старт проекта
 
 ### День 1 - Фиксация стратегии
 **Дата:** [сегодня]  
@@ -59,6 +59,908 @@
 - Архитектура построена с учётом приоритетов из стратегии
 - Особое внимание уделено надёжности (очереди) и масштабируемости
 - Выбраны специализированные хранилища под разные задачи
+
+---
+
+### День 1 - Настройка Git репозитория
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Инициализирован Git репозиторий
+- ✅ Создан `.gitignore` для Go + Next.js проекта
+- ✅ Настроен remote origin: `git@github.com:solomonczyk/Izborator.git`
+- ✅ Разрешен конфликт с удалённым README.md
+- ✅ Выполнен initial commit со всеми документами
+- ✅ Успешно запушен код в GitHub (branch: main)
+
+**Коммиты:**
+- `bac373f` - Initial commit: strategy, architecture, and development log
+- `3e5007b` - Merge remote README and resolve conflict
+
+**Заметки:**
+- Все документы успешно загружены в репозиторий
+- Репозиторий готов к дальнейшей разработке
+
+---
+
+### День 1 - Создание каркаса backend проекта
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Создана файловая структура backend проекта:
+  - `cmd/api/` - точка входа для API сервера
+  - `cmd/worker/` - точка входа для воркеров парсинга
+  - `internal/config/` - модуль загрузки конфигураций из env
+  - `internal/logger/` - модуль логирования на Zerolog
+  - `internal/http/router/` - HTTP роутер (заглушка)
+  - `internal/storage/` - клиенты для PostgreSQL, Redis, Meilisearch
+  - `internal/products/` - доменная логика товаров
+  - `internal/scraper/` - логика парсеров
+  - `internal/matching/` - алгоритмы сопоставления товаров
+  - `internal/pricehistory/` - сервис истории цен
+- ✅ Инициализирован `go.mod` с модулем `github.com/solomonczyk/izborator`
+- ✅ Созданы базовые файлы для всех модулей с TODO комментариями
+- ✅ Настроена конфигурация через переменные окружения
+- ✅ Создан `env.example` с примерами настроек
+- ✅ Создан `README.md` для backend с описанием архитектуры
+
+**Созданные файлы:**
+- `backend/cmd/api/main.go` - API сервер с graceful shutdown
+- `backend/cmd/worker/main.go` - воркер для парсинга
+- `backend/internal/config/config.go` - загрузка конфигурации
+- `backend/internal/logger/logger.go` - обёртка над Zerolog
+- `backend/internal/storage/postgres.go` - клиент PostgreSQL
+- `backend/internal/storage/redis.go` - клиент Redis
+- `backend/internal/storage/meilisearch.go` - клиент Meilisearch
+- `backend/internal/products/service.go` - сервис товаров
+- `backend/internal/scraper/service.go` - сервис парсеров
+- `backend/internal/matching/service.go` - сервис matching
+- `backend/internal/pricehistory/service.go` - сервис истории цен
+- `backend/internal/http/router/router.go` - HTTP роутер (заглушка)
+
+**Зависимости в go.mod:**
+- `github.com/lib/pq` - драйвер PostgreSQL
+- `github.com/redis/go-redis/v9` - клиент Redis
+- `github.com/meilisearch/meilisearch-go` - клиент Meilisearch
+- `github.com/rs/zerolog` - структурированное логирование
+
+**Следующие шаги:**
+- Реализовать HTTP роутинг (chi, gin или стандартный mux)
+- Добавить миграции базы данных
+- Реализовать базовые методы в сервисах
+- Настроить интеграцию с очередью сообщений
+
+**Заметки:**
+- Все модули имеют заглушки с TODO комментариями для дальнейшей реализации
+- Структура следует стандартным практикам Go проектов
+- Конфигурация вынесена в отдельный модуль для удобства тестирования
+- Логирование унифицировано через обёртку над Zerolog
+
+---
+
+### День 1 - Реализация HTTP роутинга
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Добавлен chi роутер в зависимости (`github.com/go-chi/chi/v5`)
+- ✅ Реализован HTTP роутер с базовыми эндпоинтами:
+  - `GET /api/health` - health check
+  - `GET /api/products` - поиск товаров (query params: q, limit, offset)
+  - `GET /api/products/:id` - получение товара по ID
+  - `GET /api/products/:id/prices` - получение цен товара из разных магазинов
+- ✅ Созданы handlers для продуктов:
+  - `internal/http/handlers/products.go` - обработчики товаров
+  - `internal/http/handlers/health.go` - обработчик health check
+- ✅ Добавлены middleware:
+  - `internal/http/middleware/logging.go` - логирование HTTP запросов
+  - `internal/http/middleware/cors.go` - обработка CORS заголовков
+  - `internal/http/middleware/recovery.go` - обработка паник
+- ✅ Обновлён роутер (`internal/http/router/router.go`) с использованием chi
+- ✅ Исправлены вызовы логгера в `cmd/api/main.go` для соответствия API
+- ✅ Проект успешно компилируется
+
+**Созданные файлы:**
+- `backend/internal/http/handlers/products.go` - обработчики для работы с товарами
+- `backend/internal/http/handlers/health.go` - обработчик health check
+- `backend/internal/http/middleware/logging.go` - middleware для логирования запросов
+- `backend/internal/http/middleware/cors.go` - middleware для CORS
+- `backend/internal/http/middleware/recovery.go` - middleware для обработки паник
+
+**Обновлённые файлы:**
+- `backend/internal/http/router/router.go` - полная реализация роутинга на chi
+- `backend/cmd/api/main.go` - исправлены вызовы логгера
+- `backend/go.mod` - добавлен chi роутер
+
+**Следующие шаги:**
+- Добавить миграции базы данных
+- Реализовать базовые методы в сервисах (Search, GetByID, GetPrices)
+- Настроить интеграцию с очередью сообщений
+- Добавить тесты для handlers
+
+**Заметки:**
+- Роутер использует chi для гибкого и производительного роутинга
+- Все handlers пока возвращают заглушки, но структура готова для интеграции с сервисами
+- Middleware настроены для логирования, CORS и обработки ошибок
+- API готов к дальнейшей разработке
+
+---
+
+### День 1 - Документация модульной архитектуры
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Создан документ `backend/MODULE_ARCHITECTURE.md` с описанием DDD Light подхода
+- ✅ Описаны все 7 модулей и их обязанности:
+  - Ingestion (scraper/) — сбор данных
+  - Processing (products/) — обработка товаров
+  - Matching (matching/) — сопоставление товаров
+  - PriceHistory (pricehistory/) — история цен
+  - Storage Layer (storage/) — доступ к данным
+  - API Layer (http/) — HTTP роуты
+  - Worker Layer (cmd/worker/) — фоновые задачи
+- ✅ Зафиксированы правила зависимостей между модулями
+- ✅ Описана иерархия модулей (сверху вниз)
+- ✅ Добавлены примеры правильной и неправильной организации кода
+- ✅ Исправлены вызовы логгера в storage модулях (postgres, redis, meilisearch)
+
+**Созданные файлы:**
+- `backend/MODULE_ARCHITECTURE.md` — полное описание модульной архитектуры
+
+**Обновлённые файлы:**
+- `backend/internal/storage/postgres.go` — исправлены вызовы логгера
+- `backend/internal/storage/redis.go` — исправлены вызовы логгера
+- `backend/internal/storage/meilisearch.go` — исправлены вызовы логгера
+
+**Принципы архитектуры:**
+- Модули = бизнес-области, не технические слои
+- Зависимости идут только сверху вниз
+- Каждый модуль самодостаточен и независим
+- Storage — самый нижний слой, не знает о бизнес-логике
+- HTTP — оболочка, вся логика в доменных модулях
+
+**Следующие шаги:**
+- Добавить миграции базы данных
+- Реализовать базовые методы в сервисах
+- Настроить очередь сообщений (Kafka/RabbitMQ)
+- Реализовать matching алгоритмы
+
+**Заметки:**
+- Архитектура следует принципам DDD Light
+- Все зависимости проверены и соответствуют правилам
+- Модули готовы к независимой разработке
+
+---
+
+### День 1 - Обновление спецификации модульной архитектуры
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Обновлён документ `backend/MODULE_ARCHITECTURE.md` с жёсткими правилами зависимостей
+- ✅ Зафиксированы принципы слоёв (API → Domain → Storage)
+- ✅ Определены запрещённые зависимости (кросс-зависимости между доменными модулями)
+- ✅ Добавлен Interface-first подход для доменных модулей
+- ✅ Создана официальная спецификация проекта
+
+**Обновлённые файлы:**
+- `backend/MODULE_ARCHITECTURE.md` — жёсткая спецификация архитектуры
+
+**Ключевые правила:**
+- HTTP → Domain → Storage (только сверху вниз)
+- Запрещены кросс-зависимости между доменными модулями
+- Каждый доменный модуль: service.go (интерфейс), impl.go (реализация), models.go, errors.go
+- Storage — только CRUD, никакой бизнес-логики
+- HTTP — тонкая оболочка, вся логика в доменных модулях
+
+**Заметки:**
+- Спецификация дисциплинирует код и предотвращает архитектурный долг
+- Все модули должны следовать Interface-first подходу
+
+---
+
+### День 1 - Создание module.go для доменных модулей
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Создан `module.go` для каждого доменного модуля:
+  - `internal/products/module.go` — интерфейсы Storage и конструктор New()
+  - `internal/scraper/module.go` — интерфейсы Storage, Queue и конструктор New()
+  - `internal/matching/module.go` — интерфейс Storage и конструктор New()
+  - `internal/pricehistory/module.go` — интерфейс Storage и конструктор New()
+- ✅ Создан `impl.go` для каждого модуля (заглушки для будущей реализации)
+- ✅ Удалены старые `service.go` файлы (структура Service перенесена в `module.go`)
+- ✅ Все модули используют Interface-first подход
+- ✅ Проект успешно компилируется
+
+**Созданные файлы:**
+- `backend/internal/products/module.go` — интерфейсы и конструктор
+- `backend/internal/products/impl.go` — заглушка для реализации
+- `backend/internal/scraper/module.go` — интерфейсы и конструктор
+- `backend/internal/scraper/impl.go` — заглушка для реализации
+- `backend/internal/matching/module.go` — интерфейсы и конструктор
+- `backend/internal/matching/impl.go` — заглушка для реализации
+- `backend/internal/pricehistory/module.go` — интерфейсы и конструктор
+- `backend/internal/pricehistory/impl.go` — заглушка для реализации
+
+**Удалённые файлы:**
+- `backend/internal/products/service.go` — заменён на `module.go`
+- `backend/internal/scraper/service.go` — заменён на `module.go`
+- `backend/internal/matching/service.go` — заменён на `module.go`
+- `backend/internal/pricehistory/service.go` — заменён на `module.go`
+
+**Структура каждого доменного модуля:**
+```
+internal/<module>/
+├── module.go    ← интерфейсы зависимостей, Service, конструктор New()
+└── impl.go      ← реализация методов (пока заглушка)
+```
+
+**Принципы:**
+- Каждый модуль самодостаточен
+- Зависимости через интерфейсы, а не конкретные типы
+- Конструктор New() принимает интерфейсы
+- Готовность к тестированию через моки
+
+**Следующие шаги:**
+- Создать адаптеры в storage слое, реализующие интерфейсы модулей
+- Реализовать методы в impl.go
+- Добавить models.go и errors.go для каждого модуля
+
+**Заметки:**
+- Модули теперь полностью соответствуют Interface-first подходу
+- Легко тестировать через моки интерфейсов
+- Можно менять реализацию storage без изменения доменных модулей
+
+---
+
+### День 1 - Полная реализация доменных модулей
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Созданы `models.go` и `errors.go` для всех доменных модулей:
+  - `products/models.go` — Product, ProductPrice, SearchResult
+  - `products/errors.go` — ошибки модуля
+  - `scraper/models.go` — RawProduct, ShopConfig
+  - `scraper/errors.go` — ошибки модуля
+  - `matching/models.go` — ProductMatch, MatchRequest, MatchResult
+  - `matching/errors.go` — ошибки модуля
+  - `pricehistory/models.go` — PricePoint, PriceHistory, PriceChart
+  - `pricehistory/errors.go` — ошибки модуля
+- ✅ Обновлены интерфейсы Storage в `module.go` с реальными методами
+- ✅ Созданы адаптеры в storage слое:
+  - `storage/products_adapter.go` — реализует products.Storage
+  - `storage/scraper_adapter.go` — реализует scraper.Storage
+  - `storage/matching_adapter.go` — реализует matching.Storage
+  - `storage/pricehistory_adapter.go` — реализует pricehistory.Storage
+- ✅ Реализованы базовые методы в `impl.go`:
+  - `products/impl.go` — Search, GetByID, GetPrices, SaveProduct, SavePrice
+  - `scraper/impl.go` — ParseProduct, SaveRawProduct, ListShops
+  - `matching/impl.go` — MatchProduct, normalizeName, normalizeBrand, calculateSimilarity, SaveMatch
+  - `pricehistory/impl.go` — SavePrice, GetHistory, GetPriceChart
+- ✅ Обновлены handlers для использования новых методов сервисов
+- ✅ Обновлён router с chi роутером и правильной инициализацией сервисов
+- ✅ Обновлён `cmd/api/main.go` для инициализации storage, адаптеров и сервисов
+- ✅ Проект успешно компилируется
+
+**Созданные файлы:**
+- `backend/internal/products/models.go` — модели данных
+- `backend/internal/products/errors.go` — ошибки модуля
+- `backend/internal/scraper/models.go` — модели данных
+- `backend/internal/scraper/errors.go` — ошибки модуля
+- `backend/internal/matching/models.go` — модели данных
+- `backend/internal/matching/errors.go` — ошибки модуля
+- `backend/internal/pricehistory/models.go` — модели данных
+- `backend/internal/pricehistory/errors.go` — ошибки модуля
+- `backend/internal/storage/products_adapter.go` — адаптер для products
+- `backend/internal/storage/scraper_adapter.go` — адаптер для scraper
+- `backend/internal/storage/matching_adapter.go` — адаптер для matching
+- `backend/internal/storage/pricehistory_adapter.go` — адаптер для pricehistory
+
+**Обновлённые файлы:**
+- `backend/internal/products/module.go` — обновлены интерфейсы Storage
+- `backend/internal/scraper/module.go` — обновлены интерфейсы Storage и Queue
+- `backend/internal/matching/module.go` — обновлены интерфейсы Storage
+- `backend/internal/pricehistory/module.go` — обновлены интерфейсы Storage
+- `backend/internal/products/impl.go` — реализованы методы сервиса
+- `backend/internal/scraper/impl.go` — реализованы методы сервиса
+- `backend/internal/matching/impl.go` — реализованы методы сервиса
+- `backend/internal/pricehistory/impl.go` — реализованы методы сервиса
+- `backend/internal/http/handlers/products.go` — обновлены для использования сервисов
+- `backend/internal/http/router/router.go` — обновлён с chi роутером
+- `backend/cmd/api/main.go` — добавлена инициализация storage и сервисов
+
+**Структура каждого доменного модуля (завершена):**
+```
+internal/<module>/
+├── module.go    ← интерфейсы, Service, конструктор New()
+├── impl.go      ← реализация методов
+├── models.go    ← модели данных
+└── errors.go    ← ошибки модуля
+```
+
+**Реализованные методы:**
+- **Products**: Search, GetByID, GetPrices, SaveProduct, SavePrice
+- **Scraper**: ParseProduct, SaveRawProduct, ListShops
+- **Matching**: MatchProduct, normalizeName, normalizeBrand, calculateSimilarity, SaveMatch
+- **PriceHistory**: SavePrice, GetHistory, GetPriceChart
+
+**Следующие шаги:**
+- Реализовать методы адаптеров в storage (SQL запросы)
+- Добавить миграции базы данных
+- Настроить очередь сообщений (Kafka/RabbitMQ)
+- Улучшить алгоритмы matching (Levenshtein, Jaro-Winkler)
+- Добавить тесты для модулей
+
+**Заметки:**
+- Все модули полностью реализованы по Interface-first подходу
+- Адаптеры в storage слое готовы к реализации SQL запросов
+- Handlers интегрированы с сервисами
+- API готов к дальнейшей разработке и тестированию
+
+---
+
+### День 1 - Создание миграций базы данных
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Создана структура миграций в `backend/migrations/`
+- ✅ Создана первая миграция `0001_initial_schema.up.sql`:
+  - Таблица `shops` — конфигурация магазинов
+  - Таблица `products` — канонические товары
+  - Таблица `product_prices` — цены товаров в магазинах
+  - Таблица `raw_products` — сырые данные парсинга
+  - Таблица `product_matches` — сопоставления товаров
+  - Индексы для оптимизации запросов
+  - Триггеры для автоматического обновления `updated_at`
+- ✅ Создан файл отката `0001_initial_schema.down.sql`
+- ✅ Создан `migrations/README.md` с инструкциями по применению миграций
+
+**Созданные файлы:**
+- `backend/migrations/0001_initial_schema.up.sql` — миграция создания схемы
+- `backend/migrations/0001_initial_schema.down.sql` — откат миграции
+- `backend/migrations/README.md` — документация по миграциям
+
+**Схема базы данных:**
+- **shops** — магазины с конфигурацией парсинга
+- **products** — канонические товары (UUID, name, brand, category, specs JSONB)
+- **product_prices** — цены товаров в магазинах (связь products ↔ shops)
+- **raw_products** — сырые данные парсинга (до обработки)
+- **product_matches** — результаты сопоставления товаров (similarity, confidence)
+
+**Особенности:**
+- Использование UUID для продуктов
+- JSONB для гибких данных (specs, selectors, image_urls)
+- Индексы для оптимизации поиска
+- Триггеры для автоматического обновления timestamps
+- Каскадное удаление связанных записей
+
+**Следующие шаги:**
+- Реализовать SQL запросы в адаптерах storage
+- Добавить инструмент для применения миграций
+- Протестировать схему БД
+
+**Заметки:**
+- Схема БД готова для реализации адаптеров
+- Использованы best practices PostgreSQL (индексы, триггеры, constraints)
+- История цен будет храниться в InfluxDB (time-series), не в PostgreSQL
+
+---
+
+### День 1 - Реализация SQL запросов в адаптерах
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Добавлена зависимость `github.com/google/uuid` для работы с UUID
+- ✅ Реализованы SQL запросы в `products_adapter.go`:
+  - `GetProduct` — получение товара по ID с десериализацией JSONB specs
+  - `SearchProducts` — поиск через PostgreSQL (fallback) и подготовка для Meilisearch
+  - `SaveProduct` — сохранение товара с UPSERT логикой
+  - `GetProductPrices` — получение цен товара из разных магазинов
+  - `SaveProductPrice` — сохранение цены с UPSERT логикой
+- ✅ Реализованы SQL запросы в `scraper_adapter.go`:
+  - `SaveRawProduct` — сохранение сырых данных парсинга с JSONB полями
+  - `GetShopConfig` — получение конфигурации магазина
+  - `ListShops` — получение списка всех магазинов
+- ✅ Реализованы SQL запросы в `matching_adapter.go`:
+  - `FindSimilarProducts` — поиск похожих товаров по названию и бренду
+  - `GetProductByID` — получение товара для matching
+  - `SaveMatch` — сохранение результата сопоставления
+  - `GetMatches` — получение всех сопоставлений для товара
+- ✅ Проект успешно компилируется
+
+**Обновлённые файлы:**
+- `backend/internal/storage/products_adapter.go` — полная реализация SQL запросов
+- `backend/internal/storage/scraper_adapter.go` — полная реализация SQL запросов
+- `backend/internal/storage/matching_adapter.go` — полная реализация SQL запросов
+- `backend/go.mod` — добавлен github.com/google/uuid
+
+**Особенности реализации:**
+- Использование UUID для продуктов
+- Работа с JSONB полями (specs, selectors, image_urls) через encoding/json
+- UPSERT логика через ON CONFLICT для обновления существующих записей
+- Десериализация JSONB с обработкой пустых значений
+- Поиск похожих товаров с приоритетом точных совпадений
+- Обработка ошибок sql.ErrNoRows для возврата доменных ошибок
+
+**Следующие шаги:**
+- Реализовать поиск через Meilisearch в products_adapter
+- Добавить инструмент для применения миграций
+- Протестировать адаптеры с реальной БД
+- Реализовать pricehistory адаптер для InfluxDB
+
+**Заметки:**
+- Все адаптеры готовы к работе с PostgreSQL
+- Использованы best practices: prepared statements, транзакции через ON CONFLICT
+- PriceHistory адаптер остаётся заглушкой (будет работать с InfluxDB)
+
+---
+
+### День 1 - Реализация поиска через Meilisearch
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Реализован поиск через Meilisearch в `products_adapter.go`
+- ✅ Добавлен импорт `github.com/meilisearch/meilisearch-go`
+- ✅ Реализован метод `searchViaMeilisearch`:
+  - Использование индекса "products" в Meilisearch
+  - Преобразование результатов Meilisearch в `products.Product`
+  - Обработка JSON полей (specs, timestamps)
+  - Fallback на PostgreSQL при ошибках Meilisearch
+- ✅ Проект успешно компилируется
+
+**Обновлённые файлы:**
+- `backend/internal/storage/products_adapter.go` — реализован поиск через Meilisearch
+
+**Особенности реализации:**
+- Поиск через Meilisearch с fallback на PostgreSQL
+- Преобразование `map[string]interface{}` из Meilisearch в структуры Go
+- Обработка JSON полей (specs как map)
+- Парсинг timestamps из строк в `time.Time`
+- Использование `EstimatedTotalHits` для подсчёта общего количества
+
+**Следующие шаги:**
+- Создать инструмент для синхронизации данных из PostgreSQL в Meilisearch (индексация)
+- Настроить индексы Meilisearch (поля для поиска, фильтры)
+- Добавить инструмент для применения миграций
+- Протестировать поиск с реальным Meilisearch
+
+**Заметки:**
+- Поиск через Meilisearch готов к использованию
+- При недоступности Meilisearch автоматически используется PostgreSQL
+- Требуется индексация данных из PostgreSQL в Meilisearch для работы поиска
+
+---
+
+### День 1 - Создание инструмента для применения миграций
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Создан инструмент `cmd/migrate/main.go` для применения миграций:
+  - `-up` — применение всех неприменённых миграций
+  - `-down N` — откат N последних миграций
+  - `-status` — показ статуса всех миграций
+  - `-version` — показ текущей версии миграции
+- ✅ Реализована таблица `schema_migrations` для отслеживания применённых миграций
+- ✅ Автоматическая загрузка миграций из директории `migrations/`
+- ✅ Парсинг имён файлов миграций (NNNN_name.up.sql)
+- ✅ Транзакционная безопасность (каждая миграция в отдельной транзакции)
+- ✅ Обновлён `migrations/README.md` с инструкциями по использованию
+- ✅ Проект успешно компилируется
+
+**Созданные файлы:**
+- `backend/cmd/migrate/main.go` — инструмент для применения миграций
+
+**Обновлённые файлы:**
+- `backend/migrations/README.md` — добавлены инструкции по использованию встроенного инструмента
+
+**Функциональность:**
+- Автоматическое создание таблицы `schema_migrations`
+- Загрузка миграций из директории с сортировкой по версии
+- Применение миграций в транзакциях
+- Откат миграций с удалением записей
+- Показ статуса всех миграций (Applied/Pending)
+
+**Использование:**
+```bash
+# Применить все миграции
+go run cmd/migrate/main.go -up
+
+# Показать статус
+go run cmd/migrate/main.go -status
+
+# Откатить последнюю миграцию
+go run cmd/migrate/main.go -down 1
+```
+
+**Следующие шаги:**
+- Протестировать инструмент с реальной БД
+- Создать инструмент для синхронизации данных в Meilisearch
+- Настроить индексы Meilisearch
+
+**Заметки:**
+- Инструмент готов к использованию
+- Миграции применяются в транзакциях для безопасности
+- Поддерживается откат миграций
+
+---
+
+### День 1 - Создание инструмента для индексации в Meilisearch
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Создан инструмент `cmd/indexer/main.go` для синхронизации данных в Meilisearch:
+  - `-setup` — настройка индекса Meilisearch (поля для поиска, фильтры, сортировка)
+  - `-sync` — синхронизация товаров из PostgreSQL в Meilisearch
+  - `-reindex` — полная переиндексация (очистка и пересоздание индекса)
+- ✅ Реализована настройка индекса:
+  - Поисковые поля: name, description, brand, category
+  - Фильтруемые поля: brand, category, created_at, updated_at
+  - Сортируемые поля: name, brand, category, created_at, updated_at
+  - Правила ранжирования для релевантности поиска
+- ✅ Реализована синхронизация товаров:
+  - Чтение всех товаров из PostgreSQL
+  - Преобразование в формат Meilisearch
+  - Батчевая индексация (по 1000 документов)
+  - Ожидание завершения задач индексации
+- ✅ Проект успешно компилируется
+
+**Созданные файлы:**
+- `backend/cmd/indexer/main.go` — инструмент для индексации
+
+**Функциональность:**
+- Настройка индекса с поисковыми, фильтруемыми и сортируемыми полями
+- Синхронизация всех товаров из PostgreSQL
+- Батчевая обработка для производительности
+- Отслеживание статуса задач индексации
+- Полная переиндексация с очисткой
+
+**Использование:**
+```bash
+# Настроить индекс
+go run cmd/indexer/main.go -setup
+
+# Синхронизировать товары
+go run cmd/indexer/main.go -sync
+
+# Полная переиндексация
+go run cmd/indexer/main.go -reindex
+```
+
+**Следующие шаги:**
+- Протестировать индексацию с реальными данными
+- Добавить инкрементальную синхронизацию (только изменённые товары)
+- Настроить периодическую синхронизацию (cron job)
+- Добавить мониторинг индексации
+
+**Заметки:**
+- Инструмент готов к использованию
+- Батчевая обработка оптимизирует производительность
+- Настройки индекса оптимизированы для поиска товаров
+
+---
+
+### День 1 - Миграция на pgx/v5 для highload
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Установлен драйвер `github.com/jackc/pgx/v5` для PostgreSQL
+- ✅ Переписан `internal/storage/postgres.go` на использование `pgxpool`:
+  - Создана структура `Repository` с пулом соединений
+  - Настроен пул для highload (MaxConns=50, MinConns=5)
+  - Сохранена обратная совместимость через обёртку `Postgres`
+- ✅ Обновлены все адаптеры на использование `pgxpool`:
+  - `products_adapter.go` — все запросы через `pgxpool` с context
+  - `scraper_adapter.go` — все запросы через `pgxpool` с context
+  - `matching_adapter.go` — все запросы через `pgxpool` с context
+- ✅ Обновлены инструменты:
+  - `cmd/migrate/main.go` — использование `pgxpool` вместо `database/sql`
+  - `cmd/indexer/main.go` — использование `pgxpool` и указателей для nullable полей
+- ✅ Заменены `sql.ErrNoRows` на `pgx.ErrNoRows`
+- ✅ Все запросы используют `context.Context` для отмены и таймаутов
+- ✅ Проект успешно компилируется
+
+**Обновлённые файлы:**
+- `backend/internal/storage/postgres.go` — переписан на `pgxpool`
+- `backend/internal/storage/products_adapter.go` — обновлён на `pgxpool`
+- `backend/internal/storage/scraper_adapter.go` — обновлён на `pgxpool`
+- `backend/internal/storage/matching_adapter.go` — обновлён на `pgxpool`
+- `backend/cmd/migrate/main.go` — обновлён на `pgxpool`
+- `backend/cmd/indexer/main.go` — обновлён на `pgxpool`
+- `backend/go.mod` — добавлен `github.com/jackc/pgx/v5`
+
+**Преимущества pgx/v5:**
+- Высокая производительность для highload
+- Пул соединений `pgxpool` оптимизирован для конкурентных запросов
+- Поддержка `context.Context` для отмены и таймаутов
+- Лучшая работа с типами PostgreSQL (JSONB, UUID, массивы)
+- Меньше аллокаций памяти
+
+**Настройки пула:**
+- `MaxConns = 50` — максимум соединений
+- `MinConns = 5` — минимум соединений (готовые к использованию)
+- `MaxConnLifetime = 1 hour` — время жизни соединения
+- `MaxConnIdleTime = 30 minutes` — время простоя соединения
+
+**Следующие шаги:**
+- Протестировать производительность с реальной нагрузкой
+- Настроить мониторинг пула соединений
+- Оптимизировать запросы для лучшей производительности
+
+**Заметки:**
+- Миграция на pgx/v5 завершена
+- Все адаптеры используют context для отмены запросов
+- Пул соединений оптимизирован для highload сценариев
+
+---
+
+### День 1 - Создание Docker Compose для локального окружения
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Создан `docker-compose.yml` в корне проекта:
+  - **PostgreSQL 15** (порт 5432) — основная база данных
+  - **Meilisearch v1.3** (порт 7700) — поисковый движок
+  - **Redis 7** (порт 6379) — кеш и очереди
+  - **InfluxDB 2.7** (порт 8086) — история цен (time-series)
+- ✅ Настроены health checks для всех сервисов
+- ✅ Настроены volumes для персистентности данных
+- ✅ Использованы переменные окружения для конфигурации
+- ✅ Создан `docker-compose.README.md` с инструкциями
+- ✅ Обновлён `.gitignore` для исключения docker-data
+
+**Созданные файлы:**
+- `docker-compose.yml` — конфигурация Docker Compose
+- `docker-compose.README.md` — документация по использованию
+
+**Сервисы:**
+- **postgres** — PostgreSQL 15-alpine с health check
+- **meilisearch** — Meilisearch v1.3 с master key
+- **redis** — Redis 7-alpine с persistence (AOF)
+- **influxdb** — InfluxDB 2.7-alpine с инициализацией
+
+**Volumes:**
+- `postgres_data` — данные PostgreSQL
+- `meili_data` — данные Meilisearch
+- `redis_data` — данные Redis
+- `influx_data` — данные InfluxDB
+
+**Использование:**
+```bash
+# Запустить все сервисы
+docker-compose up -d
+
+# Применить миграции
+cd backend
+go run cmd/migrate/main.go -up
+
+# Настроить и синхронизировать Meilisearch
+go run cmd/indexer/main.go -setup
+go run cmd/indexer/main.go -sync
+```
+
+**Следующие шаги:**
+- Запустить контейнеры и проверить подключение
+- Применить миграции
+- Настроить индексы Meilisearch
+- Протестировать подключение к сервисам
+
+**Заметки:**
+- Локальное окружение полностью готово
+- Все сервисы имеют health checks
+- Данные сохраняются в volumes
+
+---
+
+### День 1 - Реализация движка парсинга с Colly
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Установлена библиотека `github.com/gocolly/colly/v2` для веб-скрейпинга
+- ✅ Реализована логика парсинга в `internal/scraper/impl.go`:
+  - Метод `ParseProduct` — парсит страницу товара по селекторам из конфига
+  - Метод `ParseProductByShopID` — получает конфиг магазина и парсит товар
+  - Функция `cleanPrice` — очищает и парсит цены в сербских динарах (RSD)
+  - Поддержка динамических селекторов из `ShopConfig.Selectors` (map[string]string)
+  - Рандомизация User-Agent и Referer для защиты от бана
+  - Тайм-ауты запросов (30 секунд)
+  - Обработка ошибок и логирование
+- ✅ Поддержка парсинга всех полей:
+  - Название товара (`name`)
+  - Цена (`price`) с автоматической очисткой
+  - Изображения (`image`) с поддержкой lazy loading
+  - Описание (`description`)
+  - Категория (`category`)
+  - Бренд (`brand`)
+- ✅ Валидация результата (проверка наличия названия и цены)
+- ✅ Сохранение результата через `SaveRawProduct`
+- ✅ Отправка в очередь для дальнейшей обработки (если очередь настроена)
+
+**Обновлённые файлы:**
+- `backend/internal/scraper/impl.go` — полная реализация парсинга с Colly
+- `backend/go.mod` — добавлен `github.com/gocolly/colly/v2`
+
+**Особенности реализации:**
+- **Динамические селекторы**: Селекторы берутся из `ShopConfig.Selectors` (map), что позволяет добавлять новые магазины через БД без изменения кода
+- **Очистка цены**: Функция `cleanPrice` обрабатывает различные форматы цен:
+  - "120.000 RSD" → 120000.0
+  - "112.999 din" → 112999.0
+  - Поддержка запятой для десятичных (если есть)
+- **Защита от бана**:
+  - Рандомизация User-Agent через `extensions.RandomUserAgent`
+  - Установка Referer через `extensions.Referer`
+  - Игнорирование robots.txt (для тестирования)
+- **Обработка изображений**:
+  - Поддержка `src` и `data-src` (lazy loading)
+  - Преобразование относительных URL в абсолютные
+  - Сохранение массива изображений в `ImageURLs`
+
+**Методы сервиса:**
+- `ParseProduct(ctx, url, shopConfig)` — парсит товар с готовым конфигом
+- `ParseProductByShopID(ctx, url, shopID)` — получает конфиг и парсит товар
+- `SaveRawProduct(ctx, product)` — сохраняет сырые данные в БД и отправляет в очередь
+- `ListShops(ctx)` — получает список всех магазинов
+
+**Следующие шаги:**
+- Протестировать парсинг на реальных сайтах
+- Добавить rate limiting для каждого магазина
+- Реализовать обработку ошибок и retry логику
+- Добавить поддержку прокси (если нужно)
+- Настроить очередь для асинхронной обработки
+
+**Заметки:**
+- Парсер готов к использованию
+- Селекторы настраиваются через БД
+- Поддержка всех основных полей товара
+- Защита от бана через рандомизацию User-Agent
+
+---
+
+### День 1 - Первый боевой запуск (Live Scrape Test)
+**Дата:** [сегодня]  
+**Время:** [продолжение работы]
+
+**Выполнено:**
+- ✅ Создан SQL-скрипт `backend/scripts/seed_gigatron.sql` для добавления конфигурации магазина Gigatron:
+  - ID: `a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11`
+  - Настроены CSS-селекторы для парсинга всех полей товара
+  - Rate limit: 2 запроса в секунду
+- ✅ Обновлён `cmd/worker/main.go` для тестирования парсинга:
+  - Добавлены флаги `-url` и `-shop` для ручного запуска
+  - Реализован режим тестирования одного URL
+  - Полная интеграция с scraper сервисом
+  - Сохранение результата в БД
+  - Детальное логирование процесса
+- ✅ Создан `backend/scripts/README.md` с инструкциями по использованию скриптов
+
+**Созданные файлы:**
+- `backend/scripts/seed_gigatron.sql` — SQL-скрипт для добавления конфигурации Gigatron
+- `backend/scripts/README.md` — документация по скриптам
+
+**Обновлённые файлы:**
+- `backend/cmd/worker/main.go` — реализован тестовый режим парсинга
+
+**Функциональность worker:**
+- **Режим тестирования** (`-url` флаг):
+  - Загружает конфигурацию магазина из БД
+  - Парсит указанный URL товара
+  - Выводит результат в лог
+  - Сохраняет сырые данные в таблицу `raw_products`
+- **Обычный режим** (без флагов):
+  - Ожидает задачи из очереди (пока не реализовано)
+  - Поддерживает graceful shutdown
+
+**Использование:**
+
+```bash
+# 1. Применить SQL-скрипт для добавления конфигурации Gigatron
+docker exec -i izborator_postgres psql -U postgres -d izborator < backend/scripts/seed_gigatron.sql
+
+# 2. Запустить тест парсинга
+cd backend
+go run cmd/worker/main.go -url "https://gigatron.rs/mobilni-telefoni/samsung-galaxy-s23-8256gb-green-sms911bzgeeuc-533683"
+```
+
+**Ожидаемый результат:**
+- Логи с информацией о процессе парсинга
+- Успешное извлечение названия, цены, изображения и других полей
+- Сохранение данных в таблицу `raw_products`
+
+**Следующие шаги:**
+- Запустить docker-compose и применить миграции
+- Применить SQL-скрипт для добавления конфигурации Gigatron
+- Протестировать парсинг на реальном товаре с сайта gigatron.rs
+- При необходимости обновить селекторы, если верстка изменилась
+
+**Заметки:**
+- Worker готов к тестированию парсинга
+- Конфигурация магазина хранится в БД
+- Селекторы можно обновлять без изменения кода
+
+---
+
+### День 1 - Тестирование парсинга и исправление проблем
+**Дата:** 24.11.2025  
+**Время:** вечер
+
+**Выполнено:**
+- ✅ Настроена локальная инфраструктура через Docker Compose:
+  - PostgreSQL (порт 5433 из-за конфликта с локальной БД)
+  - Meilisearch
+  - Redis
+  - InfluxDB
+- ✅ Применены миграции базы данных
+- ✅ Добавлена конфигурация магазина Gigatron в БД
+- ✅ Реализован парсинг товаров с использованием Colly:
+  - Парсинг названия из h1
+  - Парсинг цены из JSON-LD (schema.org) - приоритетный метод
+  - Парсинг изображений (12 найдено)
+  - Извлечение external_id из URL
+- ✅ Исправлены проблемы с парсингом:
+  - JSON-LD парсинг перенесён выше парсинга цены из текста
+  - Добавлена проверка разумности цены (< 10 миллионов RSD)
+  - Улучшена функция cleanPrice для обработки сербских форматов цен
+- ✅ Исправлены проблемы с сохранением:
+  - Создан уникальный индекс на (shop_id, external_id)
+  - Исправлено логирование ошибок для отладки
+- ✅ Успешно протестирован парсинг реального товара:
+  - URL: https://gigatron.rs/proizvod/motorola-g72-8-256-gray-840023252556
+  - Название: "MOTOROLA moto g72 8/256GB Meteorite Gray"
+  - Цена: 15999 RSD (правильно извлечена из JSON-LD)
+  - Данные успешно сохранены в таблицу `raw_products`
+
+**Созданные файлы:**
+- `docker-compose.yml` — конфигурация локальной инфраструктуры
+- `docker-compose.README.md` — инструкции по использованию Docker Compose
+- `TESTING_GUIDE.md` — руководство по тестированию парсинга
+- `backend/scripts/seed_gigatron.sql` — SQL-скрипт для добавления конфигурации Gigatron
+- `backend/scripts/update_gigatron_selectors.sql` — обновление селекторов
+- `backend/scripts/fix_gigatron_price_selector.sql` — исправление селектора цены
+
+**Обновлённые файлы:**
+- `backend/cmd/worker/main.go` — улучшено логирование ошибок
+- `backend/internal/scraper/impl.go` — реализован парсинг через Colly с поддержкой JSON-LD
+- `backend/internal/storage/scraper_adapter.go` — исправлено сохранение данных
+- `backend/internal/storage/postgres.go` — улучшено логирование подключения
+- `.gitignore` — добавлен `docker-data/` для игнорирования Docker volumes
+
+**Технические детали:**
+- Парсинг цены приоритетно из JSON-LD (schema.org), fallback на CSS-селекторы
+- Использование Colly с рандомизацией User-Agent для защиты от блокировок
+- Обработка сербских форматов цен (15.999 RSD → 15999.0)
+- Извлечение external_id из URL для уникальной идентификации товаров
+
+**Проблемы, с которыми столкнулись:**
+1. Конфликт портов PostgreSQL (5432 занят локальной БД) → решено изменением порта на 5433
+2. JSON-LD парсинг не срабатывал → решено перемещением обработчика выше парсинга из текста
+3. Цена парсилась неправильно (слишком большое число) → решено проверкой разумности цены
+4. Ошибка сохранения "no unique constraint" → решено созданием уникального индекса
+
+**Следующие шаги:**
+- Добавить парсинг бренда и категории из JSON-LD
+- Реализовать обработку нескольких изображений
+- Добавить обработку ошибок и retry-логику
+- Реализовать очередь для асинхронной обработки задач парсинга
+- Добавить поддержку других магазинов
+
+**Заметки:**
+- Парсер успешно работает с реальным сайтом Gigatron
+- Данные корректно сохраняются в БД
+- Инфраструктура готова к дальнейшей разработке
+- JSON-LD парсинг оказался более надёжным, чем CSS-селекторы
 
 ---
 
