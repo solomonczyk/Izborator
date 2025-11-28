@@ -42,3 +42,9 @@ func (m *Meilisearch) Client() *meilisearch.Client {
 	return m.client
 }
 
+// Close закрывает соединение с Meilisearch (заглушка, т.к. клиент не требует закрытия)
+func (m *Meilisearch) Close() error {
+	// Meilisearch клиент не требует явного закрытия
+	return nil
+}
+

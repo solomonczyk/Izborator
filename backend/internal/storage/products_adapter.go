@@ -358,6 +358,237 @@ func (a *ProductsAdapter) GetProductPrices(productID string) ([]*products.Produc
 	return prices, nil
 }
 
+// Browse возвращает каталог товаров с фильтрами
+func (a *ProductsAdapter) Browse(ctx context.Context, params products.BrowseParams) (*products.BrowseResult, error) {
+	// Используем Meilisearch для поиска с фильтрами
+	if a.meili != nil {
+		return a.browseViaMeilisearch(ctx, params)
+	}
+
+	// Fallback на PostgreSQL, если Meilisearch недоступен
+	return a.browseViaPostgres(ctx, params)
+}
+
+// browseViaMeilisearch каталог через Meilisearch с фильтрами
+func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params products.BrowseParams) (*products.BrowseResult, error) {
+	index := a.meili.Client().Index("products")
+
+	searchReq := &meilisearch.SearchRequest{
+		Query:  params.Query,
+		Limit:  int64(params.PerPage),
+		Offset: int64((params.Page - 1) * params.PerPage),
+	}
+
+	// Фильтры Meilisearch
+	var filters []string
+	if params.Category != "" {
+		filters = append(filters, fmt.Sprintf("category = \"%s\"", params.Category))
+	}
+	// Пока shop_id и price фильтры пропускаем, т.к. эти поля могут быть не в индексе
+	// Их можно добавить позже, когда обновим индекс
+
+	if len(filters) > 0 {
+		searchReq.Filter = filters
+	}
+
+	// Сортировка
+	switch params.Sort {
+	case "price_asc":
+		// Пока сортировка по цене не работает без min_price в индексе
+		// Можно добавить позже
+	case "price_desc":
+		// Пока сортировка по цене не работает без min_price в индексе
+	case "newest":
+		searchReq.Sort = []string{"created_at:desc"}
+	case "name_asc":
+		searchReq.Sort = []string{"name:asc"}
+	default:
+		// relevance по умолчанию
+	}
+
+	searchResult, err := index.Search(params.Query, searchReq)
+	if err != nil {
+		// Если Meilisearch недоступен, fallback на PostgreSQL
+		return a.browseViaPostgres(ctx, params)
+	}
+
+	// Преобразуем результаты и обогащаем данными о ценах из PostgreSQL
+	items := make([]products.BrowseProduct, 0, len(searchResult.Hits))
+
+	for _, hit := range searchResult.Hits {
+		hitMap, ok := hit.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		productID, ok := hitMap["id"].(string)
+		if !ok || productID == "" {
+			continue
+		}
+
+		// Получаем цены из PostgreSQL для вычисления min_price, max_price, shops_count
+		prices, err := a.GetProductPrices(productID)
+		if err != nil {
+			// Пропускаем товар, если не удалось получить цены
+			continue
+		}
+
+		browseProduct := products.BrowseProduct{
+			ID:         productID,
+			ShopsCount: len(prices),
+			Specs:      make(map[string]string),
+		}
+
+		// Извлекаем базовые поля из Meilisearch
+		if name, ok := hitMap["name"].(string); ok {
+			browseProduct.Name = name
+		}
+		if brand, ok := hitMap["brand"].(string); ok {
+			browseProduct.Brand = brand
+		}
+		if category, ok := hitMap["category"].(string); ok {
+			browseProduct.Category = category
+		}
+		if imageURL, ok := hitMap["image_url"].(string); ok {
+			browseProduct.ImageURL = imageURL
+		}
+
+		// Обработка specs
+		if specs, ok := hitMap["specs"].(map[string]interface{}); ok {
+			for k, v := range specs {
+				if strVal, ok := v.(string); ok {
+					browseProduct.Specs[k] = strVal
+				}
+			}
+		}
+
+		// Вычисляем min_price, max_price, currency из цен
+		if len(prices) > 0 {
+			minPrice := prices[0].Price
+			maxPrice := prices[0].Price
+			currency := prices[0].Currency
+
+			for _, price := range prices {
+				if price.Price < minPrice {
+					minPrice = price.Price
+				}
+				if price.Price > maxPrice {
+					maxPrice = price.Price
+				}
+			}
+
+			browseProduct.MinPrice = minPrice
+			browseProduct.MaxPrice = maxPrice
+			browseProduct.Currency = currency
+
+			// Применяем фильтры по цене и shop_id (если указаны)
+			if params.MinPrice != nil && browseProduct.MinPrice < *params.MinPrice {
+				continue
+			}
+			if params.MaxPrice != nil && browseProduct.MaxPrice > *params.MaxPrice {
+				continue
+			}
+			if params.ShopID != "" {
+				found := false
+				for _, price := range prices {
+					if price.ShopID == params.ShopID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
+			}
+		}
+
+		items = append(items, browseProduct)
+	}
+
+	total := searchResult.EstimatedTotalHits
+	totalPages := int((total + int64(params.PerPage) - 1) / int64(params.PerPage))
+
+	return &products.BrowseResult{
+		Items:      items,
+		Page:       params.Page,
+		PerPage:    params.PerPage,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
+}
+
+// browseViaPostgres каталог через PostgreSQL (fallback)
+func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products.BrowseParams) (*products.BrowseResult, error) {
+	// Простая реализация через PostgreSQL
+	// Можно расширить позже с фильтрами
+	query := params.Query
+	if query == "" {
+		query = "%"
+	} else {
+		query = "%" + query + "%"
+	}
+
+	limit := params.PerPage
+	offset := (params.Page - 1) * params.PerPage
+
+	// Получаем товары
+	productsList, total, err := a.searchViaPostgres(query, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	// Преобразуем в BrowseProduct
+	items := make([]products.BrowseProduct, 0, len(productsList))
+	for _, p := range productsList {
+		// Получаем цены
+		prices, err := a.GetProductPrices(p.ID)
+		if err != nil {
+			continue
+		}
+
+		browseProduct := products.BrowseProduct{
+			ID:         p.ID,
+			Name:       p.Name,
+			Brand:      p.Brand,
+			Category:   p.Category,
+			ImageURL:   p.ImageURL,
+			ShopsCount: len(prices),
+			Specs:      p.Specs,
+		}
+
+		if len(prices) > 0 {
+			minPrice := prices[0].Price
+			maxPrice := prices[0].Price
+			currency := prices[0].Currency
+
+			for _, price := range prices {
+				if price.Price < minPrice {
+					minPrice = price.Price
+				}
+				if price.Price > maxPrice {
+					maxPrice = price.Price
+				}
+			}
+
+			browseProduct.MinPrice = minPrice
+			browseProduct.MaxPrice = maxPrice
+			browseProduct.Currency = currency
+		}
+
+		items = append(items, browseProduct)
+	}
+
+	totalPages := (int(total) + params.PerPage - 1) / params.PerPage
+
+	return &products.BrowseResult{
+		Items:      items,
+		Page:       params.Page,
+		PerPage:    params.PerPage,
+		Total:      int64(total),
+		TotalPages: totalPages,
+	}, nil
+}
+
 // SaveProductPrice сохраняет цену товара
 func (a *ProductsAdapter) SaveProductPrice(price *products.ProductPrice) error {
 	productUUID, err := uuid.Parse(price.ProductID)

@@ -58,7 +58,17 @@ func setupRoutes(r *chi.Mux, h *Handlers) {
 	// Health check
 	r.Get("/api/health", h.Health.Check)
 
-	// API роуты для товаров
+	// API v1 роуты для товаров
+	r.Route("/api/v1", func(api chi.Router) {
+		api.Route("/products", func(pr chi.Router) {
+			pr.Get("/search", h.Products.Search)
+			pr.Get("/browse", h.Products.Browse)
+			pr.Get("/{id}", h.Products.GetByID)
+			pr.Get("/{id}/prices", h.Products.GetPrices)
+		})
+	})
+
+	// Старые роуты для обратной совместимости
 	r.Route("/api/products", func(r chi.Router) {
 		r.Get("/", h.Products.Search)
 		r.Get("/{id}", h.Products.GetByID)

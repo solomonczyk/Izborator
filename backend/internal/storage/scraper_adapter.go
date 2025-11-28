@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/solomonczyk/izborator/internal/scraper"
 )
@@ -25,63 +24,93 @@ func NewScraperAdapter(pg *Postgres) scraper.Storage {
 	}
 }
 
-// SaveRawProduct сохраняет сырые данные товара
+// SaveRawProduct сохраняет сырые данные товара в raw_products
 func (a *ScraperAdapter) SaveRawProduct(data *scraper.RawProduct) error {
-	query := `
-		INSERT INTO raw_products (
-			id, shop_id, shop_name, external_id, name, description, price, currency,
-			url, image_urls, category, brand, specs, in_stock, scraped_at, processed
-		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-		ON CONFLICT (shop_id, external_id) DO UPDATE SET
-			name = EXCLUDED.name,
-			description = EXCLUDED.description,
-			price = EXCLUDED.price,
-			currency = EXCLUDED.currency,
-			url = EXCLUDED.url,
-			image_urls = EXCLUDED.image_urls,
-			category = EXCLUDED.category,
-			brand = EXCLUDED.brand,
-			specs = EXCLUDED.specs,
-			in_stock = EXCLUDED.in_stock,
-			scraped_at = EXCLUDED.scraped_at,
-			processed = false
-	`
-
-	rawID := uuid.New()
-
-	// Сериализация JSON полей
-	imageURLsJSON, err := json.Marshal(data.ImageURLs)
-	if err != nil {
-		return fmt.Errorf("failed to marshal image_urls: %w", err)
+	// Определяем время парсинга
+	parsedAt := data.ParsedAt
+	if parsedAt.IsZero() {
+		parsedAt = time.Now()
 	}
 
+	// Сериализация JSON полей
 	specsJSON, err := json.Marshal(data.Specs)
 	if err != nil {
 		return fmt.Errorf("failed to marshal specs: %w", err)
 	}
 
-	if data.ScrapedAt.IsZero() {
-		data.ScrapedAt = time.Now()
+	var rawPayloadJSON []byte
+	if data.RawPayload != nil {
+		rawPayloadJSON, err = json.Marshal(data.RawPayload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal raw_payload: %w", err)
+		}
 	}
 
+	// Сериализация image_urls
+	var imageURLsJSON []byte
+	if len(data.ImageURLs) > 0 {
+		imageURLsJSON, err = json.Marshal(data.ImageURLs)
+		if err != nil {
+			return fmt.Errorf("failed to marshal image_urls: %w", err)
+		}
+	}
+
+	query := `
+		INSERT INTO raw_products (
+			shop_id,
+			shop_name,
+			external_id,
+			url,
+			name,
+			description,
+			brand,
+			category,
+			price,
+			currency,
+			image_urls,
+			specs_json,
+			raw_payload,
+			in_stock,
+			parsed_at,
+			processed
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, FALSE
+		)
+		ON CONFLICT (shop_id, external_id)
+		DO UPDATE SET
+			shop_name   = EXCLUDED.shop_name,
+			url         = EXCLUDED.url,
+			name        = EXCLUDED.name,
+			description = EXCLUDED.description,
+			brand       = EXCLUDED.brand,
+			category    = EXCLUDED.category,
+			price       = EXCLUDED.price,
+			currency    = EXCLUDED.currency,
+			image_urls  = EXCLUDED.image_urls,
+			specs_json  = EXCLUDED.specs_json,
+			raw_payload = EXCLUDED.raw_payload,
+			in_stock    = EXCLUDED.in_stock,
+			parsed_at   = EXCLUDED.parsed_at,
+			processed   = FALSE,
+			processed_at = NULL
+	`
+
 	_, err = a.pg.DB().Exec(a.ctx, query,
-		rawID,
 		data.ShopID,
 		data.ShopName,
 		data.ExternalID,
+		data.URL,
 		data.Name,
 		data.Description,
+		data.Brand,
+		data.Category,
 		data.Price,
 		data.Currency,
-		data.URL,
 		imageURLsJSON,
-		data.Category,
-		data.Brand,
 		specsJSON,
+		rawPayloadJSON,
 		data.InStock,
-		data.ScrapedAt,
-		false, // processed
+		parsedAt,
 	)
 
 	if err != nil {
@@ -94,13 +123,14 @@ func (a *ScraperAdapter) SaveRawProduct(data *scraper.RawProduct) error {
 // GetShopConfig получает конфигурацию магазина
 func (a *ScraperAdapter) GetShopConfig(shopID string) (*scraper.ShopConfig, error) {
 	query := `
-		SELECT id, name, base_url, selectors, rate_limit, enabled
+		SELECT id, name, base_url, selectors, rate_limit, is_active
 		FROM shops
 		WHERE id = $1
 	`
 
 	var config scraper.ShopConfig
 	var selectorsJSON []byte
+	var isActive bool
 
 	err := a.pg.DB().QueryRow(a.ctx, query, shopID).Scan(
 		&config.ID,
@@ -108,8 +138,10 @@ func (a *ScraperAdapter) GetShopConfig(shopID string) (*scraper.ShopConfig, erro
 		&config.BaseURL,
 		&selectorsJSON,
 		&config.RateLimit,
-		&config.Enabled,
+		&isActive,
 	)
+	
+	config.Enabled = isActive
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -133,7 +165,7 @@ func (a *ScraperAdapter) GetShopConfig(shopID string) (*scraper.ShopConfig, erro
 // ListShops получает список всех магазинов
 func (a *ScraperAdapter) ListShops() ([]*scraper.ShopConfig, error) {
 	query := `
-		SELECT id, name, base_url, selectors, rate_limit, enabled
+		SELECT id, name, base_url, selectors, rate_limit, is_active
 		FROM shops
 		ORDER BY name
 	`
@@ -149,6 +181,7 @@ func (a *ScraperAdapter) ListShops() ([]*scraper.ShopConfig, error) {
 	for rows.Next() {
 		var shop scraper.ShopConfig
 		var selectorsJSON []byte
+		var isActive bool
 
 		err := rows.Scan(
 			&shop.ID,
@@ -156,8 +189,10 @@ func (a *ScraperAdapter) ListShops() ([]*scraper.ShopConfig, error) {
 			&shop.BaseURL,
 			&selectorsJSON,
 			&shop.RateLimit,
-			&shop.Enabled,
+			&isActive,
 		)
+		
+		shop.Enabled = isActive
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan shop: %w", err)
@@ -180,4 +215,128 @@ func (a *ScraperAdapter) ListShops() ([]*scraper.ShopConfig, error) {
 	}
 
 	return shops, nil
+}
+
+// GetUnprocessedRawProducts возвращает батч необработанных сырых товаров
+func (a *ScraperAdapter) GetUnprocessedRawProducts(limit int) ([]*scraper.RawProduct, error) {
+	query := `
+		SELECT
+			shop_id,
+			shop_name,
+			external_id,
+			url,
+			name,
+			description,
+			brand,
+			category,
+			price,
+			currency,
+			image_urls,
+			specs_json,
+			raw_payload,
+			in_stock,
+			parsed_at
+		FROM raw_products
+		WHERE processed = FALSE
+		ORDER BY parsed_at ASC
+		LIMIT $1
+	`
+
+	rows, err := a.pg.DB().Query(a.ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get unprocessed raw products: %w", err)
+	}
+	defer rows.Close()
+
+	var result []*scraper.RawProduct
+
+	for rows.Next() {
+		var (
+			r            scraper.RawProduct
+			imageURLsJSON []byte
+			specsJSON    []byte
+			rawPayload   []byte
+			parsedAtTime time.Time
+		)
+
+		if err := rows.Scan(
+			&r.ShopID,
+			&r.ShopName,
+			&r.ExternalID,
+			&r.URL,
+			&r.Name,
+			&r.Description,
+			&r.Brand,
+			&r.Category,
+			&r.Price,
+			&r.Currency,
+			&imageURLsJSON,
+			&specsJSON,
+			&rawPayload,
+			&r.InStock,
+			&parsedAtTime,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan raw product: %w", err)
+		}
+
+		// Десериализация JSON полей
+		if len(imageURLsJSON) > 0 {
+			if err := json.Unmarshal(imageURLsJSON, &r.ImageURLs); err != nil {
+				// Не критично, продолжаем с пустым массивом
+				r.ImageURLs = []string{}
+			}
+		} else {
+			r.ImageURLs = []string{}
+		}
+
+		if len(specsJSON) > 0 {
+			if err := json.Unmarshal(specsJSON, &r.Specs); err != nil {
+				// Не критично, продолжаем с пустым specs
+				r.Specs = make(map[string]string)
+			}
+		} else {
+			r.Specs = make(map[string]string)
+		}
+
+		if len(rawPayload) > 0 {
+			if err := json.Unmarshal(rawPayload, &r.RawPayload); err != nil {
+				// Не критично, продолжаем с nil
+				r.RawPayload = nil
+			}
+		}
+
+		r.ParsedAt = parsedAtTime
+		r.ScrapedAt = parsedAtTime // для обратной совместимости
+
+		result = append(result, &r)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating raw products: %w", err)
+	}
+
+	return result, nil
+}
+
+// MarkRawProductAsProcessed помечает сырой товар как обработанный
+func (a *ScraperAdapter) MarkRawProductAsProcessed(shopID, externalID string) error {
+	query := `
+		UPDATE raw_products
+		SET processed = TRUE,
+		    processed_at = NOW()
+		WHERE shop_id = $1
+		  AND external_id = $2
+	`
+
+	result, err := a.pg.DB().Exec(a.ctx, query, shopID, externalID)
+	if err != nil {
+		return fmt.Errorf("failed to mark raw product as processed: %w", err)
+	}
+
+	// Проверяем, что запись была обновлена
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("no rows affected: shop_id=%s, external_id=%s", shopID, externalID)
+	}
+
+	return nil
 }
