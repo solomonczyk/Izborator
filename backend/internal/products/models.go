@@ -35,3 +35,38 @@ type SearchResult struct {
 	Offset int       `json:"offset"`
 }
 
+// BrowseProduct товар для каталога (с агрегированными ценами)
+type BrowseProduct struct {
+	ID         string            `json:"id"`
+	Name       string            `json:"name"`
+	Brand      string            `json:"brand,omitempty"`
+	Category   string            `json:"category,omitempty"`
+	ImageURL   string            `json:"image_url,omitempty"`
+	MinPrice   float64           `json:"min_price,omitempty"`
+	MaxPrice   float64           `json:"max_price,omitempty"`
+	Currency   string            `json:"currency,omitempty"`
+	ShopsCount int               `json:"shops_count,omitempty"`
+	Specs      map[string]string `json:"specs,omitempty"`
+}
+
+// BrowseParams параметры для каталога
+type BrowseParams struct {
+	Query    string
+	Category string
+	ShopID   string
+	MinPrice *float64
+	MaxPrice *float64
+	Page     int
+	PerPage  int
+	Sort     string
+}
+
+// BrowseResult результат каталога
+type BrowseResult struct {
+	Items      []BrowseProduct `json:"items"`
+	Page       int             `json:"page"`
+	PerPage    int             `json:"per_page"`
+	Total      int64           `json:"total"`
+	TotalPages int             `json:"total_pages"`
+}
+

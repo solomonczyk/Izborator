@@ -1,11 +1,30 @@
 package products
 
 import (
+	"context"
 	"fmt"
 )
 
-// Search ищет товары по запросу
-func (s *Service) Search(query string, limit, offset int) (*SearchResult, error) {
+// Search ищет товары по запросу (простой поиск без пагинации для /api/v1/products/search)
+func (s *Service) Search(ctx context.Context, query string) ([]*Product, error) {
+	if query == "" {
+		return nil, ErrInvalidSearchQuery
+	}
+
+	products, _, err := s.storage.SearchProducts(query, 20, 0)
+	if err != nil {
+		s.logger.Error("Failed to search products", map[string]interface{}{
+			"error": err,
+			"query": query,
+		})
+		return nil, fmt.Errorf("search failed: %w", err)
+	}
+
+	return products, nil
+}
+
+// SearchWithPagination ищет товары по запросу с пагинацией (старый формат)
+func (s *Service) SearchWithPagination(ctx context.Context, query string, limit, offset int) (*SearchResult, error) {
 	if query == "" {
 		return nil, ErrInvalidSearchQuery
 	}
@@ -35,6 +54,30 @@ func (s *Service) Search(query string, limit, offset int) (*SearchResult, error)
 		Limit:  limit,
 		Offset: offset,
 	}, nil
+}
+
+// Browse возвращает каталог товаров с фильтрами
+func (s *Service) Browse(ctx context.Context, params BrowseParams) (*BrowseResult, error) {
+	if params.Page <= 0 {
+		params.Page = 1
+	}
+	if params.PerPage <= 0 {
+		params.PerPage = 20
+	}
+	if params.PerPage > 100 {
+		params.PerPage = 100
+	}
+
+	result, err := s.storage.Browse(ctx, params)
+	if err != nil {
+		s.logger.Error("Failed to browse products", map[string]interface{}{
+			"error": err,
+			"query": params.Query,
+		})
+		return nil, fmt.Errorf("browse failed: %w", err)
+	}
+
+	return result, nil
 }
 
 // GetByID получает товар по ID

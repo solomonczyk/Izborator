@@ -1,6 +1,7 @@
 package products
 
 import (
+	"context"
 	"github.com/solomonczyk/izborator/internal/logger"
 )
 
@@ -11,6 +12,9 @@ type Storage interface {
 	
 	// SearchProducts ищет товары по запросу
 	SearchProducts(query string, limit, offset int) ([]*Product, int, error)
+	
+	// Browse возвращает каталог товаров с фильтрами
+	Browse(ctx context.Context, params BrowseParams) (*BrowseResult, error)
 	
 	// SaveProduct сохраняет товар
 	SaveProduct(product *Product) error

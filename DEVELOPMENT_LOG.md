@@ -964,3 +964,152 @@ go run cmd/worker/main.go -url "https://gigatron.rs/mobilni-telefoni/samsung-gal
 
 ---
 
+### День 1 - Обновление структуры shops + raw_products
+**Дата:** 25.11.2025  
+**Время:** вечер
+
+**Выполнено:**
+- ✅ Создана миграция `0002_update_shops_raw_products.up.sql` для обновления структуры таблиц
+- ✅ Добавлено поле `code` в таблицу `shops` (уникальный короткий код магазина)
+- ✅ Переименовано поле `enabled` → `is_active` в таблице `shops`
+- ✅ Добавлено поле `processed_at` в таблицу `raw_products` (время обработки)
+- ✅ Добавлено поле `raw_payload` в таблицу `raw_products` (полный сырой объект)
+- ✅ Переименовано поле `specs` → `specs_json` для ясности
+- ✅ Переименовано поле `scraped_at` → `parsed_at` для единообразия
+- ✅ Изменён тип `parsed_at` на `TIMESTAMPTZ`
+- ✅ Создан составной первичный ключ `(shop_id, external_id)` вместо `id`
+- ✅ Создан индекс `idx_raw_products_unprocessed` для эффективной выборки необработанных товаров
+- ✅ Миграция успешно применена к базе данных
+
+**Созданные файлы:**
+- `backend/migrations/0002_update_shops_raw_products.up.sql` — миграция для обновления структуры
+- `backend/migrations/0002_update_shops_raw_products.down.sql` — откат миграции
+
+**Структура таблиц:**
+- `shops`: id, name, code (уникальный), base_url, is_active, created_at, updated_at
+- `raw_products`: shop_id + external_id (PK), url, name, brand, category, price, currency, specs_json, raw_payload, parsed_at, processed, processed_at
+
+**Следующие шаги:**
+- Реализовать методы в ScraperStorage для работы с raw_products
+- Реализовать batch-обработку в processor.ProcessRawProducts
+
+**Заметки:**
+- Таблицы готовы для работы scraper + processor
+- Индекс для необработанных товаров оптимизирован для быстрой выборки
+- Составной первичный ключ обеспечивает уникальность товара в рамках магазина
+
+---
+
+### День N - API endpoints, фронтенд и настройка окружения
+**Дата:** 2025-11-28  
+**Время:** весь день
+
+**Выполнено:**
+
+**1. Реализация API endpoints:**
+- ✅ Реализован endpoint `GET /api/v1/products/{id}` для получения карточки товара с ценами
+  - Возвращает полную информацию о товаре и список цен из разных магазинов
+  - Обработчик `GetByID` в `internal/http/handlers/products.go`
+- ✅ Реализован endpoint `GET /api/v1/products/search` для полнотекстового поиска
+  - Использует Meilisearch с fallback на PostgreSQL
+  - Простой поиск без пагинации (до 20 результатов)
+- ✅ Реализован endpoint `GET /api/v1/products/browse` для каталога с фильтрами
+  - Поддержка фильтров: `query`, `category`, `shop_id`, `min_price`, `max_price`
+  - Пагинация: `page`, `per_page`
+  - Сортировка: `price_asc`, `price_desc`, `newest`, `name_asc`
+  - Возвращает агрегированные данные о ценах (min_price, max_price, shops_count)
+  - Использует Meilisearch с обогащением данных из PostgreSQL
+  - Fallback на PostgreSQL при недоступности Meilisearch
+
+**2. Интеграция Meilisearch:**
+- ✅ Расширен `ProcessedStorage` интерфейс методом `IndexProduct`
+- ✅ Реализован `IndexProduct` в `ProcessorAdapter` для индексации товаров
+- ✅ Автоматическая индексация новых товаров при обработке в processor
+- ✅ Реализован поиск через Meilisearch в `ProductsAdapter.SearchProducts`
+- ✅ Реализован каталог через Meilisearch в `ProductsAdapter.Browse`
+
+**3. Создание Next.js фронтенда:**
+- ✅ Инициализирован Next.js проект с TypeScript и Tailwind CSS
+- ✅ Создана страница каталога `/catalog` (`frontend/app/catalog/page.tsx`)
+  - SSR (Server-Side Rendering) для загрузки данных
+  - Интеграция с API endpoint `/api/v1/products/browse`
+  - Отображение товаров с ценами, изображениями и информацией о магазинах
+  - Поисковая строка с GET-параметрами
+- ✅ Настроен `.env.local` с `NEXT_PUBLIC_API_BASE`
+- ✅ Исправлена проблема с `searchParams` в Next.js 16 (Promise)
+- ✅ Добавлен `suppressHydrationWarning` для устранения предупреждений о hydration mismatch
+
+**4. Настройка окружения:**
+- ✅ Исправлена загрузка переменных окружения из `.env` файла
+  - Добавлен пакет `github.com/joho/godotenv` для загрузки `.env`
+  - Обновлены `cmd/api/main.go` и `cmd/worker/main.go` для автоматической загрузки `.env`
+  - Исправлена проблема с подключением к PostgreSQL (использование правильного порта)
+- ✅ Созданы скрипты для настройки тестовой базы данных:
+  - `backend/scripts/create_test_db.sql` — создание базы данных `izborator`
+  - `backend/scripts/create_test_db_in_izborator.sql` — создание схемы (таблицы, индексы, триггеры)
+  - `backend/scripts/seed_test_data.sql` — тестовые данные (3 товара с ценами)
+  - `backend/scripts/setup_test_db.ps1` — PowerShell скрипт для автоматизации
+  - `backend/scripts/setup_local_db.ps1` — альтернативный скрипт для локального PostgreSQL
+  - `backend/scripts/SETUP_INSTRUCTIONS.md` — подробная инструкция по настройке
+- ✅ Обновлён `.env` файл с правильными настройками подключения к БД
+
+**Созданные файлы:**
+
+**Backend:**
+- `backend/internal/http/handlers/products.go` — обновлён с методами `GetByID`, `Search`, `Browse`
+- `backend/internal/products/models.go` — добавлены DTO: `BrowseProduct`, `BrowseParams`, `BrowseResult`
+- `backend/internal/products/impl.go` — реализованы методы `Search`, `Browse`
+- `backend/internal/products/module.go` — добавлен метод `Browse` в интерфейс `Storage`
+- `backend/internal/storage/products_adapter.go` — реализованы `SearchProducts`, `Browse`, `getAggregatedPrices`
+- `backend/internal/storage/processor_adapter.go` — добавлен метод `IndexProduct` для Meilisearch
+- `backend/internal/http/router/router.go` — добавлены роуты `/api/v1/products/{id}`, `/search`, `/browse`
+- `backend/scripts/create_test_db.sql` — SQL скрипт для создания базы данных
+- `backend/scripts/create_test_db_in_izborator.sql` — SQL скрипт для создания схемы
+- `backend/scripts/seed_test_data.sql` — SQL скрипт с тестовыми данными
+- `backend/scripts/setup_test_db.ps1` — PowerShell скрипт для Docker
+- `backend/scripts/setup_local_db.ps1` — PowerShell скрипт для локального PostgreSQL
+- `backend/scripts/SETUP_INSTRUCTIONS.md` — инструкция по настройке
+
+**Frontend:**
+- `frontend/app/catalog/page.tsx` — страница каталога с SSR
+- `frontend/app/layout.tsx` — обновлён с `suppressHydrationWarning`
+- `frontend/.env.local` — конфигурация API endpoint
+- `frontend/package.json` — зависимости Next.js
+- `frontend/README.md` — документация фронтенда
+- `frontend/START.md` — инструкция по запуску
+
+**Тестовые данные:**
+- Магазин: Gigatron (ID: `550e8400-e29b-41d4-a716-446655440000`)
+- Товары:
+  - Motorola G72 8/256GB Gray — 29,999 RSD
+  - Samsung Galaxy A54 128GB Black — 34,999 RSD
+  - iPhone 15 Pro 256GB Natural Titanium — 129,999 RSD
+
+**Проблемы и решения:**
+- **Проблема:** PowerShell не может подключиться к Docker через pipe (`docker exec -i`)
+  - **Решение:** Созданы альтернативные способы настройки БД (через Git Bash, WSL, SQL клиент)
+- **Проблема:** `.env` файл не загружался автоматически
+  - **Решение:** Добавлен `godotenv.Load()` в `main.go` файлах
+- **Проблема:** Next.js 16 возвращает `searchParams` как Promise
+  - **Решение:** Обновлён `CatalogPage` для использования `await searchParams`
+- **Проблема:** Hydration mismatch warning в Next.js
+  - **Решение:** Добавлен `suppressHydrationWarning` в `<html>` и `<body>` теги
+- **Проблема:** API endpoint `/api/v1/products/browse` возвращал 404
+  - **Решение:** Перезапущен API сервер после добавления нового роута
+
+**Следующие шаги:**
+- Выполнить SQL скрипты для создания тестовой базы данных
+- Проверить подключение API к базе данных
+- Протестировать все API endpoints с тестовыми данными
+- Протестировать фронтенд каталог с реальными данными
+- Добавить страницу детального просмотра товара (`/product/{id}`)
+- Улучшить UI каталога (фильтры, сортировка, пагинация)
+
+**Заметки:**
+- Docker Desktop требует полной загрузки перед использованием
+- PowerShell имеет ограничения с перенаправлением ввода для Docker команд
+- Рекомендуется использовать Git Bash или WSL для выполнения Docker команд с перенаправлением
+- Тестовая база данных готова к использованию после выполнения SQL скриптов
+
+---
+

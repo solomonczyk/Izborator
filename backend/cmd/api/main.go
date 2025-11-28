@@ -10,43 +10,31 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
+	"github.com/solomonczyk/izborator/internal/app"
 	"github.com/solomonczyk/izborator/internal/config"
-	"github.com/solomonczyk/izborator/internal/logger"
 	"github.com/solomonczyk/izborator/internal/http/router"
-	"github.com/solomonczyk/izborator/internal/products"
-	"github.com/solomonczyk/izborator/internal/storage"
 )
 
 func main() {
+	// Загрузка .env файла (игнорируем ошибку, если файл не найден)
+	_ = godotenv.Load()
+
 	// Загрузка конфигурации
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Инициализация логгера
-	logger := logger.New(cfg.LogLevel)
-
-	// Инициализация storage
-	pg, err := storage.NewPostgres(&cfg.DB, logger)
+	// Инициализация приложения
+	application, err := app.NewAPIApp(cfg)
 	if err != nil {
-		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
+		log.Fatalf("Failed to initialize app: %v", err)
 	}
-	defer pg.Close()
-
-	meili, err := storage.NewMeilisearch(&cfg.Meili, logger)
-	if err != nil {
-		log.Fatalf("Failed to connect to Meilisearch: %v", err)
-	}
-
-	// Создание адаптеров
-	productsStorage := storage.NewProductsAdapter(pg, meili)
-
-	// Инициализация доменных сервисов
-	productsService := products.New(productsStorage, logger)
+	defer application.Close()
 
 	// Инициализация роутера
-	r := router.New(logger, productsService)
+	r := router.New(application.Logger(), application.ProductsService)
 
 	// Настройка HTTP сервера
 	srv := &http.Server{
@@ -59,9 +47,9 @@ func main() {
 
 	// Запуск сервера в горутине
 	go func() {
-		logger.Info("Starting API server", map[string]interface{}{"port": cfg.Server.Port})
+		application.Logger().Info("Starting API server", map[string]interface{}{"port": cfg.Server.Port})
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("Failed to start server", map[string]interface{}{"error": err})
+			application.Logger().Fatal("Failed to start server", map[string]interface{}{"error": err})
 		}
 	}()
 
@@ -70,16 +58,16 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Info("Shutting down server...", map[string]interface{}{})
+	application.Logger().Info("Shutting down server...", map[string]interface{}{})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("Server forced to shutdown", map[string]interface{}{"error": err})
+		application.Logger().Error("Server forced to shutdown", map[string]interface{}{"error": err})
 	}
 
-	logger.Info("Server exited", map[string]interface{}{})
+	application.Logger().Info("Server exited", map[string]interface{}{})
 }
 
 

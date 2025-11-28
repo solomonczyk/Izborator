@@ -14,6 +14,12 @@ type Storage interface {
 	
 	// ListShops получает список всех магазинов
 	ListShops() ([]*ShopConfig, error)
+	
+	// GetUnprocessedRawProducts получает необработанные сырые данные товаров
+	GetUnprocessedRawProducts(limit int) ([]*RawProduct, error)
+	
+	// MarkRawProductAsProcessed помечает сырой товар как обработанный
+	MarkRawProductAsProcessed(shopID, externalID string) error
 }
 
 // Queue интерфейс для отправки данных в очередь

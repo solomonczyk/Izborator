@@ -335,7 +335,8 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		return nil, fmt.Errorf("failed to extract essential data from %s: name='%s', price=%.2f", url, product.Name, product.Price)
 	}
 
-	product.ScrapedAt = time.Now()
+	product.ParsedAt = time.Now()
+	product.ScrapedAt = product.ParsedAt // для обратной совместимости
 	product.InStock = true // По умолчанию считаем, что товар в наличии
 
 	return &product, nil

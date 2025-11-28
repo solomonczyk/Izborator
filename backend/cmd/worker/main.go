@@ -9,80 +9,68 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
+	"github.com/solomonczyk/izborator/internal/app"
 	"github.com/solomonczyk/izborator/internal/config"
-	"github.com/solomonczyk/izborator/internal/logger"
-	"github.com/solomonczyk/izborator/internal/scraper"
-	"github.com/solomonczyk/izborator/internal/storage"
 )
 
 func main() {
+	// Загрузка .env файла (игнорируем ошибку, если файл не найден)
+	_ = godotenv.Load()
+
 	// Загрузка конфигурации
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Инициализация логгера
-	logger := logger.New(cfg.LogLevel)
+	// Инициализация приложения
+	application, err := app.NewWorkerApp(cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize app: %v", err)
+	}
+	defer application.Close()
 
 	// Флаги для ручного запуска
 	testURL := flag.String("url", "", "URL товара для теста")
 	shopIDStr := flag.String("shop", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "UUID магазина")
+	processRaw := flag.Bool("process", false, "Обработать необработанные сырые данные")
+	batchSize := flag.Int("batch-size", 10, "Размер батча для обработки")
 	flag.Parse()
 
 	ctx := context.Background()
 
-	// Подключение к БД
-	logger.Info("Connecting to PostgreSQL", map[string]interface{}{
-		"host":     cfg.DB.Host,
-		"port":      cfg.DB.Port,
-		"user":      cfg.DB.User,
-		"database":  cfg.DB.Database,
-		"dsn":       cfg.DB.DSN(),
-	})
-	pg, err := storage.NewPostgres(&cfg.DB, logger)
-	if err != nil {
-		logger.Fatal("Failed to connect to PostgreSQL", map[string]interface{}{"error": err.Error(), "dsn": cfg.DB.DSN()})
-	}
-	defer pg.Close()
-
-	// Создание адаптеров
-	scraperStorage := storage.NewScraperAdapter(pg)
-
-	// Создание сервисов (queue пока nil, так как не реализован)
-	scraperService := scraper.New(scraperStorage, nil, logger)
-
 	// Режим тестирования одного URL
 	if *testURL != "" {
-		logger.Info("🚀 Starting manual test scrape...", map[string]interface{}{
+		application.Logger().Info("🚀 Starting manual test scrape...", map[string]interface{}{
 			"url":     *testURL,
 			"shop_id": *shopIDStr,
 		})
 
 		// Получаем конфиг магазина
-		shopConfig, err := scraperStorage.GetShopConfig(*shopIDStr)
+		shopConfig, err := application.GetShopConfig(*shopIDStr)
 		if err != nil {
-			logger.Fatal("Shop config not found", map[string]interface{}{
-				"error":  err,
+			application.Logger().Fatal("Shop config not found", map[string]interface{}{
+				"error":   err,
 				"shop_id": *shopIDStr,
 			})
 		}
 
-		logger.Info("Shop config loaded", map[string]interface{}{
+		application.Logger().Info("Shop config loaded", map[string]interface{}{
 			"shop_name": shopConfig.Name,
 			"base_url":  shopConfig.BaseURL,
 		})
 
 		// Парсим товар
-		rawProduct, err := scraperService.ParseProduct(ctx, *testURL, shopConfig)
+		rawProduct, err := application.ScraperService.ParseProduct(ctx, *testURL, shopConfig)
 		if err != nil {
-			logger.Fatal("❌ Scraping failed", map[string]interface{}{
+			application.Logger().Fatal("❌ Scraping failed", map[string]interface{}{
 				"error": err.Error(),
 				"url":   *testURL,
 			})
 		}
 
-		logger.Info("✅ SUCCESS! Product parsed", map[string]interface{}{
+		application.Logger().Info("✅ SUCCESS! Product parsed", map[string]interface{}{
 			"name":     rawProduct.Name,
 			"price":    rawProduct.Price,
 			"currency": rawProduct.Currency,
@@ -91,26 +79,46 @@ func main() {
 		})
 
 		// Сохраняем результат
-		if err := scraperService.SaveRawProduct(ctx, rawProduct); err != nil {
-			logger.Error("Failed to save raw product", map[string]interface{}{
+		if err := application.ScraperService.SaveRawProduct(ctx, rawProduct); err != nil {
+			application.Logger().Error("Failed to save raw product", map[string]interface{}{
 				"error": err.Error(),
 			})
 		} else {
-			logger.Info("💾 Saved to raw_products table", map[string]interface{}{})
+			application.Logger().Info("💾 Saved to raw_products table", map[string]interface{}{})
 		}
 
 		return
 	}
 
+	// Режим обработки сырых данных
+	if *processRaw {
+		application.Logger().Info("🔄 Starting raw products processing...", map[string]interface{}{
+			"batch_size": *batchSize,
+		})
+
+		processed, err := application.ProcessorService.ProcessRawProducts(ctx, *batchSize)
+		if err != nil {
+			application.Logger().Fatal("Failed to process raw products", map[string]interface{}{
+				"error": err.Error(),
+			})
+		}
+
+		application.Logger().Info("✅ Processing completed", map[string]interface{}{
+			"processed": processed,
+		})
+
+		return
+	}
+
 	// Обычный режим воркера (ожидание задач из очереди)
-	logger.Info("Worker started (waiting for jobs...) - use -url to test scrape", map[string]interface{}{})
+	application.Logger().Info("Worker started (waiting for jobs...) - use -url to test scrape or -process to process raw data", map[string]interface{}{})
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Info("Shutting down worker...", map[string]interface{}{})
+	application.Logger().Info("Shutting down worker...", map[string]interface{}{})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -118,5 +126,5 @@ func main() {
 	// TODO: Graceful shutdown воркеров
 	_ = ctx
 
-	logger.Info("Worker exited", map[string]interface{}{})
+	application.Logger().Info("Worker exited", map[string]interface{}{})
 }
