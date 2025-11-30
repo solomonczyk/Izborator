@@ -1,62 +1,71 @@
-# Current Step — Backend: Мониторинг парсинга (Приоритет №1)
+# Текущий шаг (2025-01-XX)
 
-## Модуль:
-backend (Go)
+## Цель
 
-## Цель:
-Реализовать систему мониторинга парсинга для отслеживания стабильности обновления цен:
-- Создать таблицу для статистики парсинга
-- Добавить API endpoints для получения статистики
-- Интегрировать логирование статистики в процесс парсинга
+Подтвердить, что универсальное ядро каталога (categories + product_types + attributes + cities) реально работает end-to-end:
 
-## Задача:
-- Создать миграцию для таблицы `scraping_stats`
-- Реализовать модуль `scrapingstats` (Storage, Service)
-- Создать API endpoints: `/api/v1/stats/overall`, `/api/v1/stats/shops/{id}`, `/api/v1/stats/recent`
-- Интегрировать запись статистики в scraper при парсинге
+- фильтрация по category slug на API
+- отображение категорий/городов на фронте
+- корректная выдача товаров и цен
 
-## Done when:
-- Таблица `scraping_stats` создана и миграция применена
-- API endpoints для статистики работают и возвращают корректные данные
-- Статистика записывается при каждом парсинге
-- Можно получить общую статистику и статистику по магазинам
+## Ограничение
 
-## Предыдущие шаги (✅ Завершены):
-- Страница каталога `/catalog` успешно работает с фильтрами, сортировкой и пагинацией
-- Страница детального просмотра `/product/[id]` реализована и протестирована
-- График истории цен отображается на странице товара
-- Кэширование реализовано для всех популярных endpoints
-- Оптимизация производительности завершена
+До завершения этого шага:
 
-## Следующий шаг:
-После мониторинга — добавить retry-логику для парсинга при ошибках
+- НЕ добавляем новые сущности/таблицы/фичи
+- Меняем только:
+  - backend/internal/products/*
+  - backend/internal/categories/*
+  - backend/internal/cities/*
+  - backend/internal/storage/products_adapter.go
+  - frontend/app/[locale]/catalog/page.tsx
+  - frontend/components, если нужно для фильтров
 
----
+Любые идеи "а давай сделаем ещё X" — только как TODO в ROADMAP_NEXT.md.
 
-## Upcoming Step — Multilingual Support (i18n)
+## Чек-лист действий
 
-### Модуль:
-backend (Go) + frontend (Next.js)
+### ✅ Шаг 1 — Поднять окружение
+- [x] Запустить docker-compose
+- [x] Применить миграции
+- [x] Настроить и запустить indexer (готово, но требует запуска)
+- [x] Запустить API (порт 8081) - готово к запуску
+- [ ] Запустить frontend (порт 3000)
 
-### Цель:
-Внедрить мультиязычность для поддержки 5 языков: sr (сербский), ru, hu (венгерский), en, zh (китайский)
+### ⏳ Шаг 2 — Протестировать /browse с категориями
+- [x] Исправлен баг: category_id читается в searchViaPostgres
+- [x] Исправлен баг: category_id добавляется в Meilisearch indexer
+- [ ] GET /api/v1/products/browse?category=mobilni-telefoni работает (требует перезапуска API)
+- [ ] GET /api/v1/products/browse?category=laptopovi работает
+- [ ] GET /api/v1/products/browse (без фильтра) работает
+- [ ] Проверка структуры BrowseResult
+- [ ] Проверка fallback при несуществующем slug
 
-### Задачи:
+### ✅ Шаг 3 — Довести фронтовый фильтр категорий
+- [x] Создать endpoint GET /api/v1/categories/tree
+- [x] Создан CategoriesHandler с методом GetTree
+- [x] Добавлен роут /api/v1/categories/tree
+- [ ] Обновить frontend для загрузки категорий с API
+- [ ] Построить выпадающий список категорий
+- [ ] Передавать category=slug в запрос /products/browse
 
-**Backend:**
-- Создать модуль `internal/i18n/` с translator.go
-- Создать файлы локалей (en.json, sr.json, ru.json, hu.json, zh.json)
-- Создать middleware `DetectLanguage` для определения языка
-- Интегрировать i18n в HTTP handlers
+### ✅ Шаг 4 — Подключить города (минимально)
+- [x] Создать endpoint GET /api/v1/cities
+- [x] Создан CitiesHandler с методом GetAllActive
+- [x] Добавлен роут /api/v1/cities
+- [x] Добавить CitySlug в BrowseParams
+- [x] Добавлено преобразование city slug → city_id в ProductsHandler
+- [x] Добавить фильтр по city_id в products_adapter (через product_prices)
+- [x] Создан метод GetProductPricesByCity
+- [x] Фильтрация по городу работает в browseViaPostgres и browseViaMeilisearch
+- [ ] Добавить выпадающий список "Grad" на фронте
+- [ ] Передавать city=slug в query-строку
 
-**Frontend:**
-- Установить `next-intl`
-- Создать структуру локалей `messages/*.json`
-- Реорганизовать routes на `[locale]` структуру
-- Перевести все UI строки на i18n
-
-### Важно:
-- Доменные модули остаются языконезависимыми
-- Локализация только в HTTP слое (backend) и UI (frontend)
-- НЕ переводим: имена товаров, brand, технические specs, URL
-- Категории переводятся только как UI labels, не как данные
+## Предыдущие этапы (✅ Завершены)
+- Core pipeline: scrape → raw_products → processor → products ✅
+- Public API: /products/{id}, /search, /browse, /price-history ✅
+- Frontend: /catalog, /product/[id] с фильтрами и графиками ✅
+- i18n: полная поддержка 5 языков (sr, ru, hu, en, zh) ✅
+- Мониторинг парсинга: scraping_stats API ✅
+- Retry-логика для парсинга ✅
+- Универсальное ядро каталога: categories, product_types, attributes, cities ✅

@@ -3,12 +3,16 @@ package app
 import (
 	"fmt"
 
+	"github.com/solomonczyk/izborator/internal/attributes"
+	"github.com/solomonczyk/izborator/internal/categories"
+	"github.com/solomonczyk/izborator/internal/cities"
 	"github.com/solomonczyk/izborator/internal/config"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
 	"github.com/solomonczyk/izborator/internal/matching"
 	"github.com/solomonczyk/izborator/internal/pricehistory"
 	"github.com/solomonczyk/izborator/internal/processor"
+	"github.com/solomonczyk/izborator/internal/producttypes"
 	"github.com/solomonczyk/izborator/internal/products"
 	"github.com/solomonczyk/izborator/internal/scraper"
 	"github.com/solomonczyk/izborator/internal/scrapingstats"
@@ -33,6 +37,10 @@ type App struct {
 	matchingStorage      matching.Storage
 	priceHistoryStorage  pricehistory.Storage
 	scrapingStatsStorage scrapingstats.Storage
+	categoriesStorage    categories.Storage
+	productTypesStorage  producttypes.Storage
+	attributesStorage    attributes.Storage
+	citiesStorage        cities.Storage
 
 	// Services (публичные - используются в cmd/*)
 	ScraperService       *scraper.Service
@@ -41,6 +49,10 @@ type App struct {
 	MatchingService      *matching.Service
 	PriceHistoryService  *pricehistory.Service
 	ScrapingStatsService *scrapingstats.Service
+	CategoriesService    *categories.Service
+	ProductTypesService  *producttypes.Service
+	AttributesService    *attributes.Service
+	CitiesService        *cities.Service
 
 	// i18n
 	Translator *i18n.Translator
@@ -129,6 +141,10 @@ func (a *App) initAdapters() {
 	a.matchingStorage = storage.NewMatchingAdapter(a.pg)
 	a.priceHistoryStorage = storage.NewPriceHistoryAdapter(a.pg)
 	a.scrapingStatsStorage = storage.NewScrapingStatsAdapter(a.pg)
+	a.categoriesStorage = storage.NewCategoriesAdapter(a.pg)
+	a.productTypesStorage = storage.NewProductTypesAdapter(a.pg)
+	a.attributesStorage = storage.NewAttributesAdapter(a.pg)
+	a.citiesStorage = storage.NewCitiesAdapter(a.pg)
 }
 
 // initServices инициализирует доменные сервисы
@@ -155,6 +171,18 @@ func (a *App) initServices() {
 
 	// Scraping stats service
 	a.ScrapingStatsService = scrapingstats.New(a.scrapingStatsStorage, a.logger)
+
+	// Categories service
+	a.CategoriesService = categories.New(a.categoriesStorage, a.logger)
+
+	// Product types service
+	a.ProductTypesService = producttypes.New(a.productTypesStorage, a.logger)
+
+	// Attributes service
+	a.AttributesService = attributes.New(a.attributesStorage, a.logger)
+
+	// Cities service
+	a.CitiesService = cities.New(a.citiesStorage, a.logger)
 }
 
 // initI18n инициализирует переводчик
@@ -222,12 +250,20 @@ func NewAPIApp(cfg *config.Config) (*App, error) {
 	app.matchingStorage = storage.NewMatchingAdapter(app.pg)
 	app.priceHistoryStorage = storage.NewPriceHistoryAdapter(app.pg)
 	app.scrapingStatsStorage = storage.NewScrapingStatsAdapter(app.pg)
+	app.categoriesStorage = storage.NewCategoriesAdapter(app.pg)
+	app.productTypesStorage = storage.NewProductTypesAdapter(app.pg)
+	app.attributesStorage = storage.NewAttributesAdapter(app.pg)
+	app.citiesStorage = storage.NewCitiesAdapter(app.pg)
 
 	// Инициализация сервисов (только для API)
 	app.ProductsService = products.New(app.productsStorage, app.logger)
 	app.MatchingService = matching.New(app.matchingStorage, app.logger)
 	app.PriceHistoryService = pricehistory.New(app.priceHistoryStorage, app.logger)
 	app.ScrapingStatsService = scrapingstats.New(app.scrapingStatsStorage, app.logger)
+	app.CategoriesService = categories.New(app.categoriesStorage, app.logger)
+	app.ProductTypesService = producttypes.New(app.productTypesStorage, app.logger)
+	app.AttributesService = attributes.New(app.attributesStorage, app.logger)
+	app.CitiesService = cities.New(app.citiesStorage, app.logger)
 
 	// i18n
 	if err := app.initI18n(); err != nil {

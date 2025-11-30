@@ -39,7 +39,7 @@ func main() {
 	if application.Redis() != nil {
 		redisClient = application.Redis().Client()
 	}
-	r := router.New(application.Logger(), application.ProductsService, application.PriceHistoryService, application.ScrapingStatsService, application.GetTranslator(), redisClient)
+	r := router.New(application.Logger(), application.ProductsService, application.PriceHistoryService, application.ScrapingStatsService, application.CategoriesService, application.CitiesService, application.GetTranslator(), redisClient)
 
 	// Настройка HTTP сервера
 	srv := &http.Server{
@@ -74,6 +74,3 @@ func main() {
 
 	application.Logger().Info("Server exited", map[string]interface{}{})
 }
-
-
-

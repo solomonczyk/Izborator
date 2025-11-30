@@ -97,6 +97,7 @@ func (i *Indexer) SetupIndex() error {
 	filterableAttributes := []string{
 		"brand",
 		"category",
+		"category_id",
 		"created_at",
 		"updated_at",
 	}
@@ -162,7 +163,7 @@ func (i *Indexer) SyncProducts() error {
 
 	// Получаем все товары из PostgreSQL
 	query := `
-		SELECT id, name, description, brand, category, image_url, specs, created_at, updated_at
+		SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
 		FROM products
 		ORDER BY created_at DESC
 	`
@@ -185,6 +186,7 @@ func (i *Indexer) SyncProducts() error {
 			description *string
 			brand       *string
 			category    *string
+			categoryID  *string
 			imageURL    *string
 			specsJSON   []byte
 			createdAt   time.Time
@@ -197,6 +199,7 @@ func (i *Indexer) SyncProducts() error {
 			&description,
 			&brand,
 			&category,
+			&categoryID,
 			&imageURL,
 			&specsJSON,
 			&createdAt,
@@ -221,6 +224,9 @@ func (i *Indexer) SyncProducts() error {
 		}
 		if category != nil {
 			doc["category"] = *category
+		}
+		if categoryID != nil {
+			doc["category_id"] = *categoryID
 		}
 		if imageURL != nil {
 			doc["image_url"] = *imageURL
@@ -295,4 +301,3 @@ func (i *Indexer) indexBatch(index *meilisearch.Index, documents []map[string]in
 
 	return nil
 }
-

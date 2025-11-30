@@ -87,7 +87,7 @@ func (a *ScrapingStatsAdapter) GetShopStats(shopID string, days int) (*scrapings
 
 	// Получаем информацию о магазине
 	shopQuery := `
-		SELECT name, last_scraped_at, scraping_enabled
+		SELECT name, last_scraped_at, is_active
 		FROM shops
 		WHERE id = $1
 	`
@@ -150,7 +150,7 @@ func (a *ScrapingStatsAdapter) GetOverallStats(days int) (*scrapingstats.Overall
 	activeQuery := `
 		SELECT COUNT(*) 
 		FROM shops 
-		WHERE scraping_enabled = true
+		WHERE is_active = true
 	`
 	err = a.pg.DB().QueryRow(a.ctx, activeQuery).Scan(&stats.ActiveShops)
 	if err != nil {
