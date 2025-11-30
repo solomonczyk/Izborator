@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/solomonczyk/izborator/internal/categories"
+	"github.com/solomonczyk/izborator/internal/cities"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
@@ -19,15 +21,19 @@ import (
 type ProductsHandler struct {
 	service         *products.Service
 	priceHistorySvc *pricehistory.Service
+	categoriesSvc   *categories.Service
+	citiesSvc       *cities.Service
 	logger          *logger.Logger
 	translator      *i18n.Translator
 }
 
 // NewProductsHandler создаёт новый обработчик товаров
-func NewProductsHandler(service *products.Service, priceHistorySvc *pricehistory.Service, log *logger.Logger, translator *i18n.Translator) *ProductsHandler {
+func NewProductsHandler(service *products.Service, priceHistorySvc *pricehistory.Service, categoriesSvc *categories.Service, citiesSvc *cities.Service, log *logger.Logger, translator *i18n.Translator) *ProductsHandler {
 	return &ProductsHandler{
 		service:         service,
 		priceHistorySvc: priceHistorySvc,
+		categoriesSvc:   categoriesSvc,
+		citiesSvc:       citiesSvc,
 		logger:          log,
 		translator:      translator,
 	}
@@ -340,6 +346,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 
 	query := q.Get("query")
 	category := q.Get("category")
+	city := q.Get("city")
 	shopID := q.Get("shop_id")
 	sort := q.Get("sort")
 
@@ -370,15 +377,47 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 
+	// Преобразуем category slug в category_id, если указан
+	var categoryID *string
+	if category != "" {
+		cat, err := h.categoriesSvc.GetBySlug(category)
+		if err == nil {
+			categoryID = &cat.ID
+		} else {
+			// Если категория не найдена по slug, оставляем category как строку (для обратной совместимости)
+			h.logger.Warn("Category not found by slug", map[string]interface{}{
+				"slug":  category,
+				"error": err.Error(),
+			})
+		}
+	}
+
+	// Преобразуем city slug в city_id, если указан
+	var cityID *string
+	if city != "" {
+		cityObj, err := h.citiesSvc.GetBySlug(city)
+		if err == nil {
+			cityID = &cityObj.ID
+		} else {
+			h.logger.Warn("City not found by slug", map[string]interface{}{
+				"slug":  city,
+				"error": err.Error(),
+			})
+		}
+	}
+
 	res, err := h.service.Browse(ctx, products.BrowseParams{
-		Query:    query,
-		Category: category,
-		ShopID:   shopID,
-		MinPrice: minPrice,
-		MaxPrice: maxPrice,
-		Page:     page,
-		PerPage:  perPage,
-		Sort:     sort,
+		Query:      query,
+		Category:   category,
+		CategoryID: categoryID,
+		City:       city,
+		CityID:     cityID,
+		ShopID:     shopID,
+		MinPrice:   minPrice,
+		MaxPrice:   maxPrice,
+		Page:       page,
+		PerPage:    perPage,
+		Sort:       sort,
 	})
 	if err != nil {
 		h.logger.Error("browse failed", map[string]interface{}{
@@ -418,4 +457,3 @@ func (h *ProductsHandler) respondError(w http.ResponseWriter, r *http.Request, s
 		"error": message,
 	})
 }
-

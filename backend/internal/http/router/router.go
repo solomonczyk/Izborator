@@ -9,6 +9,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/redis/go-redis/v9"
+	"github.com/solomonczyk/izborator/internal/categories"
+	"github.com/solomonczyk/izborator/internal/cities"
 	"github.com/solomonczyk/izborator/internal/http/handlers"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
@@ -20,20 +22,22 @@ import (
 
 // Router обёртка над HTTP роутером
 type Router struct {
-	chi     *chi.Mux
-	logger  *logger.Logger
+	chi      *chi.Mux
+	logger   *logger.Logger
 	handlers *Handlers
 }
 
 // Handlers содержит все обработчики
 type Handlers struct {
-	Health   *handlers.HealthHandler
-	Products *handlers.ProductsHandler
-	Stats    *handlers.StatsHandler
+	Health     *handlers.HealthHandler
+	Products   *handlers.ProductsHandler
+	Stats      *handlers.StatsHandler
+	Categories *handlers.CategoriesHandler
+	Cities     *handlers.CitiesHandler
 }
 
 // New создаёт новый роутер
-func New(log *logger.Logger, productsService *products.Service, priceHistoryService *pricehistory.Service, scrapingStatsService *scrapingstats.Service, translator *i18n.Translator, redisClient *redis.Client) *Router {
+func New(log *logger.Logger, productsService *products.Service, priceHistoryService *pricehistory.Service, scrapingStatsService *scrapingstats.Service, categoriesService *categories.Service, citiesService *cities.Service, translator *i18n.Translator, redisClient *redis.Client) *Router {
 	r := chi.NewRouter()
 
 	// Базовые middleware
@@ -47,9 +51,11 @@ func New(log *logger.Logger, productsService *products.Service, priceHistoryServ
 
 	// Инициализация handlers
 	handlers := &Handlers{
-		Health:   handlers.NewHealthHandler(),
-		Products: handlers.NewProductsHandler(productsService, priceHistoryService, log, translator),
-		Stats:    handlers.NewStatsHandler(scrapingStatsService, log, translator),
+		Health:     handlers.NewHealthHandler(),
+		Products:   handlers.NewProductsHandler(productsService, priceHistoryService, categoriesService, citiesService, log, translator),
+		Stats:      handlers.NewStatsHandler(scrapingStatsService, log, translator),
+		Categories: handlers.NewCategoriesHandler(categoriesService, log, translator),
+		Cities:     handlers.NewCitiesHandler(citiesService, log, translator),
 	}
 
 	// Настройка роутов
@@ -74,6 +80,18 @@ func setupRoutes(r *chi.Mux, h *Handlers, translator *i18n.Translator, redisClie
 			sr.Get("/overall", h.Stats.GetOverallStats)
 			sr.Get("/recent", h.Stats.GetRecentStats)
 			sr.Get("/shops/{shop_id}", h.Stats.GetShopStats)
+		})
+
+		// Категории
+		api.Route("/categories", func(cr chi.Router) {
+			// Tree - 30 минут (категории меняются редко)
+			cr.With(httpMiddleware.CacheMiddleware(redisClient, log, 30*time.Minute)).Get("/tree", h.Categories.GetTree)
+		})
+
+		// Города
+		api.Route("/cities", func(cr chi.Router) {
+			// GetAllActive - 30 минут (города меняются редко)
+			cr.With(httpMiddleware.CacheMiddleware(redisClient, log, 30*time.Minute)).Get("/", h.Cities.GetAllActive)
 		})
 
 		// Товары

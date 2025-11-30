@@ -4,15 +4,16 @@ import "time"
 
 // Product каноническая карточка товара
 type Product struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Brand       string    `json:"brand"`
-	Category    string    `json:"category"`
-	ImageURL    string    `json:"image_url"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Brand       string            `json:"brand"`
+	Category    string            `json:"category"`              // Старое текстовое поле (для обратной совместимости)
+	CategoryID  *string           `json:"category_id,omitempty"` // FK к categories.id
+	ImageURL    string            `json:"image_url"`
 	Specs       map[string]string `json:"specs"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
 // ProductPrice цена товара в конкретном магазине
@@ -29,10 +30,10 @@ type ProductPrice struct {
 
 // SearchResult результат поиска товаров
 type SearchResult struct {
-	Items []*Product `json:"items"`
-	Total int        `json:"total"`
-	Limit int        `json:"limit"`
-	Offset int       `json:"offset"`
+	Items  []*Product `json:"items"`
+	Total  int        `json:"total"`
+	Limit  int        `json:"limit"`
+	Offset int        `json:"offset"`
 }
 
 // BrowseProduct товар для каталога (с агрегированными ценами)
@@ -40,7 +41,8 @@ type BrowseProduct struct {
 	ID         string            `json:"id"`
 	Name       string            `json:"name"`
 	Brand      string            `json:"brand,omitempty"`
-	Category   string            `json:"category,omitempty"`
+	Category   string            `json:"category,omitempty"`    // Старое текстовое поле
+	CategoryID *string           `json:"category_id,omitempty"` // FK к categories.id
 	ImageURL   string            `json:"image_url,omitempty"`
 	MinPrice   float64           `json:"min_price,omitempty"`
 	MaxPrice   float64           `json:"max_price,omitempty"`
@@ -51,14 +53,17 @@ type BrowseProduct struct {
 
 // BrowseParams параметры для каталога
 type BrowseParams struct {
-	Query    string
-	Category string
-	ShopID   string
-	MinPrice *float64
-	MaxPrice *float64
-	Page     int
-	PerPage  int
-	Sort     string
+	Query      string
+	Category   string  // slug категории (будет преобразован в category_id)
+	CategoryID *string // ID категории (используется внутри)
+	City       string  // slug города (будет преобразован в city_id)
+	CityID     *string // ID города (используется внутри)
+	ShopID     string
+	MinPrice   *float64
+	MaxPrice   *float64
+	Page       int
+	PerPage    int
+	Sort       string
 }
 
 // BrowseResult результат каталога
@@ -69,4 +74,3 @@ type BrowseResult struct {
 	Total      int64           `json:"total"`
 	TotalPages int             `json:"total_pages"`
 }
-

@@ -16,14 +16,26 @@
 9. Страница товара: /product/[id] ✔  
 10. Главная страница ✔  
 
-## Этап 3.5 — Multilingual Support (i18n) (Текущий)
-11. Backend i18n модуль (internal/i18n/)  
-12. Middleware для определения языка  
-13. Frontend i18n (next-intl)  
-14. Локализация UI строк (5 языков: sr, ru, hu, en, zh)  
-15. Автоматический выбор языка (Accept-Language, query param, URL)  
+## Этап 3.5 — Multilingual Support (i18n) (Завершено)
+11. Backend i18n модуль (internal/i18n/) ✔  
+12. Middleware для определения языка ✔  
+13. Frontend i18n (next-intl) ✔  
+14. Локализация UI строк (5 языков: sr, ru, hu, en, zh) ✔  
+15. Автоматический выбор языка (Accept-Language, query param, URL) ✔  
 
-## Этап 4 — Функции сравнения и аналитики
+## Этап 3.6 — Мониторинг и Retry-логика (Завершено)
+16. Таблица scraping_stats и API endpoints ✔  
+17. Интеграция статистики в scraper ✔  
+18. Retry-логика с экспоненциальным backoff ✔  
+
+## Этап 4 — Категории и география (Serbia-first) (Текущий)
+19. Таксономия категорий (categories table + products.category_id)  
+20. География (cities table + product_prices.city_id)  
+21. Расширение /browse фильтрами category и city  
+22. Обновление фронта /catalog под новые фильтры  
+23. Маркетинговые коллекции (collections) для сербского рынка  
+
+## Этап 5 — Функции сравнения и аналитики
 11. Price-history API  
 12. Графики изменений цены  
 13. Сравнение товаров  

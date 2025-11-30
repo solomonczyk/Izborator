@@ -36,7 +36,7 @@ func (a *ProductsAdapter) GetProduct(id string) (*products.Product, error) {
 	}
 
 	query := `
-		SELECT id, name, description, brand, category, image_url, specs, created_at, updated_at
+		SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
 		FROM products
 		WHERE id = $1
 	`
@@ -44,6 +44,7 @@ func (a *ProductsAdapter) GetProduct(id string) (*products.Product, error) {
 	var product products.Product
 	var specsJSON []byte
 	var createdAt, updatedAt time.Time
+	var categoryID *uuid.UUID
 
 	err = a.pg.DB().QueryRow(a.ctx, query, productUUID).Scan(
 		&product.ID,
@@ -51,11 +52,17 @@ func (a *ProductsAdapter) GetProduct(id string) (*products.Product, error) {
 		&product.Description,
 		&product.Brand,
 		&product.Category,
+		&categoryID,
 		&product.ImageURL,
 		&specsJSON,
 		&createdAt,
 		&updatedAt,
 	)
+
+	if categoryID != nil {
+		categoryIDStr := categoryID.String()
+		product.CategoryID = &categoryIDStr
+	}
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -188,7 +195,7 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 
 	// Получаем товары
 	querySQL := `
-		SELECT id, name, description, brand, category, image_url, specs, created_at, updated_at
+		SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
 		FROM products
 		WHERE name ILIKE $1 OR description ILIKE $1 OR brand ILIKE $1
 		ORDER BY name
@@ -207,6 +214,7 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 		var product products.Product
 		var specsJSON []byte
 		var createdAt, updatedAt time.Time
+		var categoryID *string
 
 		err := rows.Scan(
 			&product.ID,
@@ -214,11 +222,14 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 			&product.Description,
 			&product.Brand,
 			&product.Category,
+			&categoryID,
 			&product.ImageURL,
 			&specsJSON,
 			&createdAt,
 			&updatedAt,
 		)
+
+		product.CategoryID = categoryID
 
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan product: %w", err)
@@ -268,14 +279,23 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 		return fmt.Errorf("failed to marshal specs: %w", err)
 	}
 
+	var categoryID *uuid.UUID
+	if product.CategoryID != nil {
+		catID, err := uuid.Parse(*product.CategoryID)
+		if err == nil {
+			categoryID = &catID
+		}
+	}
+
 	query := `
-		INSERT INTO products (id, name, description, brand, category, image_url, specs, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO products (id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			description = EXCLUDED.description,
 			brand = EXCLUDED.brand,
 			category = EXCLUDED.category,
+			category_id = EXCLUDED.category_id,
 			image_url = EXCLUDED.image_url,
 			specs = EXCLUDED.specs,
 			updated_at = EXCLUDED.updated_at
@@ -287,12 +307,13 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 	}
 	product.UpdatedAt = now
 
-		_, err = a.pg.DB().Exec(a.ctx, query,
+	_, err = a.pg.DB().Exec(a.ctx, query,
 		productUUID,
 		product.Name,
 		product.Description,
 		product.Brand,
 		product.Category,
+		categoryID,
 		product.ImageURL,
 		specsJSON,
 		product.CreatedAt,
@@ -358,6 +379,63 @@ func (a *ProductsAdapter) GetProductPrices(productID string) ([]*products.Produc
 	return prices, nil
 }
 
+// GetProductPricesByCity получает цены товара для конкретного города
+func (a *ProductsAdapter) GetProductPricesByCity(productID string, cityID string) ([]*products.ProductPrice, error) {
+	productUUID, err := uuid.Parse(productID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid product ID: %w", err)
+	}
+
+	cityUUID, err := uuid.Parse(cityID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid city ID: %w", err)
+	}
+
+	query := `
+		SELECT product_id, shop_id, shop_name, price, currency, url, in_stock, updated_at
+		FROM product_prices
+		WHERE product_id = $1 AND (city_id = $2 OR city_id IS NULL)
+		ORDER BY price ASC, updated_at DESC
+	`
+
+	rows, err := a.pg.DB().Query(a.ctx, query, productUUID, cityUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get product prices by city: %w", err)
+	}
+	defer rows.Close()
+
+	var prices []*products.ProductPrice
+
+	for rows.Next() {
+		var price products.ProductPrice
+		var updatedAt time.Time
+
+		err := rows.Scan(
+			&price.ProductID,
+			&price.ShopID,
+			&price.ShopName,
+			&price.Price,
+			&price.Currency,
+			&price.URL,
+			&price.InStock,
+			&updatedAt,
+		)
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan price: %w", err)
+		}
+
+		price.UpdatedAt = updatedAt
+		prices = append(prices, &price)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating prices: %w", err)
+	}
+
+	return prices, nil
+}
+
 // Browse возвращает каталог товаров с фильтрами
 func (a *ProductsAdapter) Browse(ctx context.Context, params products.BrowseParams) (*products.BrowseResult, error) {
 	// Используем Meilisearch для поиска с фильтрами
@@ -381,9 +459,11 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 
 	// Фильтры Meilisearch
 	var filters []string
-	if params.Category != "" {
-		// Фильтр по категории (если указана)
-		// Показываем только товары с указанной категорией (не NULL)
+	if params.CategoryID != nil {
+		// Фильтр по category_id (приоритет над category slug)
+		filters = append(filters, fmt.Sprintf("category_id = \"%s\"", *params.CategoryID))
+	} else if params.Category != "" {
+		// Фильтр по категории (строка, для обратной совместимости)
 		filters = append(filters, fmt.Sprintf("category = \"%s\"", params.Category))
 	}
 	// Пока shop_id и price фильтры пропускаем, т.к. эти поля могут быть не в индексе
@@ -429,9 +509,21 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 		}
 
 		// Получаем цены из PostgreSQL для вычисления min_price, max_price, shops_count
-		prices, err := a.GetProductPrices(productID)
+		// (с фильтром по городу, если указан)
+		var prices []*products.ProductPrice
+		var err error
+		if params.CityID != nil {
+			prices, err = a.GetProductPricesByCity(productID, *params.CityID)
+		} else {
+			prices, err = a.GetProductPrices(productID)
+		}
 		if err != nil {
 			// Пропускаем товар, если не удалось получить цены
+			continue
+		}
+
+		// Если фильтр по городу указан и нет цен в этом городе - пропускаем товар
+		if params.CityID != nil && len(prices) == 0 {
 			continue
 		}
 
@@ -581,17 +673,32 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 	// Преобразуем в BrowseProduct
 	items := make([]products.BrowseProduct, 0, len(productsList))
 	for _, p := range productsList {
-		// Фильтр по категории
-		// Если категория указана в фильтре, показываем только товары с этой категорией (не NULL)
-		if params.Category != "" {
+		// Фильтр по category_id (приоритет)
+		if params.CategoryID != nil {
+			if p.CategoryID == nil || *p.CategoryID != *params.CategoryID {
+				continue
+			}
+		} else if params.Category != "" {
+			// Фильтр по категории (строка, для обратной совместимости)
 			if p.Category == "" || p.Category != params.Category {
 				continue
 			}
 		}
 
-		// Получаем цены
-		prices, err := a.GetProductPrices(p.ID)
+		// Получаем цены (с фильтром по городу, если указан)
+		var prices []*products.ProductPrice
+		var err error
+		if params.CityID != nil {
+			prices, err = a.GetProductPricesByCity(p.ID, *params.CityID)
+		} else {
+			prices, err = a.GetProductPrices(p.ID)
+		}
 		if err != nil {
+			continue
+		}
+
+		// Если фильтр по городу указан и нет цен в этом городе - пропускаем товар
+		if params.CityID != nil && len(prices) == 0 {
 			continue
 		}
 
@@ -600,6 +707,7 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 			Name:       p.Name,
 			Brand:      p.Brand,
 			Category:   p.Category,
+			CategoryID: p.CategoryID,
 			ImageURL:   p.ImageURL,
 			ShopsCount: len(prices),
 			Specs:      p.Specs,
