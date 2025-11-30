@@ -72,28 +72,54 @@ func (s *Service) normalizeBrand(brand string) string {
 
 // calculateSimilarity рассчитывает схожесть между товарами
 func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float64 {
-	// Простой алгоритм схожести на основе названия и бренда
-	// TODO: улучшить алгоритм (Levenshtein, Jaro-Winkler и т.д.)
-	
-	similarity := 0.0
-	
-	// Сравнение названий
+	// Нормализуем названия и бренды для сравнения
 	reqName := s.normalizeName(req.Name)
 	prodName := s.normalizeName(product.Name)
 	
+	// Точное совпадение названий = 100% similarity
 	if reqName == prodName {
-		similarity += 0.6
-	} else if strings.Contains(reqName, prodName) || strings.Contains(prodName, reqName) {
-		similarity += 0.4
+		// Проверяем бренды для дополнительной уверенности
+		if req.Brand != "" && product.Brand != "" {
+			reqBrand := s.normalizeBrand(req.Brand)
+			prodBrand := s.normalizeBrand(product.Brand)
+			if reqBrand == prodBrand {
+				return 1.0 // Полное совпадение
+			}
+			// Названия совпадают, но бренды разные - всё равно высокая схожесть
+			return 0.95
+		}
+		// Названия совпадают, бренды не указаны или один пустой
+		return 0.95
 	}
 	
-	// Сравнение брендов
+	// Частичное совпадение названий
+	similarity := 0.0
+	if strings.Contains(reqName, prodName) || strings.Contains(prodName, reqName) {
+		similarity = 0.5
+	} else {
+		// Простая проверка на общие слова
+		reqWords := strings.Fields(reqName)
+		prodWords := strings.Fields(prodName)
+		commonWords := 0
+		for _, reqWord := range reqWords {
+			for _, prodWord := range prodWords {
+				if reqWord == prodWord && len(reqWord) > 2 { // Игнорируем короткие слова
+					commonWords++
+					break
+				}
+			}
+		}
+		if len(reqWords) > 0 && len(prodWords) > 0 {
+			similarity = float64(commonWords) / float64(len(reqWords)+len(prodWords)-commonWords) * 0.8
+		}
+	}
+	
+	// Бонус за совпадение брендов
 	if req.Brand != "" && product.Brand != "" {
 		reqBrand := s.normalizeBrand(req.Brand)
 		prodBrand := s.normalizeBrand(product.Brand)
-		
 		if reqBrand == prodBrand {
-			similarity += 0.4
+			similarity += 0.2
 		}
 	}
 	

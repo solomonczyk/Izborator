@@ -2,22 +2,30 @@ package scraper
 
 import (
 	"github.com/solomonczyk/izborator/internal/logger"
+	"github.com/solomonczyk/izborator/internal/scrapingstats"
+)
+
+const (
+	defaultRetryLimit     = 3
+	maxRetryLimit         = 5
+	defaultRetryBackoffMs = 3000
+	maxRetryBackoffMs     = 60000
 )
 
 // Storage интерфейс для работы с хранилищем данных парсинга
 type Storage interface {
 	// SaveRawProduct сохраняет сырые данные товара
 	SaveRawProduct(data *RawProduct) error
-	
+
 	// GetShopConfig получает конфигурацию магазина
 	GetShopConfig(shopID string) (*ShopConfig, error)
-	
+
 	// ListShops получает список всех магазинов
 	ListShops() ([]*ShopConfig, error)
-	
+
 	// GetUnprocessedRawProducts получает необработанные сырые данные товаров
 	GetUnprocessedRawProducts(limit int) ([]*RawProduct, error)
-	
+
 	// MarkRawProductAsProcessed помечает сырой товар как обработанный
 	MarkRawProductAsProcessed(shopID, externalID string) error
 }
@@ -33,14 +41,15 @@ type Service struct {
 	storage Storage
 	queue   Queue
 	logger  *logger.Logger
+	stats   *scrapingstats.Service
 }
 
 // New создаёт новый сервис парсеров
-func New(storage Storage, queue Queue, log *logger.Logger) *Service {
+func New(storage Storage, queue Queue, stats *scrapingstats.Service, log *logger.Logger) *Service {
 	return &Service{
 		storage: storage,
 		queue:   queue,
 		logger:  log,
+		stats:   stats,
 	}
 }
-

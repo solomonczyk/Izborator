@@ -382,6 +382,8 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 	// Фильтры Meilisearch
 	var filters []string
 	if params.Category != "" {
+		// Фильтр по категории (если указана)
+		// Показываем только товары с указанной категорией (не NULL)
 		filters = append(filters, fmt.Sprintf("category = \"%s\"", params.Category))
 	}
 	// Пока shop_id и price фильтры пропускаем, т.к. эти поля могут быть не в индексе
@@ -482,11 +484,12 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 			browseProduct.Currency = currency
 
 			// Применяем фильтры по цене и shop_id (если указаны)
-			if params.MinPrice != nil && browseProduct.MinPrice < *params.MinPrice {
-				continue
+			// Товар должен попадать в диапазон: min_price >= MinPrice и max_price <= MaxPrice
+			if params.MinPrice != nil && browseProduct.MaxPrice < *params.MinPrice {
+				continue // Максимальная цена товара меньше минимальной в фильтре - исключаем
 			}
-			if params.MaxPrice != nil && browseProduct.MaxPrice > *params.MaxPrice {
-				continue
+			if params.MaxPrice != nil && browseProduct.MinPrice > *params.MaxPrice {
+				continue // Минимальная цена товара больше максимальной в фильтре - исключаем
 			}
 			if params.ShopID != "" {
 				found := false
@@ -505,7 +508,48 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 		items = append(items, browseProduct)
 	}
 
-	total := searchResult.EstimatedTotalHits
+	// Применяем сортировку ПОСЛЕ получения всех данных (включая цены)
+	switch params.Sort {
+	case "price_asc":
+		// Сортируем по минимальной цене (возрастание)
+		for i := 0; i < len(items)-1; i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[i].MinPrice > items[j].MinPrice {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+	case "price_desc":
+		// Сортируем по минимальной цене (убывание)
+		for i := 0; i < len(items)-1; i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[i].MinPrice < items[j].MinPrice {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+	case "name_asc":
+		// Сортируем по названию (A-Z)
+		for i := 0; i < len(items)-1; i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[i].Name > items[j].Name {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+	case "name_desc":
+		// Сортируем по названию (Z-A)
+		for i := 0; i < len(items)-1; i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[i].Name < items[j].Name {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+	}
+
+	// Пересчитываем total после фильтрации
+	total := int64(len(items))
 	totalPages := int((total + int64(params.PerPage) - 1) / int64(params.PerPage))
 
 	return &products.BrowseResult{
@@ -528,11 +572,8 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		query = "%" + query + "%"
 	}
 
-	limit := params.PerPage
-	offset := (params.Page - 1) * params.PerPage
-
-	// Получаем товары
-	productsList, total, err := a.searchViaPostgres(query, limit, offset)
+	// Получаем товары (без пагинации, т.к. будем фильтровать и сортировать)
+	productsList, _, err := a.searchViaPostgres(query, 1000, 0) // Получаем больше товаров для фильтрации
 	if err != nil {
 		return nil, err
 	}
@@ -540,6 +581,14 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 	// Преобразуем в BrowseProduct
 	items := make([]products.BrowseProduct, 0, len(productsList))
 	for _, p := range productsList {
+		// Фильтр по категории
+		// Если категория указана в фильтре, показываем только товары с этой категорией (не NULL)
+		if params.Category != "" {
+			if p.Category == "" || p.Category != params.Category {
+				continue
+			}
+		}
+
 		// Получаем цены
 		prices, err := a.GetProductPrices(p.ID)
 		if err != nil {
@@ -573,18 +622,92 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 			browseProduct.MinPrice = minPrice
 			browseProduct.MaxPrice = maxPrice
 			browseProduct.Currency = currency
+
+			// Применяем фильтры по цене и shop_id
+			if params.MinPrice != nil && browseProduct.MaxPrice < *params.MinPrice {
+				continue // Максимальная цена товара меньше минимальной в фильтре - исключаем
+			}
+			if params.MaxPrice != nil && browseProduct.MinPrice > *params.MaxPrice {
+				continue // Минимальная цена товара больше максимальной в фильтре - исключаем
+			}
+			if params.ShopID != "" {
+				found := false
+				for _, price := range prices {
+					if price.ShopID == params.ShopID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
+			}
 		}
 
 		items = append(items, browseProduct)
 	}
 
-	totalPages := (int(total) + params.PerPage - 1) / params.PerPage
+	// Применяем сортировку
+	switch params.Sort {
+	case "price_asc":
+		// Сортируем по минимальной цене (возрастание)
+		for i := 0; i < len(items)-1; i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[i].MinPrice > items[j].MinPrice {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+	case "price_desc":
+		// Сортируем по минимальной цене (убывание)
+		for i := 0; i < len(items)-1; i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[i].MinPrice < items[j].MinPrice {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+	case "name_asc":
+		// Сортируем по названию (A-Z)
+		for i := 0; i < len(items)-1; i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[i].Name > items[j].Name {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+	case "name_desc":
+		// Сортируем по названию (Z-A)
+		for i := 0; i < len(items)-1; i++ {
+			for j := i + 1; j < len(items); j++ {
+				if items[i].Name < items[j].Name {
+					items[i], items[j] = items[j], items[i]
+				}
+			}
+		}
+	}
+
+	// Сохраняем total ДО пагинации
+	totalCount := len(items)
+
+	// Применяем пагинацию ПОСЛЕ фильтрации и сортировки
+	start := (params.Page - 1) * params.PerPage
+	end := start + params.PerPage
+	if start >= len(items) {
+		items = []products.BrowseProduct{}
+	} else if end > len(items) {
+		items = items[start:]
+	} else {
+		items = items[start:end]
+	}
+
+	totalPages := (totalCount + params.PerPage - 1) / params.PerPage
 
 	return &products.BrowseResult{
 		Items:      items,
 		Page:       params.Page,
 		PerPage:    params.PerPage,
-		Total:      int64(total),
+		Total:      int64(totalCount),
 		TotalPages: totalPages,
 	}, nil
 }

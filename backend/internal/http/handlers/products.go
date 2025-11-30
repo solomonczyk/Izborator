@@ -4,23 +4,32 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
+	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
+	"github.com/solomonczyk/izborator/internal/pricehistory"
 	"github.com/solomonczyk/izborator/internal/products"
 )
 
 // ProductsHandler обработчик для работы с товарами
 type ProductsHandler struct {
-	service *products.Service
-	logger  *logger.Logger
+	service         *products.Service
+	priceHistorySvc *pricehistory.Service
+	logger          *logger.Logger
+	translator      *i18n.Translator
 }
 
 // NewProductsHandler создаёт новый обработчик товаров
-func NewProductsHandler(service *products.Service, log *logger.Logger) *ProductsHandler {
+func NewProductsHandler(service *products.Service, priceHistorySvc *pricehistory.Service, log *logger.Logger, translator *i18n.Translator) *ProductsHandler {
 	return &ProductsHandler{
-		service: service,
-		logger:  log,
+		service:         service,
+		priceHistorySvc: priceHistorySvc,
+		logger:          log,
+		translator:      translator,
 	}
 }
 
@@ -30,7 +39,7 @@ func NewProductsHandler(service *products.Service, log *logger.Logger) *Products
 func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		h.respondError(w, http.StatusBadRequest, "missing q parameter")
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.missing_query")
 		return
 	}
 
@@ -44,7 +53,7 @@ func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 				"q":     query,
 				"error": err.Error(),
 			})
-			h.respondError(w, http.StatusInternalServerError, "search failed")
+			h.respondError(w, r, http.StatusInternalServerError, "api.errors.search_failed")
 			return
 		}
 
@@ -73,7 +82,7 @@ func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.service.SearchWithPagination(ctx, query, limit, offset)
 	if err != nil {
-		h.respondError(w, http.StatusInternalServerError, err.Error())
+		h.respondError(w, r, http.StatusInternalServerError, "api.errors.search_failed")
 		return
 	}
 
@@ -97,7 +106,7 @@ func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if id == "" {
-		h.respondError(w, http.StatusBadRequest, "product ID is required")
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
 		return
 	}
 
@@ -112,14 +121,14 @@ func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 				"id":    id,
 				"error": err.Error(),
 			})
-			h.respondError(w, http.StatusNotFound, "product not found")
+			h.respondError(w, r, http.StatusNotFound, "api.errors.product_not_found")
 			return
 		}
 		h.logger.Error("GetProduct failed", map[string]interface{}{
 			"id":    id,
 			"error": err.Error(),
 		})
-		h.respondError(w, http.StatusInternalServerError, "failed to load product")
+		h.respondError(w, r, http.StatusInternalServerError, "api.errors.product_load_failed")
 		return
 	}
 
@@ -154,17 +163,17 @@ func (h *ProductsHandler) GetPrices(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if id == "" {
-		h.respondError(w, http.StatusBadRequest, "product ID is required")
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
 		return
 	}
 
 	prices, err := h.service.GetPrices(id)
 	if err != nil {
 		if err == products.ErrInvalidProductID {
-			h.respondError(w, http.StatusBadRequest, err.Error())
+			h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
 			return
 		}
-		h.respondError(w, http.StatusInternalServerError, err.Error())
+		h.respondError(w, r, http.StatusInternalServerError, "api.errors.internal")
 		return
 	}
 
@@ -174,6 +183,143 @@ func (h *ProductsHandler) GetPrices(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.respondJSON(w, http.StatusOK, result)
+}
+
+// GetPriceHistory обрабатывает получение истории цен товара
+// GET /api/v1/products/{id}/price-history?period=month&shops=shop1,shop2
+func (h *ProductsHandler) GetPriceHistory(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if id == "" {
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
+		return
+	}
+
+	// Параметры запроса
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "month" // По умолчанию месяц
+	}
+
+	// Парсим список магазинов (опционально)
+	shopsParam := r.URL.Query().Get("shops")
+	var shopIDs []string
+	if shopsParam != "" {
+		// Простой парсинг через запятую
+		shops := strings.Split(shopsParam, ",")
+		for _, shop := range shops {
+			shop = strings.TrimSpace(shop)
+			if shop != "" {
+				shopIDs = append(shopIDs, shop)
+			}
+		}
+	}
+
+	// Получаем данные для графика
+	chart, err := h.priceHistorySvc.GetPriceChart(id, period, shopIDs)
+	if err != nil {
+		h.logger.Error("GetPriceHistory failed", map[string]interface{}{
+			"id":     id,
+			"error":  err.Error(),
+			"period": period,
+		})
+		h.respondError(w, r, http.StatusInternalServerError, "api.errors.price_history_failed")
+		return
+	}
+
+	// Рассчитываем статистику
+	stats := calculatePriceStats(chart)
+
+	result := map[string]interface{}{
+		"product_id": id,
+		"period":     period,
+		"from":       chart.From.Format(time.RFC3339),
+		"to":         chart.To.Format(time.RFC3339),
+		"shops":      chart.Shops,
+		"shop_names": chart.ShopNames,
+		"stats":      stats,
+	}
+
+	h.respondJSON(w, http.StatusOK, result)
+}
+
+// PriceStats статистика цен
+type PriceStats struct {
+	MinPrice    float64   `json:"min_price"`
+	MaxPrice    float64   `json:"max_price"`
+	AvgPrice    float64   `json:"avg_price"`
+	PriceChange float64   `json:"price_change"` // Изменение за период (%)
+	FirstPrice  float64   `json:"first_price"`
+	LastPrice   float64   `json:"last_price"`
+	FirstDate   time.Time `json:"first_date"`
+	LastDate    time.Time `json:"last_date"`
+}
+
+// calculatePriceStats рассчитывает статистику цен из графика
+func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
+	if chart == nil || len(chart.Shops) == 0 {
+		return PriceStats{}
+	}
+
+	var allPrices []float64
+	var allDates []time.Time
+	var firstPrice, lastPrice float64
+	var firstDate, lastDate time.Time
+
+	// Собираем все цены из всех магазинов
+	for _, points := range chart.Shops {
+		for _, point := range points {
+			allPrices = append(allPrices, point.Price)
+			allDates = append(allDates, point.Timestamp)
+
+			if firstDate.IsZero() || point.Timestamp.Before(firstDate) {
+				firstDate = point.Timestamp
+				firstPrice = point.Price
+			}
+			if lastDate.IsZero() || point.Timestamp.After(lastDate) {
+				lastDate = point.Timestamp
+				lastPrice = point.Price
+			}
+		}
+	}
+
+	if len(allPrices) == 0 {
+		return PriceStats{}
+	}
+
+	// Находим мин/макс
+	minPrice := allPrices[0]
+	maxPrice := allPrices[0]
+	sum := 0.0
+
+	for _, price := range allPrices {
+		if price < minPrice {
+			minPrice = price
+		}
+		if price > maxPrice {
+			maxPrice = price
+		}
+		sum += price
+	}
+
+	avgPrice := sum / float64(len(allPrices))
+
+	// Рассчитываем изменение цены (%)
+	var priceChange float64
+	if firstPrice > 0 {
+		priceChange = ((lastPrice - firstPrice) / firstPrice) * 100
+	}
+
+	return PriceStats{
+		MinPrice:    minPrice,
+		MaxPrice:    maxPrice,
+		AvgPrice:    avgPrice,
+		PriceChange: priceChange,
+		FirstPrice:  firstPrice,
+		LastPrice:   lastPrice,
+		FirstDate:   firstDate,
+		LastDate:    lastDate,
+	}
 }
 
 // respondJSON отправляет JSON ответ
@@ -238,7 +384,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("browse failed", map[string]interface{}{
 			"error": err.Error(),
 		})
-		h.respondError(w, http.StatusInternalServerError, "browse failed")
+		h.respondError(w, r, http.StatusInternalServerError, "api.errors.browse_failed")
 		return
 	}
 
@@ -258,7 +404,16 @@ func parseIntDefault(s string, def int) int {
 }
 
 // respondError отправляет JSON ошибку
-func (h *ProductsHandler) respondError(w http.ResponseWriter, status int, message string) {
+func (h *ProductsHandler) respondError(w http.ResponseWriter, r *http.Request, status int, key string) {
+	lang := httpMiddleware.GetLangFromContext(r.Context())
+	message := h.translator.T(lang, key)
+	if message == key || message == "" {
+		// fallback на английский
+		message = h.translator.T("en", key)
+		if message == "" {
+			message = key
+		}
+	}
 	h.respondJSON(w, status, map[string]string{
 		"error": message,
 	})

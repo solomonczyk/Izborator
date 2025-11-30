@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/redis/go-redis/v9"
 	"github.com/solomonczyk/izborator/internal/app"
 	"github.com/solomonczyk/izborator/internal/config"
 	"github.com/solomonczyk/izborator/internal/http/router"
@@ -34,7 +35,11 @@ func main() {
 	defer application.Close()
 
 	// Инициализация роутера
-	r := router.New(application.Logger(), application.ProductsService)
+	var redisClient *redis.Client
+	if application.Redis() != nil {
+		redisClient = application.Redis().Client()
+	}
+	r := router.New(application.Logger(), application.ProductsService, application.PriceHistoryService, application.ScrapingStatsService, application.GetTranslator(), redisClient)
 
 	// Настройка HTTP сервера
 	srv := &http.Server{

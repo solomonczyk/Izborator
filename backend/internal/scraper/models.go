@@ -25,11 +25,12 @@ type RawProduct struct {
 
 // ShopConfig конфигурация магазина для парсинга
 type ShopConfig struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	BaseURL     string   `json:"base_url"`
-	Selectors   map[string]string `json:"selectors"`
-	RateLimit   int      `json:"rate_limit"` // запросов в секунду
-	Enabled     bool     `json:"enabled"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	BaseURL        string            `json:"base_url"`
+	Selectors      map[string]string `json:"selectors"`
+	RateLimit      int               `json:"rate_limit"` // запросов в секунду
+	Enabled        bool              `json:"enabled"`
+	RetryLimit     int               `json:"retry_limit"`
+	RetryBackoffMs int               `json:"retry_backoff_ms"`
 }
-

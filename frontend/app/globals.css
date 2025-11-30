@@ -24,3 +24,60 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Убеждаемся, что текст виден на страницах каталога */
+main {
+  color: inherit;
+}
+
+/* Стили для всех плейсхолдеров */
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important; /* slate-400 */
+  opacity: 1 !important;
+}
+
+/* Вендорные префиксы для совместимости */
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+input:-ms-input-placeholder,
+textarea:-ms-input-placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+/* Убеждаемся, что текст в полях ввода виден */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="search"],
+textarea {
+  color: #0f172a !important; /* slate-900 */
+}
+
+/* Стили для select элементов */
+select {
+  color: #0f172a !important; /* slate-900 */
+  background-color: #ffffff !important;
+}
+
+select option {
+  color: #0f172a !important; /* slate-900 */
+  background-color: #ffffff !important;
+}
+
+/* Первый option (плейсхолдер) - серый цвет */
+select option:first-child,
+select option[value=""] {
+  color: #94a3b8 !important; /* slate-400 */
+}

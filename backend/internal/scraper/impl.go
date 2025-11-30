@@ -10,6 +10,7 @@ import (
 
 	"github.com/gocolly/colly/v2"
 	"github.com/gocolly/colly/v2/extensions"
+	"github.com/solomonczyk/izborator/internal/scrapingstats"
 )
 
 // ParseProduct скачивает страницу и извлекает данные по селекторам
@@ -23,7 +24,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 	product.URL = url
 	product.ShopID = shopConfig.ID
 	product.ShopName = shopConfig.Name
-	
+
 	// Извлекаем external_id из URL (последняя часть после последнего слеша)
 	parts := strings.Split(url, "/")
 	if len(parts) > 0 {
@@ -59,7 +60,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		})
 		if product.Price == 0 {
 			jsonText := strings.TrimSpace(e.Text)
-			
+
 			// Сначала пробуем найти "price":число в offers напрямую (fallback метод)
 			// Ищем паттерн "offers" -> "price":число
 			offersIdx := strings.Index(jsonText, `"offers"`)
@@ -86,7 +87,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 					}
 				}
 			}
-			
+
 			// Пробуем распарсить как объект
 			var schemaData map[string]interface{}
 			if err := json.Unmarshal([]byte(jsonText), &schemaData); err == nil {
@@ -136,7 +137,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 			if product.Price == 0 {
 				rawPrice := strings.TrimSpace(e.Text)
 				s.logger.Debug("Found price text", map[string]interface{}{
-					"raw":     rawPrice,
+					"raw":      rawPrice,
 					"selector": priceSelector,
 				})
 				price, currency, err := cleanPrice(rawPrice)
@@ -149,8 +150,8 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 					})
 				} else {
 					s.logger.Warn("Failed to parse price", map[string]interface{}{
-						"raw":     rawPrice,
-						"error":   err.Error(),
+						"raw":      rawPrice,
+						"error":    err.Error(),
 						"selector": priceSelector,
 					})
 				}
@@ -224,7 +225,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		})
 		if product.Price == 0 {
 			jsonText := strings.TrimSpace(e.Text)
-			
+
 			// Сначала пробуем найти "price":число в offers напрямую (fallback метод)
 			// Ищем паттерн "offers" -> "price":число
 			offersIdx := strings.Index(jsonText, `"offers"`)
@@ -249,9 +250,9 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 					if endIdx > 0 {
 						priceStr := strings.TrimSpace(afterPrice[:endIdx])
 						s.logger.Debug("Trying to parse price from JSON-LD", map[string]interface{}{
-							"price_str": priceStr,
+							"price_str":  priceStr,
 							"offers_idx": offersIdx,
-							"price_idx": priceIdx,
+							"price_idx":  priceIdx,
 						})
 						if price, err := strconv.ParseFloat(priceStr, 64); err == nil && price > 0 && price < 10000000 {
 							// Проверяем, что цена разумная (меньше 10 миллионов RSD)
@@ -266,7 +267,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 					}
 				}
 			}
-			
+
 			// Пробуем распарсить как объект
 			var schemaData map[string]interface{}
 			if err := json.Unmarshal([]byte(jsonText), &schemaData); err == nil {
@@ -337,7 +338,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 
 	product.ParsedAt = time.Now()
 	product.ScrapedAt = product.ParsedAt // для обратной совместимости
-	product.InStock = true // По умолчанию считаем, что товар в наличии
+	product.InStock = true               // По умолчанию считаем, что товар в наличии
 
 	return &product, nil
 }
@@ -347,10 +348,10 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 func cleanPrice(raw string) (float64, string, error) {
 	// Ищем паттерн "число.число RSD" или "число RSD"
 	// Примеры: "15.999 RSD", "16.999 RSD", "1.000.000 RSD"
-	
+
 	// Сначала пробуем найти паттерн с точками и RSD
 	text := strings.ToUpper(raw)
-	
+
 	// Ищем "число.число RSD" - самый распространённый формат
 	// Паттерн: 1-3 цифры, точка, 3 цифры, пробел, RSD
 	idx := strings.Index(text, "RSD")
@@ -371,13 +372,13 @@ func cleanPrice(raw string) (float64, string, error) {
 			}
 		}
 	}
-	
+
 	// Если не нашли, пробуем старый метод
 	clean := strings.ReplaceAll(raw, ".", "")
 	clean = strings.ReplaceAll(clean, "RSD", "")
 	clean = strings.ReplaceAll(clean, "DIN", "")
 	clean = strings.TrimSpace(clean)
-	
+
 	// Убираем все нецифровые символы
 	var builder strings.Builder
 	for _, r := range clean {
@@ -386,7 +387,7 @@ func cleanPrice(raw string) (float64, string, error) {
 		}
 	}
 	clean = builder.String()
-	
+
 	if clean == "" {
 		return 0, "", fmt.Errorf("no numbers found in price string: '%s'", raw)
 	}
@@ -399,6 +400,82 @@ func cleanPrice(raw string) (float64, string, error) {
 	return val, "RSD", nil
 }
 
+// recordScrapingStat сохраняет статистику парсинга, если сервис подключён
+func (s *Service) recordScrapingStat(stat *scrapingstats.ScrapingStat) {
+	if s.stats == nil || stat == nil {
+		return
+	}
+
+	if stat.ScrapedAt.IsZero() {
+		stat.ScrapedAt = time.Now()
+	}
+	stat.CreatedAt = time.Now()
+
+	if stat.Status == "" {
+		stat.Status = "error"
+	}
+
+	if err := s.stats.RecordStat(stat); err != nil {
+		s.logger.Warn("Failed to record scraping stat", map[string]interface{}{
+			"error":   err.Error(),
+			"shop_id": stat.ShopID,
+		})
+	}
+}
+
+func truncateError(err error) string {
+	if err == nil {
+		return ""
+	}
+	const maxLen = 512
+	msg := err.Error()
+	if len(msg) > maxLen {
+		return msg[:maxLen] + "..."
+	}
+	return msg
+}
+
+func (s *Service) getRetryConfig(config *ShopConfig) (int, time.Duration) {
+	limit := config.RetryLimit
+	if limit <= 0 {
+		limit = defaultRetryLimit
+	}
+	if limit > maxRetryLimit {
+		limit = maxRetryLimit
+	}
+	backoffMs := config.RetryBackoffMs
+	if backoffMs <= 0 {
+		backoffMs = defaultRetryBackoffMs
+	}
+	if backoffMs > maxRetryBackoffMs {
+		backoffMs = maxRetryBackoffMs
+	}
+	return limit, time.Duration(backoffMs) * time.Millisecond
+}
+
+func sleepWithContext(ctx context.Context, d time.Duration) bool {
+	if d <= 0 {
+		return true
+	}
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
+}
+
+func nextBackoff(current time.Duration) time.Duration {
+	next := current * 2
+	maxBackoff := time.Duration(maxRetryBackoffMs) * time.Millisecond
+	if next > maxBackoff {
+		return maxBackoff
+	}
+	return next
+}
+
 // ParseProductByShopID парсит товар по shopID (получает конфиг из storage)
 func (s *Service) ParseProductByShopID(ctx context.Context, url string, shopID string) (*RawProduct, error) {
 	if url == "" {
@@ -408,7 +485,7 @@ func (s *Service) ParseProductByShopID(ctx context.Context, url string, shopID s
 	config, err := s.storage.GetShopConfig(shopID)
 	if err != nil {
 		s.logger.Error("Failed to get shop config", map[string]interface{}{
-			"error":  err,
+			"error":   err,
 			"shop_id": shopID,
 		})
 		return nil, ErrShopNotFound
@@ -429,7 +506,7 @@ func (s *Service) SaveRawProduct(ctx context.Context, product *RawProduct) error
 
 	if err := s.storage.SaveRawProduct(product); err != nil {
 		s.logger.Error("Failed to save raw product", map[string]interface{}{
-			"error":  err,
+			"error":   err,
 			"shop_id": product.ShopID,
 		})
 		return fmt.Errorf("failed to save raw product: %w", err)
@@ -446,6 +523,109 @@ func (s *Service) SaveRawProduct(ctx context.Context, product *RawProduct) error
 	}
 
 	return nil
+}
+
+// ScrapeAndSave выполняет полный цикл парсинга и сохранения товара с записью статистики
+func (s *Service) ScrapeAndSave(ctx context.Context, url string, shopConfig *ShopConfig) (*RawProduct, error) {
+	start := time.Now()
+	stat := &scrapingstats.ScrapingStat{
+		ShopID:    shopConfig.ID,
+		ShopName:  shopConfig.Name,
+		ScrapedAt: start,
+		Status:    "error",
+	}
+
+	maxAttempts, initialBackoff := s.getRetryConfig(shopConfig)
+	currentBackoff := initialBackoff
+	status := "error"
+	var lastErr error
+	var rawProduct *RawProduct
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if ctx.Err() != nil {
+			lastErr = ctx.Err()
+			break
+		}
+
+		s.logger.Info("Scraping attempt", map[string]interface{}{
+			"attempt":      attempt,
+			"max_attempts": maxAttempts,
+			"shop_id":      shopConfig.ID,
+			"url":          url,
+		})
+
+		rawProduct, lastErr = s.ParseProduct(ctx, url, shopConfig)
+		if lastErr == nil {
+			stat.ProductsFound = 1
+			if err := s.SaveRawProduct(ctx, rawProduct); err == nil {
+				status = "success"
+				stat.ProductsSaved = 1
+				stat.ErrorMessage = ""
+				break
+			} else {
+				lastErr = err
+				status = "partial"
+			}
+		}
+
+		stat.ErrorsCount++
+		stat.ErrorMessage = truncateError(lastErr)
+
+		if attempt < maxAttempts {
+			s.logger.Warn("Scraping attempt failed, retrying", map[string]interface{}{
+				"attempt":      attempt,
+				"max_attempts": maxAttempts,
+				"shop_id":      shopConfig.ID,
+				"error":        lastErr.Error(),
+				"backoff_ms":   currentBackoff.Milliseconds(),
+			})
+			if !sleepWithContext(ctx, currentBackoff) {
+				lastErr = ctx.Err()
+				break
+			}
+			currentBackoff = nextBackoff(currentBackoff)
+			continue
+		}
+	}
+
+	if status != "success" && status != "partial" && stat.ErrorsCount > 0 {
+		stat.ErrorMessage = truncateError(lastErr)
+	}
+
+	stat.Status = status
+	stat.DurationMs = int(time.Since(start) / time.Millisecond)
+	s.recordScrapingStat(stat)
+
+	if status != "success" {
+		if lastErr == nil {
+			lastErr = fmt.Errorf("scraping failed after %d attempts", maxAttempts)
+		}
+		return nil, lastErr
+	}
+
+	return rawProduct, nil
+}
+
+// ScrapeAndSaveByShopID выполняет цикл парсинга по shopID
+func (s *Service) ScrapeAndSaveByShopID(ctx context.Context, url, shopID string) (*RawProduct, error) {
+	if url == "" {
+		return nil, ErrInvalidURL
+	}
+
+	config, err := s.storage.GetShopConfig(shopID)
+	if err != nil {
+		s.logger.Error("Failed to get shop config for scrape+save", map[string]interface{}{
+			"error":   err,
+			"shop_id": shopID,
+		})
+		return nil, ErrShopNotFound
+	}
+
+	if !config.Enabled {
+		return nil, ErrShopDisabled
+	}
+
+	return s.ScrapeAndSave(ctx, url, config)
 }
 
 // ListShops получает список всех магазинов
