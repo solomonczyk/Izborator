@@ -30,33 +30,53 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]
 	var query string
 	var args []interface{}
 
+	// Нормализуем входные данные для поиска
+	normalizedName := strings.ToLower(strings.TrimSpace(name))
+	normalizedBrand := strings.ToLower(strings.TrimSpace(brand))
+	
 	// Поиск по названию и бренду
-	if brand != "" {
+	if normalizedBrand != "" {
 		query = `
 			SELECT id, name, brand, specs
 			FROM products
-			WHERE (name ILIKE $1 OR name ILIKE $2)
-			  AND (brand ILIKE $3 OR brand = '')
+			WHERE (
+				LOWER(TRIM(name)) = $1
+				OR LOWER(TRIM(name)) LIKE $2
+				OR LOWER(TRIM(name)) LIKE $3
+			)
+			AND (
+				brand = '' 
+				OR LOWER(TRIM(brand)) = $4
+				OR LOWER(TRIM(brand)) LIKE $5
+			)
 			ORDER BY 
-				CASE WHEN name ILIKE $1 THEN 1 ELSE 2 END,
-				CASE WHEN brand ILIKE $3 THEN 1 ELSE 2 END
-			LIMIT $4
+				CASE WHEN LOWER(TRIM(name)) = $1 THEN 1 ELSE 2 END,
+				CASE WHEN LOWER(TRIM(brand)) = $4 THEN 1 ELSE 2 END
+			LIMIT $6
 		`
-		nameExact := fmt.Sprintf("%%%s%%", name)
-		nameWords := fmt.Sprintf("%%%s%%", strings.Join(strings.Fields(name), "%"))
-		args = []interface{}{nameExact, nameWords, fmt.Sprintf("%%%s%%", brand), limit}
+		nameExact := normalizedName
+		namePrefix := normalizedName + "%"
+		nameContains := "%" + normalizedName + "%"
+		brandExact := normalizedBrand
+		brandContains := "%" + normalizedBrand + "%"
+		args = []interface{}{nameExact, namePrefix, nameContains, brandExact, brandContains, limit}
 	} else {
 		query = `
 			SELECT id, name, brand, specs
 			FROM products
-			WHERE name ILIKE $1 OR name ILIKE $2
+			WHERE (
+				LOWER(TRIM(name)) = $1
+				OR LOWER(TRIM(name)) LIKE $2
+				OR LOWER(TRIM(name)) LIKE $3
+			)
 			ORDER BY 
-				CASE WHEN name ILIKE $1 THEN 1 ELSE 2 END
-			LIMIT $3
+				CASE WHEN LOWER(TRIM(name)) = $1 THEN 1 ELSE 2 END
+			LIMIT $4
 		`
-		nameExact := fmt.Sprintf("%%%s%%", name)
-		nameWords := fmt.Sprintf("%%%s%%", strings.Join(strings.Fields(name), "%"))
-		args = []interface{}{nameExact, nameWords, limit}
+		nameExact := normalizedName
+		namePrefix := normalizedName + "%"
+		nameContains := "%" + normalizedName + "%"
+		args = []interface{}{nameExact, namePrefix, nameContains, limit}
 	}
 
 	rows, err := a.pg.DB().Query(a.ctx, query, args...)

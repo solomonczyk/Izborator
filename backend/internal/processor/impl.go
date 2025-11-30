@@ -119,12 +119,17 @@ func (s *Service) processRawProduct(ctx context.Context, raw *scraper.RawProduct
 		// Есть кандидаты - выбираем лучший по similarity
 		best := matchResult.Matches[0]
 		
-		// TODO: можно добавить более сложную логику выбора:
-		// - проверка бренда (если указан)
-		// - проверка характеристик (specs)
-		// - порог similarity (сейчас 0.7)
-		
-		if best.Similarity >= 0.7 {
+		// Проверяем точное совпадение (similarity >= 0.95) - это почти 100% уверенность
+		if best.Similarity >= 0.95 {
+			// Точное совпадение - используем существующий товар
+			targetProductID = best.MatchedID
+			isNewProduct = false
+			s.logger.Info("processor: found exact match", map[string]interface{}{
+				"matched_id": targetProductID,
+				"similarity": best.Similarity,
+				"name":       normalized.Name,
+			})
+		} else if best.Similarity >= 0.7 {
 			// Высокая уверенность - используем существующий товар
 			targetProductID = best.MatchedID
 			isNewProduct = false

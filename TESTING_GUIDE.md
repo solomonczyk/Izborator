@@ -75,7 +75,7 @@ go run cmd/worker/main.go -url "https://gigatron.rs/.../товар"
 ## Проверка результата в БД
 
 ```bash
-docker exec -it izborator_postgres psql -U postgres -d izborator -c "SELECT name, price, currency, url FROM raw_products ORDER BY scraped_at DESC LIMIT 5;"
+docker exec -it izborator_postgres psql -U postgres -d izborator -c "SELECT name, price, currency, url FROM raw_products ORDER BY parsed_at DESC LIMIT 5;"
 ```
 
 ## Возможные проблемы

@@ -123,7 +123,15 @@ func (a *ScraperAdapter) SaveRawProduct(data *scraper.RawProduct) error {
 // GetShopConfig получает конфигурацию магазина
 func (a *ScraperAdapter) GetShopConfig(shopID string) (*scraper.ShopConfig, error) {
 	query := `
-		SELECT id, name, base_url, selectors, rate_limit, is_active
+		SELECT 
+			id,
+			name,
+			base_url,
+			selectors,
+			rate_limit,
+			is_active,
+			COALESCE(retry_limit, 3) AS retry_limit,
+			COALESCE(retry_backoff_ms, 3000) AS retry_backoff_ms
 		FROM shops
 		WHERE id = $1
 	`
@@ -139,8 +147,10 @@ func (a *ScraperAdapter) GetShopConfig(shopID string) (*scraper.ShopConfig, erro
 		&selectorsJSON,
 		&config.RateLimit,
 		&isActive,
+		&config.RetryLimit,
+		&config.RetryBackoffMs,
 	)
-	
+
 	config.Enabled = isActive
 
 	if err != nil {
@@ -165,7 +175,15 @@ func (a *ScraperAdapter) GetShopConfig(shopID string) (*scraper.ShopConfig, erro
 // ListShops получает список всех магазинов
 func (a *ScraperAdapter) ListShops() ([]*scraper.ShopConfig, error) {
 	query := `
-		SELECT id, name, base_url, selectors, rate_limit, is_active
+		SELECT 
+			id,
+			name,
+			base_url,
+			selectors,
+			rate_limit,
+			is_active,
+			COALESCE(retry_limit, 3) AS retry_limit,
+			COALESCE(retry_backoff_ms, 3000) AS retry_backoff_ms
 		FROM shops
 		ORDER BY name
 	`
@@ -190,8 +208,10 @@ func (a *ScraperAdapter) ListShops() ([]*scraper.ShopConfig, error) {
 			&selectorsJSON,
 			&shop.RateLimit,
 			&isActive,
+			&shop.RetryLimit,
+			&shop.RetryBackoffMs,
 		)
-		
+
 		shop.Enabled = isActive
 
 		if err != nil {
@@ -252,11 +272,11 @@ func (a *ScraperAdapter) GetUnprocessedRawProducts(limit int) ([]*scraper.RawPro
 
 	for rows.Next() {
 		var (
-			r            scraper.RawProduct
+			r             scraper.RawProduct
 			imageURLsJSON []byte
-			specsJSON    []byte
-			rawPayload   []byte
-			parsedAtTime time.Time
+			specsJSON     []byte
+			rawPayload    []byte
+			parsedAtTime  time.Time
 		)
 
 		if err := rows.Scan(

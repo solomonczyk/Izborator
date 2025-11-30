@@ -62,30 +62,21 @@ func main() {
 		})
 
 		// Парсим товар
-		rawProduct, err := application.ScraperService.ParseProduct(ctx, *testURL, shopConfig)
+		rawProduct, err := application.ScraperService.ScrapeAndSave(ctx, *testURL, shopConfig)
 		if err != nil {
-			application.Logger().Fatal("❌ Scraping failed", map[string]interface{}{
+			application.Logger().Fatal("❌ Scrape & save failed", map[string]interface{}{
 				"error": err.Error(),
 				"url":   *testURL,
 			})
 		}
 
-		application.Logger().Info("✅ SUCCESS! Product parsed", map[string]interface{}{
+		application.Logger().Info("✅ SUCCESS! Product parsed & saved", map[string]interface{}{
 			"name":     rawProduct.Name,
 			"price":    rawProduct.Price,
 			"currency": rawProduct.Currency,
 			"brand":    rawProduct.Brand,
 			"category": rawProduct.Category,
 		})
-
-		// Сохраняем результат
-		if err := application.ScraperService.SaveRawProduct(ctx, rawProduct); err != nil {
-			application.Logger().Error("Failed to save raw product", map[string]interface{}{
-				"error": err.Error(),
-			})
-		} else {
-			application.Logger().Info("💾 Saved to raw_products table", map[string]interface{}{})
-		}
 
 		return
 	}
