@@ -264,7 +264,7 @@ export default async function CatalogPage({
               </button>
               {(query || category || minPrice || maxPrice || sort !== "price_asc") && (
                 <Link
-                  href={`/${locale}/catalog`}
+                  href="/catalog"
                   className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500"
                 >
                   {t('catalog.reset')}
@@ -302,7 +302,7 @@ export default async function CatalogPage({
                   key={p.id}
                   className="bg-white rounded-xl shadow-sm border-2 border-slate-300 p-4 hover:shadow-md hover:border-blue-400 transition-all"
                 >
-                  <Link href={`/${locale}/product/${p.id}`} className="flex gap-4">
+                  <Link href={`/product/${p.id}`} className="flex gap-4">
                     {p.image_url && (
                       <img
                         src={p.image_url}

@@ -67,7 +67,7 @@ export default async function ProductPage({
       <main className="min-h-screen bg-slate-50">
         <div className="max-w-5xl mx-auto px-4 py-8">
           <Link
-            href={`/${locale}/catalog`}
+            href="/catalog"
             className="inline-block mb-4 text-blue-600 hover:underline"
           >
             {t('product.back_to_catalog')}
