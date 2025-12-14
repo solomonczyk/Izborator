@@ -19,7 +19,7 @@ type PriceHistoryAdapter struct {
 func NewPriceHistoryAdapter(pg *Postgres) pricehistory.Storage {
 	return &PriceHistoryAdapter{
 		pg:  pg,
-		ctx: context.Background(),
+		ctx: pg.Context(), // Используем контекст из Postgres вместо Background()
 	}
 }
 

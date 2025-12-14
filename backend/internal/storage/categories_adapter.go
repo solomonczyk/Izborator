@@ -215,7 +215,7 @@ func (a *CategoriesAdapter) GetTree() ([]*categories.Category, error) {
 	}
 	defer rows.Close()
 
-	var result []*categories.Category
+	result := make([]*categories.Category, 0) // Явно инициализируем как пустой слайс, не nil
 	for rows.Next() {
 		var cat categories.Category
 

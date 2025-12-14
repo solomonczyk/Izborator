@@ -150,6 +150,7 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 		Name        string            `json:"name"`
 		Brand       string            `json:"brand"`
 		Category    string            `json:"category"`
+		CategoryID  *string           `json:"category_id,omitempty"`
 		Description string            `json:"description,omitempty"`
 		ImageURL    string            `json:"image_url,omitempty"`
 		Specs       map[string]string `json:"specs,omitempty"`
@@ -160,6 +161,7 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 		Name:        product.Name,
 		Brand:       product.Brand,
 		Category:    product.Category,
+		CategoryID:  product.CategoryID,
 		Description: product.Description,
 		ImageURL:    product.ImageURL,
 		Specs:       product.Specs,

@@ -20,7 +20,7 @@ func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 		"status": "ok",
 	}
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(status)
 }

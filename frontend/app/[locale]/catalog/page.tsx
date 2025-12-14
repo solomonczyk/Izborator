@@ -2,6 +2,7 @@
 import React from "react"
 import { Link } from '@/navigation'
 import { getTranslations } from 'next-intl/server'
+import { fetchCategoriesTree, fetchCities, flattenCategories, type CategoryNode, type City } from '@/lib/api'
 
 type BrowseProduct = {
   id: string
@@ -23,7 +24,7 @@ type BrowseResponse = {
   total_pages: number
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3002"
 
 // Форматирование цены с разделителями тысяч
 function formatPrice(price: number): string {
@@ -33,6 +34,7 @@ function formatPrice(price: number): string {
 async function fetchCatalog(params: {
   query?: string
   category?: string
+  city?: string
   minPrice?: string
   maxPrice?: string
   page?: string
@@ -44,6 +46,7 @@ async function fetchCatalog(params: {
 
   if (params.query) url.searchParams.set("query", params.query)
   if (params.category) url.searchParams.set("category", params.category)
+  if (params.city) url.searchParams.set("city", params.city)
   if (params.minPrice) url.searchParams.set("min_price", params.minPrice)
   if (params.maxPrice) url.searchParams.set("max_price", params.maxPrice)
   if (params.sort) url.searchParams.set("sort", params.sort)
@@ -76,6 +79,7 @@ export default async function CatalogPage({
   searchParams?: Promise<{
     q?: string
     category?: string
+    city?: string
     min_price?: string
     max_price?: string
     page?: string
@@ -89,11 +93,36 @@ export default async function CatalogPage({
   
   const query = resolvedSearchParams?.q || ""
   const category = resolvedSearchParams?.category || ""
+  const city = resolvedSearchParams?.city || ""
   const minPrice = resolvedSearchParams?.min_price || ""
   const maxPrice = resolvedSearchParams?.max_price || ""
   const page = resolvedSearchParams?.page || "1"
   const perPage = resolvedSearchParams?.per_page || "20"
   const sort = resolvedSearchParams?.sort || "price_asc"
+
+  // Загружаем категории и города
+  let categories: CategoryNode[] = []
+  let cities: City[] = []
+  let categoriesError: string | null = null
+  let citiesError: string | null = null
+
+  try {
+    const categoriesData = await fetchCategoriesTree()
+    categories = Array.isArray(categoriesData) ? categoriesData : []
+  } catch (err) {
+    categoriesError = err instanceof Error ? err.message : "Failed to load categories"
+    categories = [] // Убеждаемся, что это массив
+  }
+
+  try {
+    const citiesData = await fetchCities()
+    cities = Array.isArray(citiesData) ? citiesData : []
+  } catch (err) {
+    citiesError = err instanceof Error ? err.message : "Failed to load cities"
+    cities = [] // Убеждаемся, что это массив
+  }
+
+  const flatCategories = flattenCategories(categories)
 
   let data: BrowseResponse
   let error: string | null = null
@@ -102,6 +131,7 @@ export default async function CatalogPage({
     data = await fetchCatalog({
       query,
       category,
+      city,
       minPrice,
       maxPrice,
       page,
@@ -124,6 +154,7 @@ export default async function CatalogPage({
   const baseParams = new URLSearchParams()
   if (query) baseParams.set("q", query)
   if (category) baseParams.set("category", category)
+  if (city) baseParams.set("city", city)
   if (minPrice) baseParams.set("min_price", minPrice)
   if (maxPrice) baseParams.set("max_price", maxPrice)
   if (sort && sort !== "price_asc") baseParams.set("sort", sort)
@@ -143,6 +174,17 @@ export default async function CatalogPage({
             <p className="text-red-600 text-xs mt-2">
               {t('catalog.error_api_hint', { apiBase: API_BASE })}
             </p>
+          </div>
+        )}
+
+        {(categoriesError || citiesError) && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            {categoriesError && (
+              <p className="text-yellow-800 text-sm">⚠️ {categoriesError}</p>
+            )}
+            {citiesError && (
+              <p className="text-yellow-800 text-sm">⚠️ {citiesError}</p>
+            )}
           </div>
         )}
 
@@ -166,7 +208,7 @@ export default async function CatalogPage({
             </div>
 
             {/* Фильтры в одну строку */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               {/* Категория */}
               <div>
                 <label
@@ -182,10 +224,37 @@ export default async function CatalogPage({
                   className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
                 >
                   <option value="" className="text-slate-400">{t('catalog.all_categories')}</option>
-                  <option value="phones" className="text-slate-900">{t('catalog.category_phones')}</option>
-                  <option value="laptops" className="text-slate-900">{t('catalog.category_laptops')}</option>
-                  <option value="tablets" className="text-slate-900">{t('catalog.category_tablets')}</option>
-                  <option value="accessories" className="text-slate-900">{t('catalog.category_accessories')}</option>
+                  {flatCategories.map((cat) => (
+                    <option key={cat.value} value={cat.value} className="text-slate-900">
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Город */}
+              <div>
+                <label
+                  htmlFor="city"
+                  className="block text-sm font-medium mb-2 text-slate-900"
+                >
+                  {t('catalog.city') || 'Город'}
+                </label>
+                <select
+                  id="city"
+                  name="city"
+                  defaultValue={city}
+                  className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
+                >
+                  <option value="" className="text-slate-400">{t('catalog.all_cities') || 'Все города'}</option>
+                  {cities
+                    .filter((c) => c.is_active)
+                    .sort((a, b) => a.sort_order - b.sort_order)
+                    .map((city) => (
+                      <option key={city.id} value={city.slug} className="text-slate-900">
+                        {city.name_sr}
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -262,7 +331,7 @@ export default async function CatalogPage({
               >
                 {t('catalog.apply_filters')}
               </button>
-              {(query || category || minPrice || maxPrice || sort !== "price_asc") && (
+              {(query || category || city || minPrice || maxPrice || sort !== "price_asc") && (
                 <Link
                   href="/catalog"
                   className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500"

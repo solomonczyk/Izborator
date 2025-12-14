@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/solomonczyk/izborator/internal/config"
@@ -19,21 +18,23 @@ type Repository struct {
 }
 
 // New создает пул соединений с PostgreSQL
-func New(ctx context.Context, connString string, log *logger.Logger) (*Repository, error) {
+func New(ctx context.Context, cfg *config.DBConfig, log *logger.Logger) (*Repository, error) {
+	connString := cfg.DSN()
+	
 	// Конфигурация пула
-	config, err := pgxpool.ParseConfig(connString)
+	poolConfig, err := pgxpool.ParseConfig(connString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	// Настройки тайм-аутов и макс. соединений (базовые для highload)
-	config.MaxConns = 50
-	config.MinConns = 5
-	config.MaxConnLifetime = time.Hour
-	config.MaxConnIdleTime = 30 * time.Minute
+	// Настройки тайм-аутов и макс. соединений из конфига
+	poolConfig.MaxConns = int32(cfg.MaxConnections)
+	poolConfig.MinConns = int32(cfg.MinConnections)
+	poolConfig.MaxConnLifetime = cfg.ConnMaxLifetime
+	poolConfig.MaxConnIdleTime = cfg.MaxIdleTime
 
 	// Создаем пул
-	pool, err := pgxpool.NewWithConfig(ctx, config)
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}
@@ -43,7 +44,17 @@ func New(ctx context.Context, connString string, log *logger.Logger) (*Repositor
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	log.Info("Successfully connected to PostgreSQL", map[string]interface{}{})
+	// Устанавливаем кодировку UTF-8 для всех соединений в пуле
+	_, err = pool.Exec(ctx, "SET client_encoding = 'UTF8'")
+	if err != nil {
+		return nil, fmt.Errorf("failed to set client encoding: %w", err)
+	}
+
+	log.Info("Successfully connected to PostgreSQL", map[string]interface{}{
+		"max_connections": cfg.MaxConnections,
+		"min_connections": cfg.MinConnections,
+		"encoding":        "UTF8",
+	})
 
 	return &Repository{
 		Pool: pool,
@@ -69,16 +80,18 @@ type Postgres struct {
 func NewPostgres(cfg *config.DBConfig, log *logger.Logger) (*Postgres, error) {
 	ctx := context.Background()
 	
-	dsn := cfg.DSN()
 	log.Debug("Creating PostgreSQL connection", map[string]interface{}{
-		"dsn": dsn,
+		"host":     cfg.Host,
+		"port":     cfg.Port,
+		"database": cfg.Database,
 	})
 	
-	repo, err := New(ctx, dsn, log)
+	repo, err := New(ctx, cfg, log)
 	if err != nil {
 		log.Error("Failed to create PostgreSQL connection", map[string]interface{}{
 			"error": err.Error(),
-			"dsn":   dsn,
+			"host":  cfg.Host,
+			"port":  cfg.Port,
 		})
 		return nil, fmt.Errorf("failed to create postgres connection: %w", err)
 	}

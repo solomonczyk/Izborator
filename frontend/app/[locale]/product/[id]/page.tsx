@@ -25,7 +25,7 @@ type ProductResponse = {
   prices: ProductPrice[]
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3002"
 
 async function fetchProduct(id: string, lang?: string): Promise<ProductResponse> {
   const url = new URL(`/api/v1/products/${id}`, API_BASE)

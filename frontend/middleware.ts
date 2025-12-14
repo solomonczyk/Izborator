@@ -3,7 +3,7 @@ import { locales } from './i18n'
 
 export default createMiddleware({
   // Поддерживаемые языки
-  locales: locales as string[],
+  locales: [...locales] as string[],
   
   // Язык по умолчанию
   defaultLocale: 'en',

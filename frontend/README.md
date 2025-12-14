@@ -27,7 +27,7 @@ npm run dev
 Создайте файл `.env.local`:
 
 ```
-NEXT_PUBLIC_API_BASE=http://localhost:8080
+NEXT_PUBLIC_API_BASE=http://localhost:3002
 ```
 
 ## API

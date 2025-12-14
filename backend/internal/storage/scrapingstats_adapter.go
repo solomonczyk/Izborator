@@ -19,7 +19,7 @@ type ScrapingStatsAdapter struct {
 func NewScrapingStatsAdapter(pg *Postgres) scrapingstats.Storage {
 	return &ScrapingStatsAdapter{
 		pg:  pg,
-		ctx: context.Background(),
+		ctx: pg.Context(), // Используем контекст из Postgres вместо Background()
 	}
 }
 

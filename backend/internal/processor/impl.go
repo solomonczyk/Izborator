@@ -16,6 +16,10 @@ func (s *Service) ProcessRawProducts(ctx context.Context, batchSize int) (int, e
 	if batchSize <= 0 {
 		batchSize = 10
 	}
+	// Защита от перегрузки - ограничиваем максимальный размер батча
+	if batchSize > 100 {
+		batchSize = 100
+	}
 
 	s.logger.Info("processor: loading raw products", map[string]interface{}{
 		"batch_size": batchSize,
@@ -190,8 +194,10 @@ func (s *Service) normalizeRawProduct(raw *scraper.RawProduct) *products.Product
 // normalizeBrand нормализует название бренда
 func (s *Service) normalizeBrand(brand string) string {
 	brand = strings.TrimSpace(brand)
-	brand = strings.ToUpper(brand[:1]) + strings.ToLower(brand[1:])
-	return brand
+	if brand == "" {
+		return ""
+	}
+	return strings.ToUpper(brand[:1]) + strings.ToLower(brand[1:])
 }
 
 // createNewProduct создаёт новый товар из сырых данных

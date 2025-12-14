@@ -34,21 +34,47 @@ func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 		h.logger.Error("GetTree failed", map[string]interface{}{
 			"error": err.Error(),
 		})
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.categories_load_failed")
+		// Возвращаем пустой массив вместо ошибки, чтобы фронтенд не ломался
+		emptyArray := []CategoryNode{}
+		h.respondJSON(w, http.StatusOK, emptyArray)
+		return
+	}
+
+	// Если нет категорий, сразу возвращаем пустой массив
+	if tree == nil || len(tree) == 0 {
+		emptyArray := []CategoryNode{}
+		h.respondJSON(w, http.StatusOK, emptyArray)
 		return
 	}
 
 	// Преобразуем в JSON структуру с children
 	result := h.buildTree(tree)
+	
+	// Убеждаемся, что возвращаем массив, даже если пустой
+	// Всегда создаем новый слайс явно
+	var finalResult []CategoryNode
+	if result == nil || len(result) == 0 {
+		finalResult = []CategoryNode{}
+	} else {
+		finalResult = make([]CategoryNode, 0, len(result))
+		for _, node := range result {
+			finalResult = append(finalResult, node)
+		}
+	}
 
-	h.respondJSON(w, http.StatusOK, result)
+	h.respondJSON(w, http.StatusOK, finalResult)
 }
 
 // buildTree строит иерархическое дерево из плоского списка
 func (h *CategoriesHandler) buildTree(cats []*categories.Category) []CategoryNode {
-	// Создаём map для быстрого доступа
+	// Если нет категорий, возвращаем пустой массив (не nil)
+	if len(cats) == 0 {
+		return []CategoryNode{}
+	}
+
+	// Создаём map для быстрого доступа (храним указатели)
 	categoryMap := make(map[string]*CategoryNode)
-	var roots []CategoryNode
+	var rootNodes []*CategoryNode
 
 	// Сначала создаём все узлы
 	for _, cat := range cats {
@@ -70,8 +96,8 @@ func (h *CategoriesHandler) buildTree(cats []*categories.Category) []CategoryNod
 	for _, cat := range cats {
 		node := categoryMap[cat.ID]
 		if cat.ParentID == nil {
-			// Корневая категория
-			roots = append(roots, *node)
+			// Корневая категория - сохраняем указатель
+			rootNodes = append(rootNodes, node)
 		} else {
 			// Подкатегория - добавляем к родителю
 			if parent, ok := categoryMap[*cat.ParentID]; ok {
@@ -81,12 +107,23 @@ func (h *CategoriesHandler) buildTree(cats []*categories.Category) []CategoryNod
 	}
 
 	// Сортируем корни по sort_order
-	for i := 0; i < len(roots); i++ {
-		for j := i + 1; j < len(roots); j++ {
-			if roots[i].SortOrder > roots[j].SortOrder {
-				roots[i], roots[j] = roots[j], roots[i]
+	for i := 0; i < len(rootNodes); i++ {
+		for j := i + 1; j < len(rootNodes); j++ {
+			if rootNodes[i].SortOrder > rootNodes[j].SortOrder {
+				rootNodes[i], rootNodes[j] = rootNodes[j], rootNodes[i]
 			}
 		}
+	}
+
+	// Преобразуем указатели в значения для возврата
+	roots := make([]CategoryNode, 0, len(rootNodes))
+	for _, node := range rootNodes {
+		roots = append(roots, *node)
+	}
+
+	// Убеждаемся, что возвращаем не-nil слайс
+	if roots == nil {
+		return []CategoryNode{}
 	}
 
 	return roots
@@ -107,13 +144,46 @@ type CategoryNode struct {
 
 // respondJSON отправляет JSON ответ
 func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		h.logger.Error("Failed to encode JSON response", map[string]interface{}{
+	
+	// Специальная обработка для []CategoryNode - всегда возвращаем массив
+	if slice, ok := data.([]CategoryNode); ok {
+		// Если это слайс категорий, всегда сериализуем как массив
+		if slice == nil || len(slice) == 0 {
+			// Явно пишем пустой массив
+			w.Write([]byte("[]\n"))
+			return
+		}
+		// Сериализуем непустой слайс
+		jsonBytes, err := json.Marshal(slice)
+		if err != nil {
+			h.logger.Error("Failed to marshal JSON response", map[string]interface{}{
+				"error": err,
+			})
+			w.Write([]byte("[]\n"))
+			return
+		}
+		w.Write(jsonBytes)
+		return
+	}
+	
+	// Для других типов используем стандартную сериализацию
+	if data == nil {
+		w.Write([]byte("[]\n"))
+		return
+	}
+	
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		h.logger.Error("Failed to marshal JSON response", map[string]interface{}{
 			"error": err,
 		})
+		w.Write([]byte("[]\n"))
+		return
 	}
+	
+	w.Write(jsonBytes)
 }
 
 // respondError отправляет JSON ошибку

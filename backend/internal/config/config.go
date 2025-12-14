@@ -35,6 +35,7 @@ type DBConfig struct {
 	Password        string
 	Database        string
 	MaxConnections  int
+	MinConnections  int
 	MaxIdleTime     time.Duration
 	ConnMaxLifetime time.Duration
 }
@@ -82,8 +83,9 @@ func Load() (*Config, error) {
 			User:            getEnv("DB_USER", "postgres"),
 			Password:        getEnv("DB_PASSWORD", ""),
 			Database:        getEnv("DB_NAME", "izborator"),
-			MaxConnections:  getEnvAsInt("DB_MAX_CONNECTIONS", 25),
-			MaxIdleTime:     getEnvAsDuration("DB_MAX_IDLE_TIME", 15*time.Minute),
+			MaxConnections:  getEnvAsInt("DB_MAX_CONNECTIONS", 50),
+			MinConnections:  getEnvAsInt("DB_MIN_CONNECTIONS", 5),
+			MaxIdleTime:     getEnvAsDuration("DB_MAX_IDLE_TIME", 30*time.Minute),
 			ConnMaxLifetime: getEnvAsDuration("DB_CONN_MAX_LIFETIME", 1*time.Hour),
 		},
 
@@ -162,7 +164,7 @@ func getEnvAsSlice(key string, defaultValue []string) []string {
 // DSN возвращает строку подключения к PostgreSQL
 func (c *DBConfig) DSN() string {
 	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=disable client_encoding=UTF8",
 		c.Host, c.Port, c.User, c.Password, c.Database,
 	)
 }

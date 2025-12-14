@@ -22,7 +22,7 @@ type BrowseResponse = {
   total_pages: number;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3002";
 
 // Форматирование цены с разделителями тысяч
 function formatPrice(price: number): string {

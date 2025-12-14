@@ -277,17 +277,21 @@ func (a *ScraperAdapter) GetUnprocessedRawProducts(limit int) ([]*scraper.RawPro
 			specsJSON     []byte
 			rawPayload    []byte
 			parsedAtTime  time.Time
+			description   *string
+			brand         *string
+			category      *string
+			url           *string
 		)
 
 		if err := rows.Scan(
 			&r.ShopID,
 			&r.ShopName,
 			&r.ExternalID,
-			&r.URL,
+			&url,
 			&r.Name,
-			&r.Description,
-			&r.Brand,
-			&r.Category,
+			&description,
+			&brand,
+			&category,
 			&r.Price,
 			&r.Currency,
 			&imageURLsJSON,
@@ -297,6 +301,20 @@ func (a *ScraperAdapter) GetUnprocessedRawProducts(limit int) ([]*scraper.RawPro
 			&parsedAtTime,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan raw product: %w", err)
+		}
+
+		// Обработка nullable полей
+		if description != nil {
+			r.Description = *description
+		}
+		if brand != nil {
+			r.Brand = *brand
+		}
+		if category != nil {
+			r.Category = *category
+		}
+		if url != nil {
+			r.URL = *url
 		}
 
 		// Десериализация JSON полей

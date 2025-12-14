@@ -82,10 +82,14 @@ func CacheMiddleware(redisClient *redis.Client, log *logger.Logger, ttl time.Dur
 				}
 
 				// Сохраняем в Redis асинхронно (не блокируем ответ)
+				// Используем контекст с таймаутом, чтобы не зависеть от завершения запроса
 				go func() {
+					cacheCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+					defer cancel()
+					
 					data, err := response.Marshal()
 					if err == nil {
-						if err := redisClient.Set(context.Background(), cacheKey, data, ttl).Err(); err != nil {
+						if err := redisClient.Set(cacheCtx, cacheKey, data, ttl).Err(); err != nil {
 							log.Warn("Failed to cache response", map[string]interface{}{
 								"error": err.Error(),
 								"key":   cacheKey,

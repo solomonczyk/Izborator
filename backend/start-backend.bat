@@ -6,7 +6,7 @@ set DB_PORT=5433
 set DB_USER=postgres
 set DB_PASSWORD=postgres
 set DB_NAME=izborator
-set SERVER_PORT=8081
+set SERVER_PORT=3002
 go run cmd/api/main.go
 pause
 

@@ -330,7 +330,7 @@ func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 
 // respondJSON отправляет JSON ответ
 func (h *ProductsHandler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		h.logger.Error("Failed to encode JSON response", map[string]interface{}{

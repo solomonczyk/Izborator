@@ -104,18 +104,42 @@ func main() {
 	// Обычный режим воркера (ожидание задач из очереди)
 	application.Logger().Info("Worker started (waiting for jobs...) - use -url to test scrape or -process to process raw data", map[string]interface{}{})
 
+	// Создаём контекст для управления жизненным циклом воркера
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	defer workerCancel()
+
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	// Запускаем воркер в горутине (пока заглушка, т.к. очередь не реализована)
+	workerDone := make(chan struct{})
+	go func() {
+		defer close(workerDone)
+		// Здесь будет логика воркера, который слушает очередь
+		// Пока просто ждём отмены контекста
+		<-workerCtx.Done()
+		application.Logger().Info("Worker stopped", map[string]interface{}{})
+	}()
+
+	// Ждём сигнала завершения
 	<-quit
 
 	application.Logger().Info("Shutting down worker...", map[string]interface{}{})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	// Отменяем контекст воркера
+	workerCancel()
 
-	// TODO: Graceful shutdown воркеров
-	_ = ctx
+	// Ждём завершения воркера с таймаутом
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	select {
+	case <-workerDone:
+		application.Logger().Info("Worker stopped gracefully", map[string]interface{}{})
+	case <-shutdownCtx.Done():
+		application.Logger().Warn("Worker shutdown timeout exceeded", map[string]interface{}{})
+	}
 
 	application.Logger().Info("Worker exited", map[string]interface{}{})
 }
