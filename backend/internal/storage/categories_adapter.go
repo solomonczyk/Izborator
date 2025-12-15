@@ -218,10 +218,11 @@ func (a *CategoriesAdapter) GetTree() ([]*categories.Category, error) {
 	result := make([]*categories.Category, 0) // Явно инициализируем как пустой слайс, не nil
 	for rows.Next() {
 		var cat categories.Category
+		var parentID *uuid.UUID
 
 		if err := rows.Scan(
 			&cat.ID,
-			&cat.ParentID,
+			&parentID,
 			&cat.Slug,
 			&cat.Code,
 			&cat.NameSr,
@@ -231,6 +232,12 @@ func (a *CategoriesAdapter) GetTree() ([]*categories.Category, error) {
 			&cat.SortOrder,
 		); err != nil {
 			continue
+		}
+
+		// Для корневых категорий parentID должен быть nil
+		if parentID != nil {
+			parentIDStr := parentID.String()
+			cat.ParentID = &parentIDStr
 		}
 
 		result = append(result, &cat)
