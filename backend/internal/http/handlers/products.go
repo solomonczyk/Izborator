@@ -427,6 +427,21 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Логируем shop_names перед отправкой
+	if res != nil && len(res.Items) > 0 {
+		for i, item := range res.Items {
+			if i < 3 {
+				h.logger.Info("Browse handler: item before JSON", map[string]interface{}{
+					"product_id":   item.ID,
+					"product_name": item.Name,
+					"shop_names":   item.ShopNames,
+					"shop_names_len": len(item.ShopNames),
+					"shops_count":  item.ShopsCount,
+				})
+			}
+		}
+	}
+
 	h.respondJSON(w, http.StatusOK, res)
 }
 

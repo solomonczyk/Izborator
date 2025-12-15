@@ -61,22 +61,66 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]
 		brandContains := "%" + normalizedBrand + "%"
 		args = []interface{}{nameExact, namePrefix, nameContains, brandExact, brandContains, limit}
 	} else {
-		query = `
-			SELECT id, name, brand, specs
-			FROM products
-			WHERE (
-				LOWER(TRIM(name)) = $1
-				OR LOWER(TRIM(name)) LIKE $2
-				OR LOWER(TRIM(name)) LIKE $3
-			)
-			ORDER BY 
-				CASE WHEN LOWER(TRIM(name)) = $1 THEN 1 ELSE 2 END
-			LIMIT $4
-		`
-		nameExact := normalizedName
-		namePrefix := normalizedName + "%"
-		nameContains := "%" + normalizedName + "%"
-		args = []interface{}{nameExact, namePrefix, nameContains, limit}
+		// Улучшенный поиск: ищем по ключевым словам из названия
+		// Разбиваем название на слова и ищем товары, содержащие несколько ключевых слов
+		words := strings.Fields(normalizedName)
+		keyWords := make([]string, 0)
+		for _, word := range words {
+			// Берем только значимые слова (длиннее 2 символов, не числа меньше 10)
+			if len(word) > 2 {
+				keyWords = append(keyWords, word)
+			}
+		}
+		
+		// Если есть ключевые слова, ищем товары, содержащие хотя бы 2 из них
+		if len(keyWords) >= 2 {
+			// Строим условие: товар должен содержать несколько ключевых слов
+			conditions := make([]string, 0)
+			queryArgs := make([]interface{}, 0)
+			argIndex := 1
+			
+			// Точное совпадение (приоритет)
+			conditions = append(conditions, fmt.Sprintf("LOWER(TRIM(name)) = $%d", argIndex))
+			queryArgs = append(queryArgs, normalizedName)
+			argIndex++
+			
+			// Поиск по ключевым словам (хотя бы 2 совпадения)
+			for i := 0; i < len(keyWords) && i < 5; i++ { // Берем до 5 ключевых слов
+				conditions = append(conditions, fmt.Sprintf("LOWER(TRIM(name)) LIKE $%d", argIndex))
+				queryArgs = append(queryArgs, "%"+keyWords[i]+"%")
+				argIndex++
+			}
+			
+			query = fmt.Sprintf(`
+				SELECT id, name, brand, specs
+				FROM products
+				WHERE (%s)
+				ORDER BY 
+					CASE WHEN LOWER(TRIM(name)) = $1 THEN 1 ELSE 2 END,
+					name
+				LIMIT $%d
+			`, strings.Join(conditions, " OR "), argIndex)
+			queryArgs = append(queryArgs, limit)
+			args = queryArgs
+		} else {
+			// Fallback на старый поиск
+			query = `
+				SELECT id, name, brand, specs
+				FROM products
+				WHERE (
+					LOWER(TRIM(name)) = $1
+					OR LOWER(TRIM(name)) LIKE $2
+					OR LOWER(TRIM(name)) LIKE $3
+				)
+				ORDER BY 
+					CASE WHEN LOWER(TRIM(name)) = $1 THEN 1 ELSE 2 END
+				LIMIT $4
+			`
+			nameExact := normalizedName
+			namePrefix := normalizedName + "%"
+			nameContains := "%" + normalizedName + "%"
+			args = []interface{}{nameExact, namePrefix, nameContains, limit}
+		}
 	}
 
 	rows, err := a.pg.DB().Query(a.ctx, query, args...)

@@ -14,6 +14,7 @@ type BrowseProduct = {
   max_price?: number
   currency?: string
   shops_count?: number
+  shop_names?: string[]
 }
 
 type BrowseResponse = {
@@ -24,7 +25,7 @@ type BrowseResponse = {
   total_pages: number
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3002"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081"
 
 // Форматирование цены с разделителями тысяч
 function formatPrice(price: number): string {
@@ -59,7 +60,8 @@ async function fetchCatalog(params: {
   url.searchParams.set("per_page", perPage.toString())
 
   const res = await fetch(url.toString(), {
-    next: { revalidate: 180 }, // Кэшируем на 3 минуты
+    next: { revalidate: 0 }, // Временно отключен кэш для теста
+    cache: 'no-store', // Принудительно не кэшировать
   })
 
   if (!res.ok) {
@@ -109,20 +111,25 @@ export default async function CatalogPage({
   try {
     const categoriesData = await fetchCategoriesTree()
     categories = Array.isArray(categoriesData) ? categoriesData : []
+    console.log('Categories loaded:', categories.length, categories)
   } catch (err) {
     categoriesError = err instanceof Error ? err.message : "Failed to load categories"
     categories = [] // Убеждаемся, что это массив
+    console.error('Categories error:', err)
   }
 
   try {
     const citiesData = await fetchCities()
     cities = Array.isArray(citiesData) ? citiesData : []
+    console.log('Cities loaded:', cities.length, cities)
   } catch (err) {
     citiesError = err instanceof Error ? err.message : "Failed to load cities"
     cities = [] // Убеждаемся, что это массив
+    console.error('Cities error:', err)
   }
 
   const flatCategories = flattenCategories(categories)
+  console.log('Flat categories:', flatCategories.length, flatCategories)
 
   let data: BrowseResponse
   let error: string | null = null
@@ -139,8 +146,16 @@ export default async function CatalogPage({
       sort,
       lang: locale,
     })
+    console.log('Catalog data loaded:', {
+      total: data.total,
+      itemsCount: data.items.length,
+      page: data.page,
+      perPage: data.per_page,
+      items: data.items.map(i => ({ name: i.name, shops_count: i.shops_count, shop_names: i.shop_names }))
+    })
   } catch (err) {
     error = err instanceof Error ? err.message : t('common.error_unknown')
+    console.error('Catalog error:', err)
     data = {
       items: [],
       page: 1,
@@ -224,11 +239,17 @@ export default async function CatalogPage({
                   className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
                 >
                   <option value="" className="text-slate-400">{t('catalog.all_categories')}</option>
-                  {flatCategories.map((cat) => (
-                    <option key={cat.value} value={cat.value} className="text-slate-900">
-                      {cat.label}
+                  {flatCategories.length > 0 ? (
+                    flatCategories.map((cat) => (
+                      <option key={cat.value} value={cat.value} className="text-slate-900">
+                        {cat.label}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled className="text-slate-400">
+                      {categoriesError || 'Loading...'}
                     </option>
-                  ))}
+                  )}
                 </select>
               </div>
 
@@ -247,14 +268,20 @@ export default async function CatalogPage({
                   className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
                 >
                   <option value="" className="text-slate-400">{t('catalog.all_cities') || 'Все города'}</option>
-                  {cities
-                    .filter((c) => c.is_active)
-                    .sort((a, b) => a.sort_order - b.sort_order)
-                    .map((city) => (
-                      <option key={city.id} value={city.slug} className="text-slate-900">
-                        {city.name_sr}
-                      </option>
-                    ))}
+                  {cities.length > 0 ? (
+                    cities
+                      .filter((c) => c.is_active)
+                      .sort((a, b) => a.sort_order - b.sort_order)
+                      .map((city) => (
+                        <option key={city.id} value={city.slug} className="text-slate-900">
+                          {city.name_sr}
+                        </option>
+                      ))
+                  ) : (
+                    <option value="" disabled className="text-slate-400">
+                      {citiesError || 'Loading...'}
+                    </option>
+                  )}
                 </select>
               </div>
 
@@ -333,7 +360,7 @@ export default async function CatalogPage({
               </button>
               {(query || category || city || minPrice || maxPrice || sort !== "price_asc") && (
                 <Link
-                  href="/catalog"
+                  href="catalog"
                   className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500"
                 >
                   {t('catalog.reset')}
@@ -362,6 +389,10 @@ export default async function CatalogPage({
                     ({t('catalog.page')} {data.page} {t('catalog.of')} {data.total_pages})
                   </span>
                 )}
+                {/* Debug info */}
+                <span className="ml-2 text-xs text-slate-400">
+                  (Items in array: {data.items.length})
+                </span>
               </p>
             </div>
 
@@ -398,8 +429,15 @@ export default async function CatalogPage({
                         </p>
                       )}
                       {typeof p.shops_count === "number" && (
-                        <p className="text-xs text-slate-600 mt-1">
-                          {t('catalog.shops_count')}: {p.shops_count}
+                        <p className="text-sm mt-2">
+                          <span className="text-slate-700 font-medium">
+                            {t('catalog.shops_count')}: {p.shops_count}
+                          </span>
+                          {p.shop_names && p.shop_names.length > 0 && (
+                            <span className="ml-2 text-blue-600 font-semibold">
+                              {p.shop_names.join(", ")}
+                            </span>
+                          )}
                         </p>
                       )}
                     </div>

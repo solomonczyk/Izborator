@@ -240,6 +240,30 @@ func (i *Indexer) SyncProducts() error {
 			}
 		}
 
+		// Получаем названия магазинов для этого товара
+		shopNamesQuery := `
+			SELECT DISTINCT s.name 
+			FROM product_prices pp
+			JOIN shops s ON pp.shop_id = s.id
+			WHERE pp.product_id = $1
+		`
+		shopRows, err := i.pg.DB().Query(ctx, shopNamesQuery, id)
+		if err == nil {
+			var shopNames []string
+			for shopRows.Next() {
+				var shopName string
+				if err := shopRows.Scan(&shopName); err == nil && shopName != "" {
+					shopNames = append(shopNames, shopName)
+				}
+			}
+			shopRows.Close()
+			
+			if len(shopNames) > 0 {
+				doc["shop_names"] = shopNames
+				doc["shops_count"] = len(shopNames)
+			}
+		}
+
 		documents = append(documents, doc)
 
 		// Отправляем батчами

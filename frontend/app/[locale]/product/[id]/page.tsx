@@ -25,7 +25,7 @@ type ProductResponse = {
   prices: ProductPrice[]
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:3002"
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081"
 
 async function fetchProduct(id: string, lang?: string): Promise<ProductResponse> {
   const url = new URL(`/api/v1/products/${id}`, API_BASE)
@@ -67,7 +67,7 @@ export default async function ProductPage({
       <main className="min-h-screen bg-slate-50">
         <div className="max-w-5xl mx-auto px-4 py-8">
           <Link
-            href="/catalog"
+            href="catalog"
             className="inline-block mb-4 text-blue-600 hover:underline"
           >
             {t('product.back_to_catalog')}
@@ -95,13 +95,13 @@ export default async function ProductPage({
     <main className="min-h-screen bg-slate-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <Link
-          href={`/${locale}/catalog`}
+          href="catalog"
           className="inline-block mb-6 text-blue-600 hover:underline"
         >
           {t('product.back_to_catalog')}
         </Link>
 
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
+        <div className="bg-white rounded-xl shadow-md border-2 border-slate-200 p-6 mb-6">
           <div className="flex gap-6 flex-col md:flex-row">
             {product.image_url && (
               <div className="flex-shrink-0">
@@ -114,18 +114,18 @@ export default async function ProductPage({
             )}
 
             <div className="flex-1">
-              <h1 className="text-3xl font-semibold mb-2">{product.name}</h1>
+              <h1 className="text-3xl font-bold mb-3 text-slate-900">{product.name}</h1>
 
               {product.brand && (
-                <p className="text-slate-600 mb-1">
-                  <span className="font-medium">{t('product.brand')}:</span> {product.brand}
+                <p className="text-slate-700 mb-2 text-base">
+                  <span className="font-semibold text-slate-900">{t('product.brand')}:</span> <span className="text-slate-800">{product.brand}</span>
                 </p>
               )}
 
               {product.category && (
-                <p className="text-slate-600 mb-4">
-                  <span className="font-medium">{t('product.category')}:</span>{" "}
-                  {product.category}
+                <p className="text-slate-700 mb-4 text-base">
+                  <span className="font-semibold text-slate-900">{t('product.category')}:</span>{" "}
+                  <span className="text-slate-800">{product.category}</span>
                 </p>
               )}
 
@@ -146,8 +146,8 @@ export default async function ProductPage({
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h2 className="text-2xl font-semibold mb-4">
+        <div className="bg-white rounded-xl shadow-md border-2 border-slate-200 p-6">
+          <h2 className="text-2xl font-bold mb-6 text-slate-900">
             {t('product.prices')} ({product.prices.length})
           </h2>
 
@@ -157,16 +157,16 @@ export default async function ProductPage({
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-4 font-semibold">{t('product.table_shop')}</th>
-                    <th className="text-right py-2 px-4 font-semibold">{t('product.table_price')}</th>
-                    <th className="text-center py-2 px-4 font-semibold">
+                  <tr className="border-b-2 border-slate-300 bg-slate-100">
+                    <th className="text-left py-3 px-4 font-bold text-slate-900">{t('product.table_shop')}</th>
+                    <th className="text-right py-3 px-4 font-bold text-slate-900">{t('product.table_price')}</th>
+                    <th className="text-center py-3 px-4 font-bold text-slate-900">
                       {t('product.table_stock')}
                     </th>
-                    <th className="text-center py-2 px-4 font-semibold">
+                    <th className="text-center py-3 px-4 font-bold text-slate-900">
                       {t('product.table_updated')}
                     </th>
-                    <th className="text-center py-2 px-4 font-semibold">
+                    <th className="text-center py-3 px-4 font-bold text-slate-900">
                       {t('product.table_action')}
                     </th>
                   </tr>
@@ -175,37 +175,43 @@ export default async function ProductPage({
                   {sortedPrices.map((price, idx) => (
                     <tr
                       key={`${price.shop_id}-${idx}`}
-                      className="border-b hover:bg-slate-50"
+                      className="border-b border-slate-200 hover:bg-blue-50 transition-colors"
                     >
-                      <td className="py-3 px-4">{price.shop_name}</td>
-                      <td className="py-3 px-4 text-right font-semibold">
-                        {price.price.toLocaleString(locale === 'sr' ? 'sr-RS' : locale === 'ru' ? 'ru-RU' : locale === 'hu' ? 'hu-HU' : locale === 'zh' ? 'zh-CN' : 'en-US')} {price.currency}
+                      <td className="py-4 px-4">
+                        <span className="text-blue-700 font-semibold text-base">
+                          {price.shop_name}
+                        </span>
                       </td>
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-4 px-4 text-right">
+                        <span className="text-slate-900 font-bold text-lg">
+                          {price.price.toLocaleString(locale === 'sr' ? 'sr-RS' : locale === 'ru' ? 'ru-RU' : locale === 'hu' ? 'hu-HU' : locale === 'zh' ? 'zh-CN' : 'en-US')} {price.currency}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-center">
                         {price.in_stock ? (
-                          <span className="text-green-600 font-medium">
+                          <span className="inline-block px-3 py-1 rounded-full bg-green-100 text-green-800 font-semibold text-sm">
                             {t('product.in_stock')}
                           </span>
                         ) : (
-                          <span className="text-red-600 font-medium">
+                          <span className="inline-block px-3 py-1 rounded-full bg-red-100 text-red-800 font-semibold text-sm">
                             {t('product.out_of_stock')}
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4 text-center text-sm text-slate-500">
+                      <td className="py-4 px-4 text-center text-sm text-slate-700 font-medium">
                         {new Date(price.updated_at).toLocaleDateString(locale === 'sr' ? 'sr-RS' : locale === 'ru' ? 'ru-RU' : locale === 'hu' ? 'hu-HU' : locale === 'zh' ? 'zh-CN' : 'en-US', {
                           day: "2-digit",
                           month: "2-digit",
                           year: "numeric",
                         })}
                       </td>
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-4 px-4 text-center">
                         {price.url && (
                           <a
                             href={price.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline text-sm"
+                            className="inline-block px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors text-sm"
                           >
                             {t('product.go_to')} →
                           </a>

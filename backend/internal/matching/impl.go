@@ -54,12 +54,48 @@ func (s *Service) normalizeName(name string) string {
 	name = strings.ToLower(name)
 	name = strings.TrimSpace(name)
 	
-	// TODO: добавить более сложную нормализацию
-	// - удаление спецсимволов
-	// - замена сокращений
-	// - удаление артиклей
+	// Удаляем спецсимволы, оставляем только буквы, цифры и пробелы
+	var normalized strings.Builder
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == ' ' || r == '/' {
+			normalized.WriteRune(r)
+		}
+	}
+	name = normalized.String()
 	
-	return name
+	// Нормализуем пробелы (множественные пробелы -> один)
+	words := strings.Fields(name)
+	
+	// Удаляем несущественные слова (цвета, описания) и нормализуем память
+	filteredWords := make([]string, 0, len(words))
+	for _, word := range words {
+		// Пропускаем цвета и описания
+		if word == "crni" || word == "black" || word == "white" || word == "midnight" || word == "-" {
+			continue
+		}
+		// Нормализуем память: "12/512gb" -> "512", "512" -> "512", "gb" пропускаем
+		if word == "gb" {
+			continue
+		}
+		// Если слово содержит "/", извлекаем последнее число (память)
+		if strings.Contains(word, "/") {
+			parts := strings.Split(word, "/")
+			if len(parts) > 0 {
+				// Берем последнюю часть (обычно это память)
+				lastPart := parts[len(parts)-1]
+				// Удаляем "gb" если есть
+				lastPart = strings.TrimSuffix(lastPart, "gb")
+				if lastPart != "" {
+					filteredWords = append(filteredWords, lastPart)
+				}
+			}
+		} else {
+			filteredWords = append(filteredWords, word)
+		}
+	}
+	
+	name = strings.Join(filteredWords, " ")
+	return strings.TrimSpace(name)
 }
 
 // normalizeBrand нормализует бренд
@@ -95,22 +131,49 @@ func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float
 	// Частичное совпадение названий
 	similarity := 0.0
 	if strings.Contains(reqName, prodName) || strings.Contains(prodName, reqName) {
-		similarity = 0.5
+		similarity = 0.7 // Увеличиваем для частичного совпадения
 	} else {
-		// Простая проверка на общие слова
+		// Проверка на общие слова с улучшенным алгоритмом
 		reqWords := strings.Fields(reqName)
 		prodWords := strings.Fields(prodName)
+		
+		if len(reqWords) == 0 || len(prodWords) == 0 {
+			return 0.0
+		}
+		
 		commonWords := 0
+		importantWords := 0 // Ключевые слова (бренд, модель)
+		
 		for _, reqWord := range reqWords {
+			if len(reqWord) <= 2 {
+				continue // Игнорируем короткие слова
+			}
 			for _, prodWord := range prodWords {
-				if reqWord == prodWord && len(reqWord) > 2 { // Игнорируем короткие слова
+				if reqWord == prodWord {
 					commonWords++
+					// Ключевые слова (первые слова обычно важнее)
+					if commonWords <= 3 {
+						importantWords++
+					}
 					break
 				}
 			}
 		}
-		if len(reqWords) > 0 && len(prodWords) > 0 {
-			similarity = float64(commonWords) / float64(len(reqWords)+len(prodWords)-commonWords) * 0.8
+		
+		if commonWords > 0 {
+			// Jaccard similarity с бонусом за ключевые слова
+			totalWords := len(reqWords) + len(prodWords) - commonWords
+			baseSimilarity := float64(commonWords) / float64(totalWords)
+			
+			// Бонус за совпадение ключевых слов (бренд, модель)
+			importantBonus := float64(importantWords) * 0.15
+			
+			similarity = (baseSimilarity * 0.8) + importantBonus
+			
+			// Если совпало много слов - это точно один товар
+			if commonWords >= 4 {
+				similarity = 0.85
+			}
 		}
 	}
 	

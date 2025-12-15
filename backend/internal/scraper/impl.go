@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -37,8 +38,8 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		colly.IgnoreRobotsTxt(),
 	)
 
-	// Настройка тайм-аутов
-	c.SetRequestTimeout(30 * time.Second)
+	// Настройка тайм-аутов (увеличено для медленных соединений)
+	c.SetRequestTimeout(60 * time.Second)
 
 	// Рандомизация User-Agent и Referer (защита от бана)
 	extensions.RandomUserAgent(c)
@@ -51,6 +52,25 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 	descriptionSelector := shopConfig.Selectors["description"]
 	categorySelector := shopConfig.Selectors["category"]
 	brandSelector := shopConfig.Selectors["brand"]
+	
+	s.logger.Debug("Loaded selectors", map[string]interface{}{
+		"name":        nameSelector,
+		"price":       priceSelector,
+		"image":       imageSelector,
+		"description": descriptionSelector,
+		"category":    categorySelector,
+		"brand":       brandSelector,
+	})
+
+	// Логируем используемые селекторы
+	s.logger.Debug("Using selectors", map[string]interface{}{
+		"name":        nameSelector,
+		"price":       priceSelector,
+		"image":       imageSelector,
+		"description": descriptionSelector,
+		"category":    categorySelector,
+		"brand":       brandSelector,
+	})
 
 	// 0. Парсинг цены из JSON-LD (schema.org) - приоритетный метод, выполняется первым
 	// На странице может быть несколько JSON-LD блоков в одном script теге
@@ -61,33 +81,6 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		if product.Price == 0 {
 			jsonText := strings.TrimSpace(e.Text)
 
-			// Сначала пробуем найти "price":число в offers напрямую (fallback метод)
-			// Ищем паттерн "offers" -> "price":число
-			offersIdx := strings.Index(jsonText, `"offers"`)
-			if offersIdx >= 0 {
-				afterOffers := jsonText[offersIdx:]
-				priceIdx := strings.Index(afterOffers, `"price":`)
-				if priceIdx > 0 {
-					// Ищем число после "price":
-					afterPrice := afterOffers[priceIdx+8:]
-					// Ищем конец числа (запятая, скобка, пробел, новая строка)
-					endIdx := strings.IndexAny(afterPrice, ",}\n\r\t ")
-					if endIdx > 0 {
-						priceStr := strings.TrimSpace(afterPrice[:endIdx])
-						if price, err := strconv.ParseFloat(priceStr, 64); err == nil && price > 0 && price < 10000000 {
-							// Проверяем, что цена разумная (меньше 10 миллионов RSD)
-							product.Price = price
-							product.Currency = "RSD"
-							s.logger.Debug("Found price from JSON-LD (fallback)", map[string]interface{}{
-								"price":    price,
-								"currency": product.Currency,
-							})
-							return
-						}
-					}
-				}
-			}
-
 			// Пробуем распарсить как объект
 			var schemaData map[string]interface{}
 			if err := json.Unmarshal([]byte(jsonText), &schemaData); err == nil {
@@ -95,10 +88,14 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 				if schemaType, ok := schemaData["@type"].(string); ok && schemaType == "Product" {
 					// Ищем offers.price в schema.org данных
 					if offers, ok := schemaData["offers"].(map[string]interface{}); ok {
-						// price может быть float64
+						// price может быть float64 или string
 						var price float64
 						if priceFloat, ok := offers["price"].(float64); ok {
 							price = priceFloat
+						} else if priceStr, ok := offers["price"].(string); ok {
+							if parsedPrice, err := strconv.ParseFloat(priceStr, 64); err == nil {
+								price = parsedPrice
+							}
 						}
 						if price > 0 && price < 10000000 {
 							product.Price = price
@@ -113,6 +110,55 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 							})
 						}
 					}
+					// Если offers это массив, берем первый элемент
+					if offersArr, ok := schemaData["offers"].([]interface{}); ok && len(offersArr) > 0 {
+						if offer, ok := offersArr[0].(map[string]interface{}); ok {
+							var price float64
+							if priceFloat, ok := offer["price"].(float64); ok {
+								price = priceFloat
+							} else if priceStr, ok := offer["price"].(string); ok {
+								if parsedPrice, err := strconv.ParseFloat(priceStr, 64); err == nil {
+									price = parsedPrice
+								}
+							}
+							if price > 0 && price < 10000000 {
+								product.Price = price
+								if currency, ok := offer["priceCurrency"].(string); ok {
+									product.Currency = currency
+								} else {
+									product.Currency = "RSD"
+								}
+								s.logger.Debug("Found price from JSON-LD (array)", map[string]interface{}{
+									"price":    price,
+									"currency": product.Currency,
+								})
+							}
+						}
+					}
+				}
+			} else {
+				// Fallback: ищем цену в тексте JSON напрямую
+				if product.Price == 0 {
+					offersIdx := strings.Index(jsonText, `"offers"`)
+					if offersIdx >= 0 {
+						afterOffers := jsonText[offersIdx:]
+						priceIdx := strings.Index(afterOffers, `"price":`)
+						if priceIdx > 0 {
+							afterPrice := afterOffers[priceIdx+8:]
+							endIdx := strings.IndexAny(afterPrice, ",}\n\r\t ")
+							if endIdx > 0 {
+								priceStr := strings.TrimSpace(afterPrice[:endIdx])
+								if price, err := strconv.ParseFloat(priceStr, 64); err == nil && price > 0 && price < 10000000 {
+									product.Price = price
+									product.Currency = "RSD"
+									s.logger.Debug("Found price from JSON-LD (fallback)", map[string]interface{}{
+										"price":    price,
+										"currency": product.Currency,
+									})
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -120,43 +166,75 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 
 	// 1. Парсинг Названия
 	if nameSelector != "" {
-		c.OnHTML(nameSelector, func(e *colly.HTMLElement) {
-			if product.Name == "" {
-				product.Name = strings.TrimSpace(e.Text)
-				s.logger.Debug("Found name", map[string]interface{}{
-					"name":     product.Name,
-					"selector": nameSelector,
-				})
+		// Пробуем каждый селектор из списка (разделены запятыми)
+		selectors := strings.Split(nameSelector, ",")
+		for _, sel := range selectors {
+			sel = strings.TrimSpace(sel)
+			if sel == "" {
+				continue
 			}
-		})
+			c.OnHTML(sel, func(e *colly.HTMLElement) {
+				if product.Name == "" {
+					product.Name = strings.TrimSpace(e.Text)
+					s.logger.Debug("Found name", map[string]interface{}{
+						"name":     product.Name,
+						"selector": sel,
+					})
+				}
+			})
+		}
 	}
+	
+	// Fallback: парсинг названия из title страницы
+	c.OnHTML("title", func(e *colly.HTMLElement) {
+		if product.Name == "" {
+			title := strings.TrimSpace(e.Text)
+			// Убираем " | Tehnomanija" из конца
+			if strings.Contains(title, " | Tehnomanija") {
+				title = strings.Split(title, " | Tehnomanija")[0]
+			}
+			product.Name = title
+			s.logger.Debug("Found name from title", map[string]interface{}{
+				"name": product.Name,
+			})
+		}
+	})
 
 	// 2. Парсинг Цены
 	if priceSelector != "" {
-		c.OnHTML(priceSelector, func(e *colly.HTMLElement) {
-			if product.Price == 0 {
-				rawPrice := strings.TrimSpace(e.Text)
-				s.logger.Debug("Found price text", map[string]interface{}{
-					"raw":      rawPrice,
-					"selector": priceSelector,
-				})
-				price, currency, err := cleanPrice(rawPrice)
-				if err == nil {
-					product.Price = price
-					product.Currency = currency
-					s.logger.Debug("Parsed price", map[string]interface{}{
-						"price":    price,
-						"currency": currency,
-					})
-				} else {
-					s.logger.Warn("Failed to parse price", map[string]interface{}{
-						"raw":      rawPrice,
-						"error":    err.Error(),
-						"selector": priceSelector,
-					})
-				}
+		// Пробуем каждый селектор из списка (разделены запятыми)
+		selectors := strings.Split(priceSelector, ",")
+		for _, sel := range selectors {
+			sel = strings.TrimSpace(sel)
+			if sel == "" {
+				continue
 			}
-		})
+			c.OnHTML(sel, func(e *colly.HTMLElement) {
+				if product.Price == 0 {
+					rawPrice := strings.TrimSpace(e.Text)
+					s.logger.Debug("Found price text", map[string]interface{}{
+						"raw":      rawPrice,
+						"selector": sel,
+					})
+					price, currency, err := cleanPrice(rawPrice)
+					if err == nil {
+						product.Price = price
+						product.Currency = currency
+						s.logger.Debug("Parsed price", map[string]interface{}{
+							"price":    price,
+							"currency": currency,
+							"selector": sel,
+						})
+					} else {
+						s.logger.Warn("Failed to parse price", map[string]interface{}{
+							"raw":      rawPrice,
+							"error":    err.Error(),
+							"selector": sel,
+						})
+					}
+				}
+			})
+		}
 	}
 
 	// 3. Парсинг Картинки
@@ -298,11 +376,83 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		}
 	})
 
-	// Логирование запроса
+	// Логирование запроса и настройка заголовков
 	c.OnRequest(func(r *colly.Request) {
 		s.logger.Debug("Visiting", map[string]interface{}{
 			"url": r.URL.String(),
 		})
+		
+		// Добавляем заголовки для обхода защиты от ботов
+		r.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+		r.Headers.Set("Accept-Language", "sr-RS,sr;q=0.9,en-US;q=0.8,en;q=0.7")
+		r.Headers.Set("Accept-Encoding", "gzip, deflate, br")
+		r.Headers.Set("Connection", "keep-alive")
+		r.Headers.Set("Upgrade-Insecure-Requests", "1")
+		r.Headers.Set("Sec-Fetch-Dest", "document")
+		r.Headers.Set("Sec-Fetch-Mode", "navigate")
+		r.Headers.Set("Sec-Fetch-Site", "none")
+		r.Headers.Set("Sec-Fetch-User", "?1")
+		r.Headers.Set("Cache-Control", "max-age=0")
+		
+		// Если Referer не установлен расширением, устанавливаем базовый URL магазина
+		if r.Headers.Get("Referer") == "" {
+			r.Headers.Set("Referer", shopConfig.BaseURL+"/")
+		}
+	})
+
+	// Временное логирование HTML для отладки селекторов (только для tehnomanija)
+	c.OnResponse(func(r *colly.Response) {
+		if shopConfig.ID == "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22" {
+			htmlLen := len(r.Body)
+			s.logger.Info("Response received", map[string]interface{}{
+				"url":        r.Request.URL.String(),
+				"status":     r.StatusCode,
+				"html_length": htmlLen,
+			})
+			
+			// Сохраняем HTML в файл для анализа
+			htmlStr := string(r.Body)
+			if err := os.WriteFile("tehnomanija_debug.html", []byte(htmlStr), 0644); err == nil {
+				s.logger.Info("HTML saved to tehnomanija_debug.html", map[string]interface{}{})
+			}
+			
+			// Ищем название и цену в HTML напрямую для отладки
+			if strings.Contains(htmlStr, "Dell Laptop XPS") {
+				idx := strings.Index(htmlStr, "Dell Laptop XPS")
+				start := idx - 200
+				if start < 0 {
+					start = 0
+				}
+				end := idx + 300
+				if end > len(htmlStr) {
+					end = len(htmlStr)
+				}
+				context := htmlStr[start:end]
+				s.logger.Debug("Found product name in HTML", map[string]interface{}{
+					"context": context,
+				})
+			}
+			
+			// Ищем цену в HTML
+			if strings.Contains(htmlStr, "RSD") || strings.Contains(htmlStr, "din") {
+				// Ищем паттерн цены
+				rsdIdx := strings.Index(htmlStr, "RSD")
+				if rsdIdx > 0 {
+					start := rsdIdx - 50
+					if start < 0 {
+						start = 0
+					}
+					end := rsdIdx + 10
+					if end > len(htmlStr) {
+						end = len(htmlStr)
+					}
+					context := htmlStr[start:end]
+					s.logger.Debug("Found price indicator in HTML", map[string]interface{}{
+						"context": context,
+					})
+				}
+			}
+		}
 	})
 
 	// Обработка ошибок
@@ -314,10 +464,68 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		})
 	})
 
+	// Сохраняем HTML для отладки (только для tehnomanija)
+	var savedHTML []byte
+	if shopConfig.ID == "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22" {
+		c.OnResponse(func(r *colly.Response) {
+			savedHTML = r.Body
+			// Сохраняем в файл для анализа
+			os.WriteFile("tehnomanija_debug.html", r.Body, 0644)
+			s.logger.Info("Saved HTML to tehnomanija_debug.html", map[string]interface{}{
+				"size": len(r.Body),
+			})
+		})
+	}
+
 	// Запуск
 	err := c.Visit(url)
 	if err != nil {
 		return nil, fmt.Errorf("colly visit error: %w", err)
+	}
+
+	// Сохраняем HTML для анализа (только для tehnomanija)
+	if shopConfig.ID == "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22" && len(savedHTML) > 0 {
+		htmlStr := string(savedHTML)
+		// Ищем название в HTML напрямую
+		if product.Name == "" {
+			// Пробуем найти в title
+			if titleIdx := strings.Index(htmlStr, "<title>"); titleIdx >= 0 {
+				titleEnd := strings.Index(htmlStr[titleIdx:], "</title>")
+				if titleEnd > 0 {
+					title := strings.TrimSpace(htmlStr[titleIdx+7 : titleIdx+titleEnd])
+					title = strings.TrimSuffix(title, " | Tehnomanija")
+					if title != "" {
+						product.Name = title
+						s.logger.Debug("Extracted name from HTML title tag", map[string]interface{}{
+							"name": product.Name,
+						})
+					}
+				}
+			}
+		}
+		// Ищем цену в JSON-LD в HTML
+		if product.Price == 0 {
+			jsonLDIdx := strings.Index(htmlStr, `"@type":"Product"`)
+			if jsonLDIdx >= 0 {
+				// Ищем цену после "@type":"Product"
+				priceIdx := strings.Index(htmlStr[jsonLDIdx:], `"price":`)
+				if priceIdx > 0 {
+					afterPrice := htmlStr[jsonLDIdx+priceIdx+8:]
+					endIdx := strings.IndexAny(afterPrice, ",}\n\r\t ")
+					if endIdx > 0 {
+						priceStr := strings.TrimSpace(afterPrice[:endIdx])
+						if price, err := strconv.ParseFloat(priceStr, 64); err == nil && price > 0 && price < 10000000 {
+							product.Price = price
+							product.Currency = "RSD"
+							s.logger.Debug("Extracted price from HTML JSON-LD", map[string]interface{}{
+								"price":    price,
+								"currency": product.Currency,
+							})
+						}
+					}
+				}
+			}
+		}
 	}
 
 	// Логируем что было найдено
@@ -526,7 +734,29 @@ func (s *Service) SaveRawProduct(ctx context.Context, product *RawProduct) error
 }
 
 // ScrapeAndSave выполняет полный цикл парсинга и сохранения товара с записью статистики
+// Автоматически выбирает между обычным парсером (Colly) и browser парсером (rod) в зависимости от магазина
 func (s *Service) ScrapeAndSave(ctx context.Context, url string, shopConfig *ShopConfig) (*RawProduct, error) {
+	// Магазины, требующие JS-рендеринг (headless браузер)
+	jsRenderingShops := map[string]bool{
+		"b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22": true, // Tehnomanija
+		"shop-001": true, // Gigatron
+	}
+
+	// Используем browser парсер для магазинов, требующих JS-рендеринг
+	if jsRenderingShops[shopConfig.ID] {
+		s.logger.Info("Using browser parser for JS-rendered page", map[string]interface{}{
+			"shop_id": shopConfig.ID,
+			"shop_name": shopConfig.Name,
+		})
+		return s.scrapeAndSaveWithBrowser(ctx, url, shopConfig)
+	}
+
+	// Используем обычный парсер (Colly)
+	return s.scrapeAndSaveWithColly(ctx, url, shopConfig)
+}
+
+// scrapeAndSaveWithColly использует Colly для парсинга
+func (s *Service) scrapeAndSaveWithColly(ctx context.Context, url string, shopConfig *ShopConfig) (*RawProduct, error) {
 	start := time.Now()
 	stat := &scrapingstats.ScrapingStat{
 		ShopID:    shopConfig.ID,
@@ -599,6 +829,87 @@ func (s *Service) ScrapeAndSave(ctx context.Context, url string, shopConfig *Sho
 	if status != "success" {
 		if lastErr == nil {
 			lastErr = fmt.Errorf("scraping failed after %d attempts", maxAttempts)
+		}
+		return nil, lastErr
+	}
+
+	return rawProduct, nil
+}
+
+// scrapeAndSaveWithBrowser использует rod (headless браузер) для парсинга JS-страниц
+func (s *Service) scrapeAndSaveWithBrowser(ctx context.Context, url string, shopConfig *ShopConfig) (*RawProduct, error) {
+	start := time.Now()
+	stat := &scrapingstats.ScrapingStat{
+		ShopID:    shopConfig.ID,
+		ShopName:  shopConfig.Name,
+		ScrapedAt: start,
+		Status:    "error",
+	}
+
+	maxAttempts, initialBackoff := s.getRetryConfig(shopConfig)
+	currentBackoff := initialBackoff
+	status := "error"
+	var lastErr error
+	var rawProduct *RawProduct
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if ctx.Err() != nil {
+			lastErr = ctx.Err()
+			break
+		}
+
+		s.logger.Info("Browser scraping attempt", map[string]interface{}{
+			"attempt":      attempt,
+			"max_attempts": maxAttempts,
+			"shop_id":      shopConfig.ID,
+			"url":          url,
+		})
+
+		rawProduct, lastErr = s.ParseProductWithBrowser(ctx, url, shopConfig)
+		if lastErr == nil {
+			stat.ProductsFound = 1
+			if err := s.SaveRawProduct(ctx, rawProduct); err == nil {
+				status = "success"
+				stat.ProductsSaved = 1
+				stat.ErrorMessage = ""
+				break
+			} else {
+				lastErr = err
+				status = "partial"
+			}
+		}
+
+		stat.ErrorsCount++
+		stat.ErrorMessage = truncateError(lastErr)
+
+		if attempt < maxAttempts {
+			s.logger.Warn("Browser scraping attempt failed, retrying", map[string]interface{}{
+				"attempt":      attempt,
+				"max_attempts": maxAttempts,
+				"shop_id":      shopConfig.ID,
+				"error":        lastErr.Error(),
+				"backoff_ms":   currentBackoff.Milliseconds(),
+			})
+			if !sleepWithContext(ctx, currentBackoff) {
+				lastErr = ctx.Err()
+				break
+			}
+			currentBackoff = nextBackoff(currentBackoff)
+			continue
+		}
+	}
+
+	if status != "success" && status != "partial" && stat.ErrorsCount > 0 {
+		stat.ErrorMessage = truncateError(lastErr)
+	}
+
+	stat.Status = status
+	stat.DurationMs = int(time.Since(start) / time.Millisecond)
+	s.recordScrapingStat(stat)
+
+	if status != "success" {
+		if lastErr == nil {
+			lastErr = fmt.Errorf("browser scraping failed after %d attempts", maxAttempts)
 		}
 		return nil, lastErr
 	}

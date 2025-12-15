@@ -2,6 +2,7 @@ package products
 
 import (
 	"context"
+	"time"
 	"github.com/solomonczyk/izborator/internal/logger"
 )
 
@@ -24,6 +25,16 @@ type Storage interface {
 	
 	// SaveProductPrice сохраняет цену товара
 	SaveProductPrice(price *ProductPrice) error
+
+	// GetURLsForRescrape возвращает список URL и ID магазинов для товаров,
+	// цена которых не обновлялась дольше указанного времени
+	GetURLsForRescrape(ctx context.Context, olderThan time.Duration, limit int) ([]RescrapeItem, error)
+}
+
+// RescrapeItem элемент для перескрапинга
+type RescrapeItem struct {
+	URL    string
+	ShopID string
 }
 
 // Service сервис для работы с товарами
@@ -38,5 +49,10 @@ func New(storage Storage, log *logger.Logger) *Service {
 		storage: storage,
 		logger:  log,
 	}
+}
+
+// GetURLsForRescrape возвращает список URL для перескрапинга
+func (s *Service) GetURLsForRescrape(ctx context.Context, olderThan time.Duration, limit int) ([]RescrapeItem, error) {
+	return s.storage.GetURLsForRescrape(ctx, olderThan, limit)
 }
 

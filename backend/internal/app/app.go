@@ -1,6 +1,8 @@
 package app
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/solomonczyk/izborator/internal/attributes"
@@ -78,6 +80,109 @@ func (a *App) GetShopConfig(shopID string) (*scraper.ShopConfig, error) {
 	return a.scraperStorage.GetShopConfig(shopID)
 }
 
+// ReindexAll переиндексирует все товары в Meilisearch
+// Использует те же методы, что и cmd/indexer
+func (a *App) ReindexAll() error {
+	if a.meili == nil {
+		return fmt.Errorf("Meilisearch is not available")
+	}
+
+	// Используем processor adapter для реиндексации
+	// Он уже имеет доступ к Meilisearch и Postgres
+	processorAdapter := storage.NewProcessorAdapter(a.pg, a.meili)
+	
+	// Получаем все товары из PostgreSQL и индексируем их
+	// Используем тот же подход, что и в cmd/indexer
+	ctx := context.Background()
+	query := `
+		SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
+		FROM products
+		ORDER BY created_at DESC
+	`
+
+	rows, err := a.pg.DB().Query(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to query products: %w", err)
+	}
+	defer rows.Close()
+
+	var productList []*products.Product
+	for rows.Next() {
+		var p products.Product
+		var specsJSON []byte
+		var description, brand, category, imageURL *string
+		var categoryID *string
+		
+		if err := rows.Scan(
+			&p.ID,
+			&p.Name,
+			&description,
+			&brand,
+			&category,
+			&categoryID,
+			&imageURL,
+			&specsJSON,
+			&p.CreatedAt,
+			&p.UpdatedAt,
+		); err != nil {
+			return fmt.Errorf("failed to scan product: %w", err)
+		}
+
+		if description != nil {
+			p.Description = *description
+		}
+		if brand != nil {
+			p.Brand = *brand
+		}
+		if category != nil {
+			p.Category = *category
+		}
+		if imageURL != nil {
+			p.ImageURL = *imageURL
+		}
+		p.CategoryID = categoryID
+		
+		if len(specsJSON) > 0 {
+			if err := json.Unmarshal(specsJSON, &p.Specs); err != nil {
+				a.logger.Warn("Failed to unmarshal specs", map[string]interface{}{"error": err.Error()})
+			}
+		} else {
+			p.Specs = make(map[string]string)
+		}
+
+		productList = append(productList, &p)
+	}
+
+	// Удаляем все документы из индекса
+	index := a.meili.Client().Index("products")
+	if _, err := index.DeleteAllDocuments(); err != nil {
+		// Если Meilisearch недоступен или ключ неверный, просто логируем и продолжаем
+		a.logger.Warn("Failed to delete documents from Meilisearch (will continue anyway)", map[string]interface{}{
+			"error": err.Error(),
+		})
+		// Не прерываем выполнение - просто пропускаем реиндексацию
+		return nil
+	}
+
+	a.logger.Info("Deleted all documents from index")
+
+	// Индексируем все товары
+	for _, p := range productList {
+		if err := processorAdapter.IndexProduct(p); err != nil {
+			a.logger.Error("Failed to index product", map[string]interface{}{
+				"product_id": p.ID,
+				"error":      err.Error(),
+			})
+		}
+	}
+
+	a.logger.Info("Reindex completed", map[string]interface{}{
+		"total_products": len(productList),
+	})
+
+	return nil
+}
+
 // NewApp создаёт новое приложение и инициализирует все зависимости
 func NewApp(cfg *config.Config) (*App, error) {
 	app := &App{
@@ -136,7 +241,7 @@ func (a *App) initStorage() error {
 // initAdapters инициализирует адаптеры для доменных модулей
 func (a *App) initAdapters() {
 	a.scraperStorage = storage.NewScraperAdapter(a.pg)
-	a.productsStorage = storage.NewProductsAdapter(a.pg, a.meili)
+	a.productsStorage = storage.NewProductsAdapter(a.pg, a.meili, a.logger)
 	a.processorStorage = storage.NewProcessorAdapter(a.pg, a.meili)
 	a.matchingStorage = storage.NewMatchingAdapter(a.pg)
 	a.priceHistoryStorage = storage.NewPriceHistoryAdapter(a.pg)
@@ -246,7 +351,7 @@ func NewAPIApp(cfg *config.Config) (*App, error) {
 
 	// Инициализация адаптеров (только нужные для API)
 	app.scraperStorage = storage.NewScraperAdapter(app.pg)
-	app.productsStorage = storage.NewProductsAdapter(app.pg, app.meili)
+		app.productsStorage = storage.NewProductsAdapter(app.pg, app.meili, app.logger)
 	app.matchingStorage = storage.NewMatchingAdapter(app.pg)
 	app.priceHistoryStorage = storage.NewPriceHistoryAdapter(app.pg)
 	app.scrapingStatsStorage = storage.NewScrapingStatsAdapter(app.pg)

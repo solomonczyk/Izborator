@@ -107,6 +107,12 @@ func (s *Service) processRawProduct(ctx context.Context, raw *scraper.RawProduct
 		return s.savePriceForProduct(normalized.ID, raw)
 	}
 
+	s.logger.Info("processor: matching result", map[string]interface{}{
+		"name":         normalized.Name,
+		"matches_count": matchResult.Count,
+		"matches":      matchResult.Matches,
+	})
+
 	var (
 		targetProductID string
 		isNewProduct    bool

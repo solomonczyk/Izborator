@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { PriceChart } from './price-chart'
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:3002'
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8081'
 
 interface PriceChartWrapperProps {
   productId: string

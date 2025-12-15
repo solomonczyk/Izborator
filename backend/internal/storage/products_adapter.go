@@ -9,22 +9,25 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/meilisearch/meilisearch-go"
+	"github.com/solomonczyk/izborator/internal/logger"
 	"github.com/solomonczyk/izborator/internal/products"
 )
 
 // ProductsAdapter адаптер для работы с товарами
 type ProductsAdapter struct {
-	pg    *Postgres
-	meili *Meilisearch
-	ctx   context.Context
+	pg     *Postgres
+	meili  *Meilisearch
+	ctx    context.Context
+	logger *logger.Logger
 }
 
 // NewProductsAdapter создаёт новый адаптер для товаров
-func NewProductsAdapter(pg *Postgres, meili *Meilisearch) products.Storage {
+func NewProductsAdapter(pg *Postgres, meili *Meilisearch, log *logger.Logger) products.Storage {
 	return &ProductsAdapter{
-		pg:    pg,
-		meili: meili,
-		ctx:   pg.Context(),
+		pg:     pg,
+		meili:  meili,
+		ctx:    pg.Context(),
+		logger: log,
 	}
 }
 
@@ -369,6 +372,15 @@ func (a *ProductsAdapter) GetProductPrices(productID string) ([]*products.Produc
 		}
 
 		price.UpdatedAt = updatedAt
+		
+		// Логируем для отладки shop_name
+		if a.logger != nil && price.ShopName == "" {
+			a.logger.Warn("GetProductPrices: empty ShopName", map[string]interface{}{
+				"product_id": price.ProductID,
+				"shop_id":    price.ShopID,
+			})
+		}
+		
 		prices = append(prices, &price)
 	}
 
@@ -438,17 +450,30 @@ func (a *ProductsAdapter) GetProductPricesByCity(productID string, cityID string
 
 // Browse возвращает каталог товаров с фильтрами
 func (a *ProductsAdapter) Browse(ctx context.Context, params products.BrowseParams) (*products.BrowseResult, error) {
-	// Используем Meilisearch для поиска с фильтрами
+	// Используем Meilisearch для поиска с фильтрами (основной метод)
 	if a.meili != nil {
 		return a.browseViaMeilisearch(ctx, params)
 	}
 
 	// Fallback на PostgreSQL, если Meilisearch недоступен
+	if a.logger != nil {
+		a.logger.Info("Browse: Using PostgreSQL fallback (Meilisearch unavailable)", map[string]interface{}{
+			"query": params.Query,
+			"meili_available": false,
+		})
+	}
 	return a.browseViaPostgres(ctx, params)
 }
 
 // browseViaMeilisearch каталог через Meilisearch с фильтрами
 func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params products.BrowseParams) (*products.BrowseResult, error) {
+	// Логирование для отладки
+	if a.logger != nil {
+		a.logger.Info("Browse: Using Meilisearch", map[string]interface{}{
+			"query": params.Query,
+		})
+	}
+	
 	index := a.meili.Client().Index("products")
 
 	searchReq := &meilisearch.SearchRequest{
@@ -490,8 +515,19 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 
 	searchResult, err := index.Search(params.Query, searchReq)
 	if err != nil {
-		// Если Meilisearch недоступен, fallback на PostgreSQL
+		// Если Meilisearch недоступен или API ключ неверный, fallback на PostgreSQL
 		return a.browseViaPostgres(ctx, params)
+	}
+
+	// Проверяем, что есть результаты (может быть пустой результат из-за неверного API ключа)
+	// Если запрос был пустой и результатов нет - это нормально для пустого индекса
+	// Но если был запрос и результатов нет - возможно проблема с индексом или API ключом
+	if searchResult.Hits == nil || len(searchResult.Hits) == 0 {
+		// Для пустого запроса возвращаем пустой результат (не fallback)
+		// Для непустого запроса - fallback на PostgreSQL
+		if params.Query != "" {
+			return a.browseViaPostgres(ctx, params)
+		}
 	}
 
 	// Преобразуем результаты и обогащаем данными о ценах из PostgreSQL
@@ -527,9 +563,27 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 			continue
 		}
 
+		// Собираем уникальные названия магазинов
+		shopNamesMap := make(map[string]bool)
+		for _, price := range prices {
+			if price.ShopName != "" {
+				shopNamesMap[price.ShopName] = true
+			}
+		}
+		// Инициализируем как пустой слайс, а не nil, чтобы он всегда сериализовался в JSON
+		shopNames := make([]string, 0, len(shopNamesMap))
+		for shopName := range shopNamesMap {
+			shopNames = append(shopNames, shopName)
+		}
+		// Если слайс все еще nil (не должно быть, но на всякий случай)
+		if shopNames == nil {
+			shopNames = []string{}
+		}
+
 		browseProduct := products.BrowseProduct{
 			ID:         productID,
 			ShopsCount: len(prices),
+			ShopNames:  shopNames,
 			Specs:      make(map[string]string),
 		}
 
@@ -644,6 +698,31 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 	total := int64(len(items))
 	totalPages := int((total + int64(params.PerPage) - 1) / int64(params.PerPage))
 
+	// Убеждаемся, что ShopNames не nil для всех элементов
+	for i := range items {
+		if items[i].ShopNames == nil {
+			items[i].ShopNames = []string{}
+		}
+	}
+
+	// Финальная проверка shop_names перед возвратом
+	if a.logger != nil && len(items) > 0 {
+		for i, item := range items {
+			if i < 3 { // Проверяем первые 3
+				// Сериализуем в JSON для проверки
+				jsonBytes, _ := json.Marshal(item)
+				a.logger.Info("browseViaPostgres: final item check", map[string]interface{}{
+					"product_id":   item.ID,
+					"product_name": item.Name,
+					"shop_names":   item.ShopNames,
+					"shop_names_len": len(item.ShopNames),
+					"shops_count":  item.ShopsCount,
+					"json_preview": string(jsonBytes),
+				})
+			}
+		}
+	}
+
 	return &products.BrowseResult{
 		Items:      items,
 		Page:       params.Page,
@@ -655,19 +734,84 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 
 // browseViaPostgres каталог через PostgreSQL (fallback)
 func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products.BrowseParams) (*products.BrowseResult, error) {
+	// Явное логирование для отладки
+	if a.logger != nil {
+		a.logger.Info("browseViaPostgres: called", map[string]interface{}{
+			"query": params.Query,
+			"page":  params.Page,
+		})
+	}
+	
 	// Простая реализация через PostgreSQL
 	// Можно расширить позже с фильтрами
-	query := params.Query
-	if query == "" {
-		query = "%"
-	} else {
-		query = "%" + query + "%"
-	}
+	var productsList []*products.Product
+	var err error
 
-	// Получаем товары (без пагинации, т.к. будем фильтровать и сортировать)
-	productsList, _, err := a.searchViaPostgres(query, 1000, 0) // Получаем больше товаров для фильтрации
-	if err != nil {
-		return nil, err
+	if params.Query == "" {
+		// Если запрос пустой, получаем все товары напрямую
+		querySQL := `
+			SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
+			FROM products
+			ORDER BY name
+			LIMIT $1
+		`
+		rows, err := a.pg.DB().Query(a.ctx, querySQL, 1000)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get products: %w", err)
+		}
+		defer rows.Close()
+
+		productsList = make([]*products.Product, 0)
+		for rows.Next() {
+			var product products.Product
+			var specsJSON []byte
+			var createdAt, updatedAt time.Time
+			var categoryID *string
+
+			err := rows.Scan(
+				&product.ID,
+				&product.Name,
+				&product.Description,
+				&product.Brand,
+				&product.Category,
+				&categoryID,
+				&product.ImageURL,
+				&specsJSON,
+				&createdAt,
+				&updatedAt,
+			)
+
+			product.CategoryID = categoryID
+
+			if err != nil {
+				return nil, fmt.Errorf("failed to scan product: %w", err)
+			}
+
+			// Десериализация JSONB specs
+			if len(specsJSON) > 0 {
+				if err := json.Unmarshal(specsJSON, &product.Specs); err != nil {
+					return nil, fmt.Errorf("failed to unmarshal specs: %w", err)
+				}
+			} else {
+				product.Specs = make(map[string]string)
+			}
+
+			product.CreatedAt = createdAt
+			product.UpdatedAt = updatedAt
+
+			productsList = append(productsList, &product)
+		}
+
+		if err := rows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating products: %w", err)
+		}
+	} else {
+		// Если есть запрос, используем searchViaPostgres
+		query := "%" + params.Query + "%"
+		productsList, _, err = a.searchViaPostgres(query, 1000, 0)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Преобразуем в BrowseProduct
@@ -694,12 +838,87 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 			prices, err = a.GetProductPrices(p.ID)
 		}
 		if err != nil {
+			// Если ошибка получения цен - пропускаем товар (но это не должно происходить для товаров с ценами)
 			continue
 		}
+
+		// КРИТИЧЕСКАЯ ПРОВЕРКА: логируем prices сразу после получения
+		if a.logger != nil && len(prices) > 0 {
+			priceDebug := make([]map[string]interface{}, 0, len(prices))
+			for _, price := range prices {
+				priceDebug = append(priceDebug, map[string]interface{}{
+					"shop_id":   price.ShopID,
+					"shop_name": price.ShopName,
+					"price":     price.Price,
+				})
+			}
+			a.logger.Info("browseViaPostgres: prices from GetProductPrices", map[string]interface{}{
+				"product_id":   p.ID,
+				"product_name": p.Name,
+				"prices_count": len(prices),
+				"price_details": priceDebug,
+			})
+		}
+
 
 		// Если фильтр по городу указан и нет цен в этом городе - пропускаем товар
 		if params.CityID != nil && len(prices) == 0 {
 			continue
+		}
+
+		// Собираем уникальные названия магазинов
+		shopNamesMap := make(map[string]bool)
+		priceDetails := make([]map[string]interface{}, 0, len(prices))
+		for _, price := range prices {
+			// Логируем каждую цену для отладки
+			if a.logger != nil {
+				priceDetails = append(priceDetails, map[string]interface{}{
+					"shop_id":   price.ShopID,
+					"shop_name": price.ShopName,
+					"price":     price.Price,
+				})
+			}
+			if price.ShopName != "" {
+				shopNamesMap[price.ShopName] = true
+			}
+		}
+		// Инициализируем как пустой слайс, а не nil, чтобы он всегда сериализовался в JSON
+		shopNames := make([]string, 0, len(shopNamesMap))
+		for shopName := range shopNamesMap {
+			shopNames = append(shopNames, shopName)
+		}
+		// Если слайс все еще nil (не должно быть, но на всякий случай)
+		if shopNames == nil {
+			shopNames = []string{}
+		}
+
+		// Отладочное логирование
+		if a.logger != nil {
+			a.logger.Info("browseViaPostgres: shop_names processing", map[string]interface{}{
+				"product_id":   p.ID,
+				"product_name": p.Name,
+				"prices_count": len(prices),
+				"shop_names":   shopNames,
+				"shop_names_len": len(shopNames),
+				"price_details": priceDetails,
+			})
+		}
+
+		// Убеждаемся, что shopNames не nil
+		if shopNames == nil {
+			shopNames = []string{}
+		}
+
+		// КРИТИЧЕСКАЯ ПРОВЕРКА: логируем shopNames перед созданием BrowseProduct
+		if a.logger != nil {
+			a.logger.Info("browseViaPostgres: BEFORE creating BrowseProduct", map[string]interface{}{
+				"product_id":   p.ID,
+				"product_name": p.Name,
+				"shopNames":    shopNames,
+				"shopNames_len": len(shopNames),
+				"shopNames_nil": shopNames == nil,
+				"prices_count": len(prices),
+			})
 		}
 
 		browseProduct := products.BrowseProduct{
@@ -710,7 +929,26 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 			CategoryID: p.CategoryID,
 			ImageURL:   p.ImageURL,
 			ShopsCount: len(prices),
+			ShopNames:  shopNames, // Должен всегда быть массивом, даже пустым
 			Specs:      p.Specs,
+		}
+
+		// Дополнительная проверка после создания
+		if browseProduct.ShopNames == nil {
+			browseProduct.ShopNames = []string{}
+		}
+
+		// КРИТИЧЕСКАЯ ПРОВЕРКА: логируем shopNames после создания BrowseProduct
+		if a.logger != nil {
+			jsonBytes, _ := json.Marshal(browseProduct)
+			a.logger.Info("browseViaPostgres: AFTER creating BrowseProduct", map[string]interface{}{
+				"product_id":   browseProduct.ID,
+				"product_name": browseProduct.Name,
+				"shopNames":    browseProduct.ShopNames,
+				"shopNames_len": len(browseProduct.ShopNames),
+				"shopNames_nil": browseProduct.ShopNames == nil,
+				"json_preview": string(jsonBytes),
+			})
 		}
 
 		if len(prices) > 0 {
@@ -749,6 +987,27 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 				if !found {
 					continue
 				}
+			}
+		}
+
+		// Финальная проверка перед добавлением в результат
+		if a.logger != nil {
+			if len(browseProduct.ShopNames) > 0 {
+				a.logger.Info("browseViaPostgres: adding product with shop_names", map[string]interface{}{
+					"product_id":   browseProduct.ID,
+					"product_name": browseProduct.Name,
+					"shop_names":   browseProduct.ShopNames,
+					"shops_count":  browseProduct.ShopsCount,
+					"shop_names_len": len(browseProduct.ShopNames),
+				})
+			} else {
+				a.logger.Warn("browseViaPostgres: adding product WITHOUT shop_names", map[string]interface{}{
+					"product_id":   browseProduct.ID,
+					"product_name": browseProduct.Name,
+					"shops_count":  browseProduct.ShopsCount,
+					"prices_count": len(prices),
+					"shopNames_nil": browseProduct.ShopNames == nil,
+				})
 			}
 		}
 
@@ -857,4 +1116,54 @@ func (a *ProductsAdapter) SaveProductPrice(price *products.ProductPrice) error {
 	}
 
 	return nil
+}
+
+// GetURLsForRescrape возвращает список URL и ID магазинов для товаров,
+// цена которых не обновлялась дольше указанного времени
+func (a *ProductsAdapter) GetURLsForRescrape(ctx context.Context, olderThan time.Duration, limit int) ([]products.RescrapeItem, error) {
+	// Выбираем цены, обновленные давно, но у активных магазинов
+	// Используем DISTINCT ON для получения уникальных пар (url, shop_id) с самой старой датой
+	query := `
+		SELECT url, shop_id
+		FROM (
+			SELECT DISTINCT ON (pp.url, pp.shop_id) 
+				pp.url, 
+				pp.shop_id, 
+				pp.updated_at
+			FROM product_prices pp
+			JOIN shops s ON pp.shop_id = s.id
+			WHERE s.is_active = true
+			  AND pp.url IS NOT NULL
+			  AND pp.url != ''
+			  AND pp.updated_at < $1
+			ORDER BY pp.url, pp.shop_id, pp.updated_at ASC
+		) AS distinct_prices
+		ORDER BY updated_at ASC
+		LIMIT $2
+	`
+
+	threshold := time.Now().Add(-olderThan)
+
+	rows, err := a.pg.DB().Query(ctx, query, threshold, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query URLs for rescrape: %w", err)
+	}
+	defer rows.Close()
+
+	var results []products.RescrapeItem
+
+	for rows.Next() {
+		var item products.RescrapeItem
+		if err := rows.Scan(&item.URL, &item.ShopID); err != nil {
+			a.logger.Warn("Failed to scan rescrape item", map[string]interface{}{"error": err.Error()})
+			continue
+		}
+		results = append(results, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rescrape items: %w", err)
+	}
+
+	return results, nil
 }

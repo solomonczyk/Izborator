@@ -145,6 +145,31 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 		return nil
 	}
 
+	// Получаем названия магазинов для этого товара
+	query := `
+		SELECT DISTINCT s.name 
+		FROM product_prices pp
+		JOIN shops s ON pp.shop_id = s.id
+		WHERE pp.product_id = $1
+	`
+	
+	rows, err := a.pg.DB().Query(a.ctx, query, product.ID)
+	if err != nil {
+		// Не прерываем индексацию, просто будет без имен
+	} else {
+		defer rows.Close()
+	}
+
+	var shopNames []string
+	if rows != nil {
+		for rows.Next() {
+			var name string
+			if err := rows.Scan(&name); err == nil && name != "" {
+				shopNames = append(shopNames, name)
+			}
+		}
+	}
+
 	type MeiliDoc struct {
 		ID          string            `json:"id"`
 		Name        string            `json:"name"`
@@ -154,6 +179,8 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 		Description string            `json:"description,omitempty"`
 		ImageURL    string            `json:"image_url,omitempty"`
 		Specs       map[string]string `json:"specs,omitempty"`
+		ShopNames   []string          `json:"shop_names,omitempty"`
+		ShopsCount  int               `json:"shops_count,omitempty"`
 	}
 
 	doc := MeiliDoc{
@@ -165,9 +192,11 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 		Description: product.Description,
 		ImageURL:    product.ImageURL,
 		Specs:       product.Specs,
+		ShopNames:   shopNames,
+		ShopsCount:  len(shopNames),
 	}
 
-	_, err := a.meili.Client().Index("products").AddDocuments([]MeiliDoc{doc})
+	_, err = a.meili.Client().Index("products").AddDocuments([]MeiliDoc{doc})
 	if err != nil {
 		return fmt.Errorf("failed to index product in Meilisearch: %w", err)
 	}

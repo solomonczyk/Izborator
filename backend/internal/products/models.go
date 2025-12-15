@@ -48,6 +48,7 @@ type BrowseProduct struct {
 	MaxPrice   float64           `json:"max_price,omitempty"`
 	Currency   string            `json:"currency,omitempty"`
 	ShopsCount int               `json:"shops_count,omitempty"`
+	ShopNames  []string          `json:"shop_names"` // Список названий магазинов (без omitempty, чтобы всегда возвращался массив)
 	Specs      map[string]string `json:"specs,omitempty"`
 }
 
