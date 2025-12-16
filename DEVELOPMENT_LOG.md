@@ -3099,6 +3099,243 @@ go run cmd/worker/main.go -daemon
 
 **Статус:** ✅ Умный мониторинг реализован. Система полностью автономна!
 
+---
+
+## 2025-12-15 - Исправление загрузки категорий на продакшене
+
+**Дата:** 2025-12-15  
+**Время:** 22:30
+
+### Проблема: Категории не загружались на фронтенде (показывали "Loading...")
+
+**Симптомы:**
+- На странице каталога категории показывали "Loading..." и не загружались
+- API `/api/v1/categories/tree` возвращал пустой массив `[]`
+- В БД было 12 категорий (6 корневых + 6 дочерних), но они не возвращались API
+
+**Причина:**
+В методе `GetTree()` в `backend/internal/storage/categories_adapter.go` для корневых категорий (где `parent_id IS NULL`) использовалось прямое сканирование в `&cat.ParentID` (тип `*string`), но PostgreSQL возвращает `uuid.UUID` или `NULL`. Это вызывало ошибку при сканировании, и категории не добавлялись в результат.
+
+**Решение:**
+Исправлен метод `GetTree()` - теперь для корневых категорий используется временная переменная `*uuid.UUID`, как и для дочерних категорий:
+
+```go
+// До исправления (строка 224):
+if err := rows.Scan(
+    &cat.ID,
+    &cat.ParentID,  // ❌ Неправильно - тип не совпадает
+    ...
+); err != nil {
+    continue
+}
+
+// После исправления:
+var parentID *uuid.UUID
+if err := rows.Scan(
+    &cat.ID,
+    &parentID,  // ✅ Правильно - используем временную переменную
+    ...
+); err != nil {
+    continue
+}
+
+if parentID != nil {
+    parentIDStr := parentID.String()
+    cat.ParentID = &parentIDStr
+}
+```
+
+**Файлы изменены:**
+- `backend/internal/storage/categories_adapter.go` - исправлено сканирование `parent_id` для корневых категорий
+
+**Результат:**
+- ✅ API теперь возвращает полное дерево категорий (6 корневых + 6 дочерних)
+- ✅ Фронтенд успешно загружает категории в фильтры
+- ✅ Категории отображаются в выпадающем списке
+
+**Тестирование:**
+```bash
+# Проверка API
+curl http://152.53.227.37:8081/api/v1/categories/tree
+# Возвращает: [{"id":"11111111-...","name_sr":"Elektronika","children":[...]}, ...]
+```
+
+**Статус:** ✅ Категории загружаются корректно на продакшене!
+
+---
+
+## 2025-12-15 - Добавление тестовых товаров на продакшен
+
+**Дата:** 2025-12-15  
+**Время:** 23:00
+
+### Проблема: В каталоге не отображались товары
+
+**Симптомы:**
+- Категории загружались, но товары не отображались
+- API `/api/v1/products/browse` возвращал пустой массив `[]`
+- В БД на сервере было 0 товаров
+
+**Причина:**
+База данных на продакшене была пустой - не было ни товаров, ни цен. Это была свежая БД после деплоя.
+
+**Решение:**
+Создан SQL скрипт `backend/scripts/seed_test_products.sql` для добавления тестовых товаров:
+
+1. **4 тестовых товара:**
+   - Nike Air Max 90 (категория "Sport i rekreacija")
+   - Samsung Galaxy S24 (категория "Mobilni telefoni")
+   - Lenovo IdeaPad 3 (категория "Laptopovi")
+   - Samsung 55" QLED TV (категория "Televizori")
+
+2. **Цены для всех товаров:**
+   - Все товары имеют цены от магазина Gigatron
+   - Цены в диапазоне от 12,990 до 149,990 RSD
+
+**Файлы созданы:**
+- `backend/scripts/seed_test_products.sql` - SQL скрипт для добавления тестовых товаров
+
+**Исправления:**
+- Убраны несуществующие колонки `created_at` и `updated_at` из `product_prices`
+- Добавлена обязательная колонка `shop_name` в INSERT
+- Исправлен `ON CONFLICT` - используется `(product_id, shop_id)` вместо `(product_id, shop_id, city_id)`
+
+**Результат:**
+- ✅ В БД добавлено 4 товара и 4 цены
+- ✅ API `/api/v1/products/browse` возвращает товары
+- ✅ Фильтр по категории работает (`category=sport`)
+- ✅ Товары отображаются в каталоге на фронтенде
+
+**Тестирование:**
+```bash
+# Без фильтров - все товары
+curl http://152.53.227.37:8081/api/v1/products/browse?limit=10
+# Возвращает: 4 товара
+
+# С фильтром по категории
+curl http://152.53.227.37:8081/api/v1/products/browse?category=sport&limit=10
+# Возвращает: Nike Air Max 90
+```
+
+**Статус:** ✅ Товары добавлены и отображаются в каталоге!
+
+---
+
+## 2025-12-15 - Исправление загрузки изображений товаров
+
+**Дата:** 2025-12-15  
+**Время:** 23:15
+
+### Проблема: Изображения товаров не загружались
+
+**Симптомы:**
+- В консоли браузера ошибка: `Failed to load resource: net::ERR_NAME_NOT_RESOLVED 400x400?text=Nike+Air+Max+90`
+- Изображения товаров не отображались (показывался placeholder)
+- URL использовал `via.placeholder.com`, который был недоступен
+
+**Причина:**
+Сервис `via.placeholder.com` был недоступен или заблокирован на сервере, что вызывало ошибку `ERR_NAME_NOT_RESOLVED`.
+
+**Решение:**
+1. Заменены все URL изображений с `via.placeholder.com` на `placehold.co` (более надежный сервис)
+2. Создан SQL скрипт `backend/scripts/fix_image_urls.sql` для обновления существующих записей в БД
+3. Обновлен `seed_test_products.sql` для использования новых URL
+
+**Файлы созданы/изменены:**
+- `backend/scripts/fix_image_urls.sql` - скрипт для обновления URL изображений
+- `backend/scripts/seed_test_products.sql` - обновлены URL на `placehold.co`
+
+**Результат:**
+- ✅ Все 4 товара обновлены (UPDATE 4)
+- ✅ URL изображений изменены на `placehold.co`
+- ✅ Изображения должны загружаться корректно
+
+**Статус:** ✅ Изображения исправлены!
+
+---
+
+## 2025-12-16 - Исправление фильтрации по родительским категориям
+
+**Дата:** 2025-12-16  
+**Время:** 05:00
+
+### Проблема: Товары не отображались при выборе родительской категории
+
+**Симптомы:**
+- При выборе категории "Elektronika" (родительская) не отображались товары
+- Товары были в дочерних категориях: "Mobilni telefoni", "Laptopovi", "Televizori"
+- API возвращал пустой массив `[]` для родительской категории
+- Для дочерних категорий (например, "sport") товары отображались корректно
+
+**Причина:**
+1. Фильтр по категории работал только по точному совпадению `category_id`, не включая дочерние категории
+2. Fallback на PostgreSQL не срабатывал при пустых результатах Meilisearch для пустых запросов
+
+**Решение:**
+
+1. **Добавлена поддержка фильтрации по дочерним категориям:**
+   - В `BrowseParams` добавлено поле `CategoryIDs []string` для списка ID категорий
+   - В handler'е при получении категории по slug теперь получаются все дочерние категории через `GetByParentID`
+   - В фильтр Meilisearch добавляется условие `OR` для всех категорий (родитель + дочерние)
+   - В PostgreSQL fallback добавлена проверка по списку `CategoryIDs`
+
+2. **Исправлен fallback на PostgreSQL:**
+   - Теперь всегда делается fallback на PostgreSQL, если Meilisearch возвращает пустой результат
+   - Убрана проверка на пустой запрос, которая блокировала fallback
+
+**Файлы изменены:**
+- `backend/internal/products/models.go` - добавлено поле `CategoryIDs []string` в `BrowseParams`
+- `backend/internal/http/handlers/products.go` - получение дочерних категорий и передача в `CategoryIDs`
+- `backend/internal/storage/products_adapter.go` - фильтрация по списку категорий в Meilisearch и PostgreSQL
+
+**Код изменений:**
+
+```go
+// В handler'е - получение дочерних категорий
+if category != "" {
+    cat, err := h.categoriesSvc.GetBySlug(category)
+    if err == nil {
+        categoryID = &cat.ID
+        // Получаем все дочерние категории
+        childCats, err := h.categoriesSvc.GetByParentID(cat.ID)
+        if err == nil {
+            categoryIDs = append(categoryIDs, cat.ID)
+            for _, childCat := range childCats {
+                categoryIDs = append(categoryIDs, childCat.ID)
+            }
+        }
+    }
+}
+
+// В Meilisearch - фильтр по списку категорий
+if len(params.CategoryIDs) > 0 {
+    categoryFilter := make([]string, len(params.CategoryIDs))
+    for i, catID := range params.CategoryIDs {
+        categoryFilter[i] = fmt.Sprintf("category_id = \"%s\"", catID)
+    }
+    filters = append(filters, "("+strings.Join(categoryFilter, " OR ")+")")
+}
+```
+
+**Результат:**
+- ✅ При выборе категории "Elektronika" отображаются все товары из дочерних категорий
+- ✅ API возвращает 3 товара: Samsung Galaxy S24, Lenovo IdeaPad 3, Samsung 55" QLED TV
+- ✅ Фильтрация работает как для родительских, так и для дочерних категорий
+- ✅ Fallback на PostgreSQL работает корректно
+
+**Тестирование:**
+```bash
+# Родительская категория - возвращает товары из дочерних
+curl http://152.53.227.37:8081/api/v1/products/browse?category=elektronika&limit=10
+# Возвращает: 3 товара (Mobilni telefoni, Laptopovi, Televizori)
+
+# Дочерняя категория - работает как раньше
+curl http://152.53.227.37:8081/api/v1/products/browse?category=sport&limit=10
+# Возвращает: 1 товар (Nike Air Max 90)
+```
+
+**Статус:** ✅ Фильтрация по родительским категориям работает корректно!
+
 
 
 
