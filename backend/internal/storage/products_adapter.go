@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -484,7 +485,14 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 
 	// Фильтры Meilisearch
 	var filters []string
-	if params.CategoryID != nil {
+	if len(params.CategoryIDs) > 0 {
+		// Фильтр по списку category_id (родитель + дочерние категории)
+		categoryFilter := make([]string, len(params.CategoryIDs))
+		for i, catID := range params.CategoryIDs {
+			categoryFilter[i] = fmt.Sprintf("category_id = \"%s\"", catID)
+		}
+		filters = append(filters, "("+strings.Join(categoryFilter, " OR ")+")")
+	} else if params.CategoryID != nil {
 		// Фильтр по category_id (приоритет над category slug)
 		filters = append(filters, fmt.Sprintf("category_id = \"%s\"", *params.CategoryID))
 	} else if params.Category != "" {
@@ -817,8 +825,22 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 	// Преобразуем в BrowseProduct
 	items := make([]products.BrowseProduct, 0, len(productsList))
 	for _, p := range productsList {
-		// Фильтр по category_id (приоритет)
-		if params.CategoryID != nil {
+		// Фильтр по списку category_id (родитель + дочерние категории)
+		if len(params.CategoryIDs) > 0 {
+			found := false
+			if p.CategoryID != nil {
+				for _, catID := range params.CategoryIDs {
+					if *p.CategoryID == catID {
+						found = true
+						break
+					}
+				}
+			}
+			if !found {
+				continue
+			}
+		} else if params.CategoryID != nil {
+			// Фильтр по category_id (приоритет)
 			if p.CategoryID == nil || *p.CategoryID != *params.CategoryID {
 				continue
 			}

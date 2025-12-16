@@ -54,17 +54,18 @@ type BrowseProduct struct {
 
 // BrowseParams параметры для каталога
 type BrowseParams struct {
-	Query      string
-	Category   string  // slug категории (будет преобразован в category_id)
-	CategoryID *string // ID категории (используется внутри)
-	City       string  // slug города (будет преобразован в city_id)
-	CityID     *string // ID города (используется внутри)
-	ShopID     string
-	MinPrice   *float64
-	MaxPrice   *float64
-	Page       int
-	PerPage    int
-	Sort       string
+	Query       string
+	Category    string   // slug категории (будет преобразован в category_id)
+	CategoryID  *string  // ID категории (используется внутри)
+	CategoryIDs []string // Список ID категорий (родитель + дочерние, для фильтрации)
+	City        string   // slug города (будет преобразован в city_id)
+	CityID      *string  // ID города (используется внутри)
+	ShopID      string
+	MinPrice    *float64
+	MaxPrice    *float64
+	Page        int
+	PerPage     int
+	Sort        string
 }
 
 // BrowseResult результат каталога

@@ -379,10 +379,23 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 
 	// Преобразуем category slug в category_id, если указан
 	var categoryID *string
+	var categoryIDs []string
 	if category != "" {
 		cat, err := h.categoriesSvc.GetBySlug(category)
 		if err == nil {
 			categoryID = &cat.ID
+			// Получаем все дочерние категории для включения в фильтр
+			childCats, err := h.categoriesSvc.GetByParentID(cat.ID)
+			if err == nil {
+				// Добавляем родительскую категорию и все дочерние
+				categoryIDs = append(categoryIDs, cat.ID)
+				for _, childCat := range childCats {
+					categoryIDs = append(categoryIDs, childCat.ID)
+				}
+			} else {
+				// Если не удалось получить дочерние, используем только родительскую
+				categoryIDs = []string{cat.ID}
+			}
 		} else {
 			// Если категория не найдена по slug, оставляем category как строку (для обратной совместимости)
 			h.logger.Warn("Category not found by slug", map[string]interface{}{
@@ -407,17 +420,18 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res, err := h.service.Browse(ctx, products.BrowseParams{
-		Query:      query,
-		Category:   category,
-		CategoryID: categoryID,
-		City:       city,
-		CityID:     cityID,
-		ShopID:     shopID,
-		MinPrice:   minPrice,
-		MaxPrice:   maxPrice,
-		Page:       page,
-		PerPage:    perPage,
-		Sort:       sort,
+		Query:       query,
+		Category:    category,
+		CategoryID:  categoryID,
+		CategoryIDs: categoryIDs,
+		City:        city,
+		CityID:      cityID,
+		ShopID:      shopID,
+		MinPrice:    minPrice,
+		MaxPrice:    maxPrice,
+		Page:        page,
+		PerPage:     perPage,
+		Sort:        sort,
 	})
 	if err != nil {
 		h.logger.Error("browse failed", map[string]interface{}{
