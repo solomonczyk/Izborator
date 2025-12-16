@@ -23,7 +23,7 @@ FROM alpine:latest
 WORKDIR /app
 
 # Устанавливаем сертификаты (для HTTPS запросов к магазинам)
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata wget
 
 # Копируем бинарники из этапа сборки
 COPY --from=builder /app/api .
