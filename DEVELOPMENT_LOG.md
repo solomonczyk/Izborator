@@ -3336,6 +3336,99 @@ curl http://152.53.227.37:8081/api/v1/products/browse?category=sport&limit=10
 
 **Статус:** ✅ Фильтрация по родительским категориям работает корректно!
 
+---
+
+## 2025-12-16 - Настройка Nginx Reverse Proxy + SSL + CI/CD
+
+**Дата:** 2025-12-16  
+**Время:** 05:30
+
+### Задача: Настроить production-ready инфраструктуру
+
+**Цели:**
+1. Настроить Nginx как reverse proxy для портов 80/443
+2. Настроить SSL (HTTPS) с самоподписанным сертификатом
+3. Настроить CI/CD через GitHub Actions для автоматического деплоя
+
+**Решение:**
+
+### 1. Nginx Reverse Proxy
+
+**Создана конфигурация:**
+- `nginx/nginx.conf` - основная конфигурация Nginx
+- `nginx/Dockerfile` - Docker образ для Nginx
+- `nginx/generate-ssl.sh` - скрипт для генерации SSL сертификатов
+- `nginx/README.md` - документация по настройке
+
+**Особенности:**
+- HTTP (80) → автоматический редирект на HTTPS (443)
+- HTTPS (443) → проксирование на backend и frontend
+- Backend API: `http://backend:8080/api/`
+- Frontend: `http://frontend:3000/`
+- Security headers: HSTS, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection
+- Gzip compression для оптимизации
+
+**SSL сертификаты:**
+- Самоподписанный сертификат для тестирования (365 дней)
+- Генерация через `generate-ssl.sh`
+- Для продакшена: использовать Let's Encrypt с реальным доменом
+
+### 2. Обновление docker-compose.yml
+
+**Изменения:**
+- Добавлен сервис `nginx` с портами 80/443
+- Убраны внешние порты для `backend` и `frontend` (доступны только через Nginx)
+- Обновлен `NEXT_PUBLIC_API_BASE` для frontend: `http://backend:8080` (внутренний адрес)
+- Добавлены зависимости для Nginx
+
+**Порты после настройки:**
+- ✅ `http://IP` → редирект на HTTPS
+- ✅ `https://IP` → доступ к приложению
+- ❌ `http://IP:8081` → больше не нужен
+- ❌ `http://IP:3002` → больше не нужен
+
+### 3. GitHub Actions CI/CD
+
+**Создан workflow:**
+- `.github/workflows/deploy.yml` - автоматический деплой при push в `main`
+- `.github/workflows/README.md` - инструкция по настройке
+
+**Что делает workflow:**
+1. ✅ Клонирует код из репозитория
+2. ✅ Подключается к серверу по SSH
+3. ✅ Обновляет код (`git pull`)
+4. ✅ Генерирует SSL сертификаты (если их нет)
+5. ✅ Пересобирает Docker контейнеры
+6. ✅ Перезапускает сервисы
+7. ✅ Проверяет health check
+
+**Настройка Secrets в GitHub:**
+- `SSH_PRIVATE_KEY` - приватный SSH ключ для доступа к серверу
+- `SERVER_HOST` - IP адрес сервера (например: `152.53.227.37`)
+
+**Запуск:**
+- Автоматически: при каждом `git push` в ветку `main`
+- Вручную: Actions → Deploy to Production → Run workflow
+
+**Файлы созданы:**
+- `nginx/nginx.conf` - конфигурация Nginx
+- `nginx/Dockerfile` - Docker образ
+- `nginx/generate-ssl.sh` - скрипт генерации SSL
+- `nginx/README.md` - документация
+- `.github/workflows/deploy.yml` - CI/CD workflow
+- `.github/workflows/README.md` - инструкция по настройке
+
+**Файлы изменены:**
+- `docker-compose.yml` - добавлен сервис Nginx, обновлены порты
+
+**Следующие шаги:**
+1. На сервере: запустить `nginx/generate-ssl.sh` для генерации SSL сертификатов
+2. В GitHub: добавить Secrets (`SSH_PRIVATE_KEY`, `SERVER_HOST`)
+3. На сервере: настроить firewall (закрыть порты 8081, 3002, оставить 80, 443)
+4. Протестировать доступ через `https://IP`
+
+**Статус:** ✅ Nginx, SSL и CI/CD настроены. Готово к деплою!
+
 
 
 

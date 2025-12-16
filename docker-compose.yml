@@ -88,8 +88,8 @@ services:
       dockerfile: Dockerfile
     container_name: izborator_backend
     restart: always
-    ports:
-      - "8080:8080"
+    # Порт убран - доступен только через Nginx
+    environment:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -145,13 +145,32 @@ services:
       dockerfile: Dockerfile
     container_name: izborator_frontend
     restart: always
-    ports:
-      - "3000:3000"
+    # Порт убран - доступен только через Nginx
     environment:
-      - NEXT_PUBLIC_API_BASE=http://localhost:8080
+      - NEXT_PUBLIC_API_BASE=http://backend:8080
       - NODE_ENV=production
     depends_on:
       - backend
+    networks:
+      - izborator_network
+
+  # 8. Nginx Reverse Proxy
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: izborator_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
     networks:
       - izborator_network
 

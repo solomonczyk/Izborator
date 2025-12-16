@@ -1,0 +1,73 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Позволяет запускать вручную
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            # Обновляем код
+            echo "📥 Pulling latest changes..."
+            git pull origin main
+            
+            # Генерируем SSL сертификаты, если их нет
+            if [ ! -f nginx/ssl/cert.pem ]; then
+              echo "🔐 Generating SSL certificates..."
+              cd nginx
+              chmod +x generate-ssl.sh
+              ./generate-ssl.sh
+              cd ..
+            fi
+            
+            # Пересобираем и перезапускаем контейнеры
+            echo "🔨 Building and restarting containers..."
+            docker-compose build
+            docker-compose up -d
+            
+            # Ждем запуска сервисов
+            echo "⏳ Waiting for services to start..."
+            sleep 10
+            
+            # Проверяем статус
+            echo "✅ Checking services status..."
+            docker-compose ps
+            
+            # Проверяем health
+            echo "🏥 Health check..."
+            curl -f http://localhost/api/health || exit 1
+            
+            echo "🎉 Deployment completed successfully!"
+          EOF
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+          fi
+
