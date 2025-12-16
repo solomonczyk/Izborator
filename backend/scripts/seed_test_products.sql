@@ -13,7 +13,7 @@ VALUES (
     'Nike',
     'Sport i rekreacija',
     '55555555-5555-5555-5555-555555555555',
-    'https://via.placeholder.com/400x400?text=Nike+Air+Max+90',
+    'https://placehold.co/400x400/000000/FFFFFF?text=Nike+Air+Max+90',
     '{"size": "42", "color": "Black/White", "material": "Leather"}'::jsonb,
     NOW(),
     NOW()
@@ -29,7 +29,7 @@ VALUES (
     'Samsung',
     'Mobilni telefoni',
     '11111111-1111-1111-1111-111111111201',
-    'https://via.placeholder.com/400x400?text=Samsung+Galaxy+S24',
+    'https://placehold.co/400x400/000000/FFFFFF?text=Samsung+Galaxy+S24',
     '{"storage": "256GB", "ram": "8GB", "screen": "6.2 inch", "camera": "200MP"}'::jsonb,
     NOW(),
     NOW()
@@ -45,7 +45,7 @@ VALUES (
     'Lenovo',
     'Laptopovi',
     '11111111-1111-1111-1111-111111111202',
-    'https://via.placeholder.com/400x400?text=Lenovo+IdeaPad+3',
+    'https://placehold.co/400x400/000000/FFFFFF?text=Lenovo+IdeaPad+3',
     '{"cpu": "AMD Ryzen 5", "ram": "8GB", "storage": "512GB SSD", "screen": "15.6 inch"}'::jsonb,
     NOW(),
     NOW()
@@ -61,7 +61,7 @@ VALUES (
     'Samsung',
     'Televizori',
     '11111111-1111-1111-1111-111111111203',
-    'https://via.placeholder.com/400x400?text=Samsung+55+QLED',
+    'https://placehold.co/400x400/000000/FFFFFF?text=Samsung+55+QLED',
     '{"size": "55 inch", "resolution": "4K UHD", "smart_tv": "Yes", "hdr": "Yes"}'::jsonb,
     NOW(),
     NOW()
