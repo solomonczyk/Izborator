@@ -3429,6 +3429,27 @@ curl http://152.53.227.37:8081/api/v1/products/browse?category=sport&limit=10
 
 **Статус:** ✅ Nginx, SSL и CI/CD настроены. Готово к деплою!
 
+---
+
+## Настройка SSH ключа для CI/CD
+
+**Дата:** 2025-12-11 (продолжение)
+
+**Выполнено:**
+- ✅ Сгенерирован SSH ключ для GitHub Actions: `~/.ssh/github_actions` (ed25519)
+- ✅ Публичный ключ скопирован на сервер: `ssh-copy-id -i ~/.ssh/github_actions.pub root@152.53.227.37`
+- ✅ Подключение без пароля проверено и работает: `ssh -i ~/.ssh/github_actions root@152.53.227.37`
+
+**Следующий шаг:**
+- ⏳ Добавить секреты в GitHub:
+  - `SSH_PRIVATE_KEY` - приватный ключ (содержимое `~/.ssh/github_actions`)
+  - `SERVER_HOST` - IP сервера (`152.53.227.37`)
+
+**Где добавить:**
+- GitHub → Repository Settings → Secrets and variables → Actions → New repository secret
+
+**Статус:** SSH ключ готов, ожидается добавление секретов в GitHub.
+
 
 
 
