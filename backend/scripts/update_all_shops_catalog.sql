@@ -4,7 +4,7 @@
 -- 1. Gigatron - Мобильные телефоны
 UPDATE shops
 SET selectors = selectors || '{
-    "catalog_url": "https://gigatron.rs/mobilni-telefoni",
+    "catalog_url": "https://gigatron.rs/mobilni-telefoni-tableti-i-oprema/mobilni-telefoni",
     "catalog_product_link": ".product-box a, .product-item a, .product-title a, a[href*=\"/mobilni-telefoni/\"]",
     "catalog_next_page": ".pagination .next, .pagination-next, a[rel=\"next\"]"
 }'::jsonb

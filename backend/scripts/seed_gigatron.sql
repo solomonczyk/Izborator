@@ -13,7 +13,7 @@ VALUES (
         "image": ".pp-img-wrap img", 
         "description": ".pp-description",
         "brand": ".pp-brand",
-        "catalog_url": "https://gigatron.rs/mobilni-telefoni",
+        "catalog_url": "https://gigatron.rs/mobilni-telefoni-tableti-i-oprema/mobilni-telefoni",
         "catalog_product_link": ".product-box a, .product-item a, .product-title a",
         "catalog_next_page": ".pagination .next, .pagination-next"
     }'::jsonb,
