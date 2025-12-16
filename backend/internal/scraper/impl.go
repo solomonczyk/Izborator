@@ -969,13 +969,14 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 	// Селекторы для каталога
 	productLinkSelector := shopConfig.Selectors["catalog_product_link"]
 	if productLinkSelector == "" {
-		// Дефолтные селекторы для Gigatron
-		productLinkSelector = "a.product-box, .product-item a, .product-card a, .product-title a"
+		// Универсальные дефолтные селекторы (работают для большинства магазинов)
+		productLinkSelector = "a.product-box, .product-item a, .product-card a, .product-title a, .product a, article a, .item a"
 	}
 
 	nextPageSelector := shopConfig.Selectors["catalog_next_page"]
 	if nextPageSelector == "" {
-		nextPageSelector = "a.next, .pagination .next, .pager .next, .pagination-next"
+		// Универсальные селекторы для пагинации
+		nextPageSelector = "a.next, .pagination .next, .pager .next, .pagination-next, a[rel=\"next\"], .pagination a:contains(\"Следующая\")"
 	}
 
 	// Инициализация Colly

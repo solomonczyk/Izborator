@@ -13,7 +13,10 @@ VALUES (
         "price": ".product-price-new",
         "image": ".product-image-gallery img",
         "description": ".product-description",
-        "brand": ".product-brand" 
+        "brand": ".product-brand",
+        "catalog_url": "https://www.tehnomanija.rs/telefoni-smart-satovi-i-tableti/mobilni-telefoni",
+        "catalog_product_link": ".product-item a, .product-card a, .product-title a, a[href*=\"/mobilni-telefoni/\"]",
+        "catalog_next_page": ".pagination .next, .pagination-next, a[rel=\"next\"]"
     }'::jsonb
 )
 ON CONFLICT (code) DO NOTHING;

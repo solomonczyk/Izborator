@@ -254,9 +254,15 @@ func runCatalogDiscovery(ctx context.Context, app *app.App, log *logger.Logger) 
 
 		// Получаем URL каталога из конфига
 		catalogURL := shop.Selectors["catalog_url"]
+		
+		// Если catalog_url не указан, пробуем использовать base_url как точку входа
 		if catalogURL == "" {
-			// Если не указан, пропускаем этот магазин
-			log.Info("No catalog_url configured, skipping", map[string]interface{}{"shop": shop.Name})
+			log.Info("No catalog_url configured, trying base_url", map[string]interface{}{"shop": shop.Name})
+			catalogURL = shop.BaseURL
+		}
+		
+		if catalogURL == "" {
+			log.Info("No catalog URL available, skipping", map[string]interface{}{"shop": shop.Name})
 			continue
 		}
 
