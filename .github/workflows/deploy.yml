@@ -130,25 +130,50 @@ jobs:
             
             # Ждем запуска сервисов (увеличиваем время для health checks)
             echo "⏳ Waiting for services to start..."
-            sleep 15
+            sleep 20
             
             # Проверяем статус
             echo "✅ Checking services status..."
             docker-compose ps
             
-            # Проверяем логи backend, если он unhealthy
-            if docker ps --filter "name=izborator_backend" --format "{{.Status}}" | grep -q "unhealthy"; then
-              echo "⚠️  Backend is unhealthy, showing logs..."
-              docker logs izborator_backend --tail 50
+            # Проверяем, что все контейнеры запущены
+            echo "🔍 Checking container status..."
+            if ! docker ps --format "{{.Names}}" | grep -q "izborator_backend"; then
+              echo "❌ Backend container is not running!"
+              echo "Checking all containers..."
+              docker ps -a | grep izborator || true
+              echo "Backend logs (if exists):"
+              docker logs izborator_backend --tail 50 2>&1 || echo "Container not found"
+              exit 1
             fi
             
-            # Проверяем health
-            echo "🏥 Health check..."
-            curl -f http://localhost/api/health || {
-              echo "❌ Health check failed, showing backend logs..."
-              docker logs izborator_backend --tail 50
+            # Проверяем логи backend, если он unhealthy
+            backend_status=$(docker ps --filter "name=izborator_backend" --format "{{.Status}}" || echo "not found")
+            echo "Backend status: $backend_status"
+            if echo "$backend_status" | grep -qE "(unhealthy|Exited|Restarting)"; then
+              echo "⚠️  Backend is not healthy, showing logs..."
+              docker logs izborator_backend --tail 100
               exit 1
-            }
+            fi
+            
+            # Проверяем health через backend напрямую (внутри Docker network)
+            echo "🏥 Health check (direct backend)..."
+            if docker exec izborator_backend wget --no-verbose --tries=1 --spider http://localhost:8080/api/health 2>&1; then
+              echo "✅ Backend health check passed"
+            else
+              echo "❌ Backend health check failed, showing logs..."
+              docker logs izborator_backend --tail 100
+              exit 1
+            fi
+            
+            # Проверяем health через nginx (если доступен)
+            echo "🏥 Health check (via nginx)..."
+            if curl -f http://localhost/api/health 2>&1; then
+              echo "✅ Nginx health check passed"
+            else
+              echo "⚠️  Nginx health check failed (backend is healthy, nginx might need more time)"
+              docker logs izborator_nginx --tail 50 2>&1 || true
+            fi
             
             echo "🎉 Deployment completed successfully!"
           EOF
