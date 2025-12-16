@@ -144,9 +144,13 @@ jobs:
             if ! docker-compose ps | grep -q "backend.*Up"; then
               echo "❌ Backend container is not running!"
               echo "Showing backend logs..."
-              docker-compose logs backend | tail -100
+              docker-compose logs --tail=100 backend
               exit 1
             fi
+            
+            # Даем Go-приложению время подключиться к БД
+            echo "⏳ Waiting for backend to start (10s)..."
+            sleep 10
             
             # Ждем, пока backend станет healthy (максимум 60 секунд)
             echo "⏳ Waiting for backend to become healthy..."
@@ -160,20 +164,13 @@ jobs:
             done
             
             # Проверяем health через backend напрямую (внутри Docker network)
-            echo "🏥 Health check (direct backend via docker exec)..."
-            # Используем curl вместо wget (более надежно)
-            if docker exec izborator_backend wget -q --spider -O /dev/null http://localhost:8080/api/health 2>&1; then
-              echo "✅ Backend health check passed"
-            else
-              echo "⚠️  wget check failed, trying curl..."
-              if docker exec izborator_backend wget -q -O- http://localhost:8080/api/health 2>&1 | grep -q "ok"; then
-                echo "✅ Backend health check passed (via response check)"
-              else
-                echo "❌ Backend health check failed, showing logs..."
-                docker-compose logs backend | tail -100
-                exit 1
-              fi
+            echo "🏥 Checking Health on port 8080..."
+            if ! docker exec izborator_backend wget --spider -q http://localhost:8080/api/health 2>&1; then
+              echo "❌ Health check failed! Fetching logs..."
+              docker-compose logs --tail=100 backend
+              exit 1
             fi
+            echo "✅ Backend is healthy!"
             
             # Проверяем health через nginx (порт 80)
             echo "🏥 Health check (via nginx on port 80)..."
@@ -181,8 +178,8 @@ jobs:
               echo "✅ Nginx health check passed"
             else
               echo "⚠️  Nginx health check failed, showing logs..."
-              docker-compose logs nginx | tail -50
-              docker-compose logs backend | tail -50
+              docker-compose logs --tail=50 nginx
+              docker-compose logs --tail=50 backend
               # Не падаем, если nginx еще не готов, но backend работает
               echo "⚠️  Continuing despite nginx check failure (backend is healthy)"
             fi
