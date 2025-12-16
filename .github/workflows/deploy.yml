@@ -60,8 +60,15 @@ jobs:
             
             # Останавливаем контейнеры, которые могут занимать порты 80/443
             echo "🔍 Checking for containers using ports 80/443..."
-            docker ps --filter "publish=80" --filter "publish=443" --format "{{.ID}}" | xargs -r docker stop || true
-            docker ps --filter "publish=80" --filter "publish=443" --format "{{.ID}}" | xargs -r docker rm || true
+            # Находим контейнеры, использующие порты 80 или 443
+            for port in 80 443; do
+              container_id=$(docker ps --format "{{.ID}}\t{{.Ports}}" | grep -E ":$port->" | awk '{print $1}' | head -1)
+              if [ ! -z "$container_id" ]; then
+                echo "Stopping container $container_id using port $port..."
+                docker stop "$container_id" || true
+                docker rm "$container_id" || true
+              fi
+            done
             
             # Пересобираем и перезапускаем контейнеры
             echo "🔨 Building and restarting containers..."
