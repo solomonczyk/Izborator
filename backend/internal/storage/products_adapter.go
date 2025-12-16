@@ -528,14 +528,10 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 	}
 
 	// Проверяем, что есть результаты (может быть пустой результат из-за неверного API ключа)
-	// Если запрос был пустой и результатов нет - это нормально для пустого индекса
-	// Но если был запрос и результатов нет - возможно проблема с индексом или API ключом
+	// Если результатов нет - делаем fallback на PostgreSQL
 	if searchResult.Hits == nil || len(searchResult.Hits) == 0 {
-		// Для пустого запроса возвращаем пустой результат (не fallback)
-		// Для непустого запроса - fallback на PostgreSQL
-		if params.Query != "" {
-			return a.browseViaPostgres(ctx, params)
-		}
+		// Fallback на PostgreSQL для получения товаров из БД
+		return a.browseViaPostgres(ctx, params)
 	}
 
 	// Преобразуем результаты и обогащаем данными о ценах из PostgreSQL
