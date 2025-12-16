@@ -47,6 +47,7 @@ jobs:
             # Генерируем SSL сертификаты, если их нет
             if [ ! -f nginx/ssl/cert.pem ]; then
               echo "🔐 Generating SSL certificates..."
+              mkdir -p nginx/ssl
               cd nginx
               chmod +x generate-ssl.sh
               ./generate-ssl.sh

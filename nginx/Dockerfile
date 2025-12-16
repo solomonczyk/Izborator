@@ -4,10 +4,8 @@ FROM nginx:alpine
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Создаем директорию для SSL сертификатов
+# Сертификаты монтируются через volume в docker-compose.yml
 RUN mkdir -p /etc/nginx/ssl
-
-# Копируем SSL сертификаты (если есть)
-COPY ssl/*.pem /etc/nginx/ssl/ 2>/dev/null || true
 
 # Открываем порты
 EXPOSE 80 443
