@@ -8,6 +8,7 @@ import (
 	"github.com/solomonczyk/izborator/internal/attributes"
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
+	"github.com/solomonczyk/izborator/internal/classifier"
 	"github.com/solomonczyk/izborator/internal/config"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
@@ -43,6 +44,7 @@ type App struct {
 	productTypesStorage  producttypes.Storage
 	attributesStorage    attributes.Storage
 	citiesStorage        cities.Storage
+	classifierStorage    classifier.Storage
 
 	// Services (публичные - используются в cmd/*)
 	ScraperService       *scraper.Service
@@ -55,6 +57,7 @@ type App struct {
 	ProductTypesService  *producttypes.Service
 	AttributesService    *attributes.Service
 	CitiesService        *cities.Service
+	Classifier           *classifier.Service
 
 	// i18n
 	Translator *i18n.Translator
@@ -250,6 +253,7 @@ func (a *App) initAdapters() {
 	a.productTypesStorage = storage.NewProductTypesAdapter(a.pg)
 	a.attributesStorage = storage.NewAttributesAdapter(a.pg)
 	a.citiesStorage = storage.NewCitiesAdapter(a.pg)
+	a.classifierStorage = storage.NewClassifierAdapter(a.pg)
 }
 
 // initServices инициализирует доменные сервисы
@@ -288,6 +292,9 @@ func (a *App) initServices() {
 
 	// Cities service
 	a.CitiesService = cities.New(a.citiesStorage, a.logger)
+
+	// Classifier service
+	a.Classifier = classifier.New(a.classifierStorage, a.logger)
 }
 
 // initI18n инициализирует переводчик
