@@ -72,58 +72,58 @@ ON CONFLICT (id) DO UPDATE SET updated_at = NOW();
 -- Магазин ID: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11
 
 -- Цена для Nike Air Max 90
-INSERT INTO product_prices (id, product_id, shop_id, price, currency, url, in_stock, city_id)
+INSERT INTO product_prices (id, product_id, shop_id, shop_name, price, currency, url, in_stock)
 VALUES (
     gen_random_uuid(),
     'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Gigatron',
     12990.00,
     'RSD',
     'https://gigatron.rs/sport/nike-air-max-90',
-    true,
-    NULL
+    true
 )
-ON CONFLICT (product_id, shop_id, city_id) DO UPDATE SET price = EXCLUDED.price;
+ON CONFLICT (product_id, shop_id) DO UPDATE SET price = EXCLUDED.price;
 
 -- Цена для Samsung Galaxy S24
-INSERT INTO product_prices (id, product_id, shop_id, price, currency, url, in_stock, city_id)
+INSERT INTO product_prices (id, product_id, shop_id, shop_name, price, currency, url, in_stock)
 VALUES (
     gen_random_uuid(),
     'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Gigatron',
     89990.00,
     'RSD',
     'https://gigatron.rs/mobilni-telefoni/samsung-galaxy-s24',
-    true,
-    NULL
+    true
 )
-ON CONFLICT (product_id, shop_id, city_id) DO UPDATE SET price = EXCLUDED.price;
+ON CONFLICT (product_id, shop_id) DO UPDATE SET price = EXCLUDED.price;
 
 -- Цена для Lenovo IdeaPad 3
-INSERT INTO product_prices (id, product_id, shop_id, price, currency, url, in_stock, city_id)
+INSERT INTO product_prices (id, product_id, shop_id, shop_name, price, currency, url, in_stock)
 VALUES (
     gen_random_uuid(),
     'cccccccc-cccc-cccc-cccc-cccccccccccc',
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Gigatron',
     59990.00,
     'RSD',
     'https://gigatron.rs/laptopovi/lenovo-ideapad-3',
-    true,
-    NULL
+    true
 )
-ON CONFLICT (product_id, shop_id, city_id) DO UPDATE SET price = EXCLUDED.price;
+ON CONFLICT (product_id, shop_id) DO UPDATE SET price = EXCLUDED.price;
 
 -- Цена для Samsung 55" QLED TV
-INSERT INTO product_prices (id, product_id, shop_id, price, currency, url, in_stock, city_id)
+INSERT INTO product_prices (id, product_id, shop_id, shop_name, price, currency, url, in_stock)
 VALUES (
     gen_random_uuid(),
     'dddddddd-dddd-dddd-dddd-dddddddddddd',
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    'Gigatron',
     149990.00,
     'RSD',
     'https://gigatron.rs/televizori/samsung-55-qled',
-    true,
-    NULL
+    true
 )
-ON CONFLICT (product_id, shop_id, city_id) DO UPDATE SET price = EXCLUDED.price;
+ON CONFLICT (product_id, shop_id) DO UPDATE SET price = EXCLUDED.price;
 
