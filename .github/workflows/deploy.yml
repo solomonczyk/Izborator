@@ -58,10 +58,12 @@ jobs:
             echo "🛑 Stopping old containers..."
             docker-compose down || true
             
-            # Удаляем старые контейнеры nginx (если есть)
-            echo "🔍 Removing old nginx containers..."
+            # Явно удаляем старый nginx контейнер (классика деплоя!)
+            echo "🔍 Removing old nginx container..."
+            docker rm -f izborator_nginx || true
+            
+            # Удаляем любые другие nginx контейнеры
             docker ps -a --filter "name=nginx" --format "{{.ID}}" | xargs -r docker rm -f || true
-            docker ps -a --filter "name=izborator_nginx" --format "{{.ID}}" | xargs -r docker rm -f || true
             
             # Останавливаем контейнеры, которые могут занимать порты 80/443
             echo "🔍 Checking for containers using ports 80/443..."
