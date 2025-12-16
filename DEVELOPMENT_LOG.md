@@ -3440,15 +3440,11 @@ curl http://152.53.227.37:8081/api/v1/products/browse?category=sport&limit=10
 - ✅ Публичный ключ скопирован на сервер: `ssh-copy-id -i ~/.ssh/github_actions.pub root@152.53.227.37`
 - ✅ Подключение без пароля проверено и работает: `ssh -i ~/.ssh/github_actions root@152.53.227.37`
 
-**Следующий шаг:**
-- ⏳ Добавить секреты в GitHub:
-  - `SSH_PRIVATE_KEY` - приватный ключ (содержимое `~/.ssh/github_actions`)
-  - `SERVER_HOST` - IP сервера (`152.53.227.37`)
+**Секреты в GitHub:**
+- ✅ `SSH_PRIVATE_KEY` - добавлен (обновлен 9 минут назад)
+- ✅ `SERVER_HOST` - добавлен (обновлен 7 минут назад)
 
-**Где добавить:**
-- GitHub → Repository Settings → Secrets and variables → Actions → New repository secret
-
-**Статус:** SSH ключ готов, ожидается добавление секретов в GitHub.
+**Статус:** ✅ SSH ключ и секреты настроены. CI/CD готов к работе.
 
 
 
