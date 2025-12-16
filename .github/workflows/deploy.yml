@@ -128,17 +128,27 @@ jobs:
             docker-compose build
             docker-compose up -d
             
-            # Ждем запуска сервисов
+            # Ждем запуска сервисов (увеличиваем время для health checks)
             echo "⏳ Waiting for services to start..."
-            sleep 10
+            sleep 15
             
             # Проверяем статус
             echo "✅ Checking services status..."
             docker-compose ps
             
+            # Проверяем логи backend, если он unhealthy
+            if docker ps --filter "name=izborator_backend" --format "{{.Status}}" | grep -q "unhealthy"; then
+              echo "⚠️  Backend is unhealthy, showing logs..."
+              docker logs izborator_backend --tail 50
+            fi
+            
             # Проверяем health
             echo "🏥 Health check..."
-            curl -f http://localhost/api/health || exit 1
+            curl -f http://localhost/api/health || {
+              echo "❌ Health check failed, showing backend logs..."
+              docker logs izborator_backend --tail 50
+              exit 1
+            }
             
             echo "🎉 Deployment completed successfully!"
           EOF

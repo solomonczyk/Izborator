@@ -88,7 +88,6 @@ services:
     restart: always
     # Порт убран - доступен только через Nginx
     environment:
-    environment:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-postgres}
@@ -101,6 +100,12 @@ services:
       - REDIS_PORT=6379
       - SERVER_PORT=8080
       - LOG_LEVEL=${LOG_LEVEL:-info}
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     depends_on:
       postgres:
         condition: service_healthy
