@@ -76,19 +76,26 @@ jobs:
               fi
             done
             
-            # Проверяем через ss, что занимает порты (если доступно)
+            # Проверяем системные процессы, занимающие порты (если доступно)
+            echo "🔍 Checking system processes using ports 80/443..."
             if command -v ss >/dev/null 2>&1; then
               for port in 80 443; do
                 if ss -tln | grep -q ":$port "; then
-                  echo "⚠️  Port $port is still in use, trying to find and stop the process..."
-                  # Пытаемся найти контейнер через inspect
-                  for container in $(docker ps --format "{{.ID}}"); do
-                    if docker port "$container" 2>/dev/null | grep -q ":$port"; then
-                      echo "Found container $container using port $port, stopping..."
-                      docker stop "$container" 2>/dev/null || true
-                      docker rm "$container" 2>/dev/null || true
-                    fi
-                  done
+                  echo "⚠️  Port $port is still in use!"
+                  # Показываем, что занимает порт
+                  ss -tlnp | grep ":$port " || true
+                  
+                  # Пытаемся остановить системный nginx/apache (если есть)
+                  if systemctl is-active --quiet nginx 2>/dev/null; then
+                    echo "⚠️  System nginx is running, stopping it..."
+                    systemctl stop nginx || true
+                    systemctl disable nginx || true
+                  fi
+                  if systemctl is-active --quiet apache2 2>/dev/null; then
+                    echo "⚠️  System apache2 is running, stopping it..."
+                    systemctl stop apache2 || true
+                    systemctl disable apache2 || true
+                  fi
                 fi
               done
             fi
