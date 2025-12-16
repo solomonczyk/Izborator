@@ -164,8 +164,9 @@ jobs:
             done
             
             # Проверяем health через backend напрямую (внутри Docker network)
+            # Используем GET вместо HEAD (wget --spider использует HEAD, который не поддерживается)
             echo "🏥 Checking Health on port 8080..."
-            if ! docker exec izborator_backend wget --spider -q http://localhost:8080/api/health 2>&1; then
+            if ! docker exec izborator_backend wget -q -O- http://localhost:8080/api/health 2>&1 | grep -q "ok"; then
               echo "❌ Health check failed! Fetching logs..."
               docker-compose logs --tail=100 backend
               exit 1
