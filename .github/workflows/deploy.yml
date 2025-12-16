@@ -58,32 +58,35 @@ jobs:
             echo "🛑 Stopping old containers..."
             docker-compose down || true
             
+            # Удаляем старые контейнеры nginx (если есть)
+            echo "🔍 Removing old nginx containers..."
+            docker ps -a --filter "name=nginx" --format "{{.ID}}" | xargs -r docker rm -f || true
+            docker ps -a --filter "name=izborator_nginx" --format "{{.ID}}" | xargs -r docker rm -f || true
+            
             # Останавливаем контейнеры, которые могут занимать порты 80/443
             echo "🔍 Checking for containers using ports 80/443..."
-            # Находим все контейнеры (включая остановленные) и проверяем их порты
-            for container in $(docker ps -a --format "{{.ID}}"); do
-              ports=$(docker port "$container" 2>/dev/null || echo "")
+            # Находим контейнеры через docker ps и проверяем их порты
+            docker ps --format "{{.ID}}\t{{.Ports}}" | while read -r container_id ports; do
               if echo "$ports" | grep -qE ":(80|443)->"; then
-                echo "Stopping container $container using ports 80/443..."
-                docker stop "$container" 2>/dev/null || true
-                docker rm "$container" 2>/dev/null || true
+                echo "Stopping container $container_id using ports 80/443..."
+                docker stop "$container_id" 2>/dev/null || true
+                docker rm "$container_id" 2>/dev/null || true
               fi
             done
             
-            # Дополнительно: проверяем через ss/netstat, что занимает порты
-            echo "🔍 Checking system ports..."
+            # Проверяем через ss, что занимает порты (если доступно)
             if command -v ss >/dev/null 2>&1; then
               for port in 80 443; do
-                pid=$(ss -tlnp | grep ":$port " | awk '{print $6}' | cut -d',' -f2 | cut -d'=' -f2 | head -1)
-                if [ ! -z "$pid" ] && [ "$pid" != "-" ]; then
-                  echo "Port $port is used by process $pid, checking if it's a container..."
-                  # Проверяем, не является ли это Docker контейнером
-                  container=$(docker ps --format "{{.ID}}\t{{.Pid}}" | grep "$pid" | awk '{print $1}' | head -1)
-                  if [ ! -z "$container" ]; then
-                    echo "Stopping container $container..."
-                    docker stop "$container" 2>/dev/null || true
-                    docker rm "$container" 2>/dev/null || true
-                  fi
+                if ss -tln | grep -q ":$port "; then
+                  echo "⚠️  Port $port is still in use, trying to find and stop the process..."
+                  # Пытаемся найти контейнер через inspect
+                  for container in $(docker ps --format "{{.ID}}"); do
+                    if docker port "$container" 2>/dev/null | grep -q ":$port"; then
+                      echo "Found container $container using port $port, stopping..."
+                      docker stop "$container" 2>/dev/null || true
+                      docker rm "$container" 2>/dev/null || true
+                    fi
+                  done
                 fi
               done
             fi
