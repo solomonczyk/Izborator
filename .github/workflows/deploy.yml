@@ -58,6 +58,11 @@ jobs:
             echo "🛑 Stopping old containers..."
             docker-compose down || true
             
+            # Останавливаем контейнеры, которые могут занимать порты 80/443
+            echo "🔍 Checking for containers using ports 80/443..."
+            docker ps --filter "publish=80" --filter "publish=443" --format "{{.ID}}" | xargs -r docker stop || true
+            docker ps --filter "publish=80" --filter "publish=443" --format "{{.ID}}" | xargs -r docker rm || true
+            
             # Пересобираем и перезапускаем контейнеры
             echo "🔨 Building and restarting containers..."
             docker-compose build
