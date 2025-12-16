@@ -54,6 +54,10 @@ jobs:
               cd ..
             fi
             
+            # Останавливаем старые контейнеры (если есть)
+            echo "🛑 Stopping old containers..."
+            docker-compose down || true
+            
             # Пересобираем и перезапускаем контейнеры
             echo "🔨 Building and restarting containers..."
             docker-compose build
