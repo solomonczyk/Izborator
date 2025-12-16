@@ -65,6 +65,12 @@ jobs:
             # Удаляем любые другие nginx контейнеры
             docker ps -a --filter "name=nginx" --format "{{.ID}}" | xargs -r docker rm -f || true
             
+            # Убиваем зависшие docker-proxy процессы (они могут занимать порты)
+            echo "🔍 Killing stale docker-proxy processes..."
+            pkill -f "docker-proxy.*:443" || true
+            pkill -f "docker-proxy.*:80" || true
+            sleep 1
+            
             # Останавливаем контейнеры, которые могут занимать порты 80/443
             echo "🔍 Checking for containers using ports 80/443..."
             # Находим контейнеры через docker ps и проверяем их порты
