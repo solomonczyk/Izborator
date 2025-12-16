@@ -12,7 +12,10 @@ VALUES (
         "price": ".pp-price-new, .product-price-new", 
         "image": ".pp-img-wrap img", 
         "description": ".pp-description",
-        "brand": ".pp-brand" 
+        "brand": ".pp-brand",
+        "catalog_url": "https://gigatron.rs/mobilni-telefoni",
+        "catalog_product_link": ".product-box a, .product-item a, .product-title a",
+        "catalog_next_page": ".pagination .next, .pagination-next"
     }'::jsonb,
     2 -- 2 запросов в секунду
 )

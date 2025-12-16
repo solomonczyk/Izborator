@@ -951,3 +951,206 @@ func (s *Service) ListShops(ctx context.Context) ([]*ShopConfig, error) {
 
 	return shops, nil
 }
+
+// ParseCatalog обходит каталог магазина и извлекает ссылки на товары
+// catalogURL - начальный URL каталога (например, https://gigatron.rs/mobilni-telefoni)
+// maxPages - максимальное количество страниц для обхода (0 = без ограничений)
+func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfig *ShopConfig, maxPages int) (*CatalogResult, error) {
+	s.logger.Info("Starting catalog parsing", map[string]interface{}{
+		"catalog_url": catalogURL,
+		"shop_id":     shopConfig.ID,
+		"max_pages":   maxPages,
+	})
+
+	result := &CatalogResult{
+		ProductURLs: make([]string, 0),
+	}
+
+	// Селекторы для каталога
+	productLinkSelector := shopConfig.Selectors["catalog_product_link"]
+	if productLinkSelector == "" {
+		// Дефолтные селекторы для Gigatron
+		productLinkSelector = "a.product-box, .product-item a, .product-card a, .product-title a"
+	}
+
+	nextPageSelector := shopConfig.Selectors["catalog_next_page"]
+	if nextPageSelector == "" {
+		nextPageSelector = "a.next, .pagination .next, .pager .next, .pagination-next"
+	}
+
+	// Инициализация Colly
+	c := colly.NewCollector(
+		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"),
+		colly.IgnoreRobotsTxt(),
+	)
+
+	c.SetRequestTimeout(60 * time.Second)
+	extensions.RandomUserAgent(c)
+	extensions.Referer(c)
+
+	// Ограничение скорости (rate limiting)
+	if shopConfig.RateLimit > 0 {
+		c.Limit(&colly.LimitRule{
+			DomainGlob:  "*",
+			Parallelism: 1,
+			Delay:       time.Duration(1000/shopConfig.RateLimit) * time.Millisecond,
+		})
+	}
+
+	visitedPages := make(map[string]bool)
+	pageCount := 0
+	productURLsMap := make(map[string]bool) // Для дедупликации
+
+	// Обработчик ссылок на товары
+	c.OnHTML(productLinkSelector, func(e *colly.HTMLElement) {
+		href := e.Attr("href")
+		if href == "" {
+			return
+		}
+
+		// Преобразуем относительные URL в абсолютные
+		productURL := href
+		if strings.HasPrefix(href, "/") {
+			productURL = shopConfig.BaseURL + href
+		} else if !strings.HasPrefix(href, "http") {
+			productURL = shopConfig.BaseURL + "/" + href
+		}
+
+		// Проверяем, что это URL товара (не категории или другой страницы)
+		if s.isProductURL(productURL, shopConfig) && !productURLsMap[productURL] {
+			productURLsMap[productURL] = true
+			result.ProductURLs = append(result.ProductURLs, productURL)
+		}
+	})
+
+	// Обработчик ссылки на следующую страницу
+	var nextPageURL string
+	c.OnHTML(nextPageSelector, func(e *colly.HTMLElement) {
+		href := e.Attr("href")
+		if href == "" {
+			return
+		}
+
+		nextURL := href
+		if strings.HasPrefix(href, "/") {
+			nextURL = shopConfig.BaseURL + href
+		} else if !strings.HasPrefix(href, "http") {
+			nextURL = shopConfig.BaseURL + "/" + href
+		}
+
+		if !visitedPages[nextURL] && (maxPages == 0 || pageCount < maxPages) {
+			nextPageURL = nextURL
+		}
+	})
+
+	// Обработка ошибок
+	c.OnError(func(r *colly.Response, err error) {
+		s.logger.Error("Catalog parsing error", map[string]interface{}{
+			"url":   r.Request.URL.String(),
+			"error": err.Error(),
+		})
+	})
+
+	// Обход страниц
+	currentURL := catalogURL
+	for {
+		if maxPages > 0 && pageCount >= maxPages {
+			break
+		}
+
+		if visitedPages[currentURL] {
+			break
+		}
+
+		visitedPages[currentURL] = true
+		pageCount++
+		nextPageURL = "" // Сбрасываем перед каждой страницей
+
+		s.logger.Info("Parsing catalog page", map[string]interface{}{
+			"url":        currentURL,
+			"page":       pageCount,
+			"found_so_far": len(result.ProductURLs),
+		})
+
+		err := c.Visit(currentURL)
+		if err != nil {
+			s.logger.Error("Failed to visit catalog page", map[string]interface{}{
+				"url":   currentURL,
+				"error": err.Error(),
+			})
+			break
+		}
+
+		// Если есть следующая страница, переходим к ней
+		if nextPageURL != "" && !visitedPages[nextPageURL] {
+			currentURL = nextPageURL
+		} else {
+			break
+		}
+
+		// Пауза между страницами
+		time.Sleep(2 * time.Second)
+	}
+
+	result.TotalFound = len(result.ProductURLs)
+	s.logger.Info("Catalog parsing completed", map[string]interface{}{
+		"total_urls": result.TotalFound,
+		"pages":      pageCount,
+	})
+
+	return result, nil
+}
+
+// isProductURL проверяет, является ли URL ссылкой на товар (а не на категорию)
+func (s *Service) isProductURL(url string, shopConfig *ShopConfig) bool {
+	// Исключаем URL категорий и других страниц
+	excludePatterns := []string{
+		"/kategorija/",
+		"/category/",
+		"/kategorije/",
+		"/categories/",
+		"/pretraga",
+		"/search",
+		"/kontakt",
+		"/contact",
+		"/o-nama",
+		"/about",
+		"/stranica/",
+		"/page/",
+	}
+
+	urlLower := strings.ToLower(url)
+	for _, pattern := range excludePatterns {
+		if strings.Contains(urlLower, pattern) {
+			return false
+		}
+	}
+
+	// Для Gigatron: товары обычно имеют формат /kategorija/naziv-tovara
+	// Или содержат ID товара
+	if strings.Contains(shopConfig.BaseURL, "gigatron.rs") {
+		// Исключаем главную страницу и категории верхнего уровня
+		if url == shopConfig.BaseURL || url == shopConfig.BaseURL+"/" {
+			return false
+		}
+		// Товары обычно имеют более глубокий путь
+		parts := strings.Split(strings.TrimPrefix(url, shopConfig.BaseURL), "/")
+		parts = filterEmpty(parts)
+		if len(parts) >= 2 { // /kategorija/naziv-tovara
+			return true
+		}
+	}
+
+	return true
+}
+
+// filterEmpty удаляет пустые строки из слайса
+func filterEmpty(s []string) []string {
+	var result []string
+	for _, v := range s {
+		if v != "" {
+			result = append(result, v)
+		}
+	}
+	return result
+}

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/solomonczyk/izborator/internal/app"
 	"github.com/solomonczyk/izborator/internal/config"
 	"github.com/solomonczyk/izborator/internal/logger"
+	"github.com/solomonczyk/izborator/internal/scraper"
 )
 
 func main() {
@@ -89,9 +91,10 @@ func main() {
 		go func() {
 			// Сразу при старте сделаем один прогон всего
 			log.Info("Running initial startup tasks...", nil)
-			runMonitoring(ctx, application, log) // Скрапинг списка
+			runCatalogDiscovery(ctx, application, log) // Обнаружение новых товаров в каталогах
+			runMonitoring(ctx, application, log)       // Скрапинг списка
 			runProcessor(ctx, application, *batchSize, log)  // Процессинг
-			runReindex(ctx, application, log)    // Индексация
+			runReindex(ctx, application, log)          // Индексация
 
 			for {
 				select {
@@ -100,7 +103,8 @@ func main() {
 
 				case <-scrapeTicker.C:
 					log.Info("⏰ Scheduled scraping started", nil)
-					runMonitoring(ctx, application, log)
+					runCatalogDiscovery(ctx, application, log) // Обнаружение новых товаров
+					runMonitoring(ctx, application, log)        // Обновление цен
 					// После скрапинга логично обновить индекс
 					runReindex(ctx, application, log)
 
@@ -231,4 +235,98 @@ func runMonitoring(ctx context.Context, app *app.App, log *logger.Logger) {
 	}
 
 	log.Info("✅ Monitoring scrape completed", map[string]interface{}{"count": len(outdatedItems)})
+}
+
+func runCatalogDiscovery(ctx context.Context, app *app.App, log *logger.Logger) {
+	log.Info("🔍 Starting catalog discovery...", nil)
+
+	// Получаем список всех активных магазинов
+	shops, err := app.ScraperService.ListShops(ctx)
+	if err != nil {
+		log.Error("Failed to list shops", map[string]interface{}{"error": err.Error()})
+		return
+	}
+
+	for _, shop := range shops {
+		if !shop.Enabled {
+			continue
+		}
+
+		// Получаем URL каталога из конфига
+		catalogURL := shop.Selectors["catalog_url"]
+		if catalogURL == "" {
+			// Если не указан, пропускаем этот магазин
+			log.Info("No catalog_url configured, skipping", map[string]interface{}{"shop": shop.Name})
+			continue
+		}
+
+		log.Info("Discovering products from catalog", map[string]interface{}{
+			"shop":        shop.Name,
+			"catalog_url": catalogURL,
+		})
+
+		// Парсим каталог (максимум 3 страницы за раз, чтобы не перегружать)
+		result, err := app.ScraperService.ParseCatalog(ctx, catalogURL, shop, 3)
+		if err != nil {
+			log.Error("Catalog parsing failed", map[string]interface{}{
+				"shop":  shop.Name,
+				"error": err.Error(),
+			})
+			continue
+		}
+
+		if result.TotalFound == 0 {
+			log.Info("No products found in catalog", map[string]interface{}{"shop": shop.Name})
+			continue
+		}
+
+		log.Info("Found products in catalog", map[string]interface{}{
+			"shop":       shop.Name,
+			"total_found": result.TotalFound,
+		})
+
+		// Сохраняем найденные URL в базу для последующего парсинга
+		savedCount := 0
+		for _, productURL := range result.ProductURLs {
+			// Создаем минимальный RawProduct для сохранения URL
+			rawProduct := &scraper.RawProduct{
+				ShopID:    shop.ID,
+				ShopName:  shop.Name,
+				URL:       productURL,
+				ParsedAt:  time.Now(),
+				ScrapedAt: time.Now(),
+			}
+
+			// Извлекаем external_id из URL
+			parts := strings.Split(productURL, "/")
+			if len(parts) > 0 {
+				rawProduct.ExternalID = parts[len(parts)-1]
+			}
+
+			// Сохраняем через ScraperService (он использует ScrapeAndSave, который сохраняет в raw_products)
+			// Но нам нужно просто сохранить URL, поэтому используем прямой вызов storage
+			// Вместо этого, запустим быстрый парсинг каждого товара
+			_, err = app.ScraperService.ScrapeAndSave(ctx, productURL, shop)
+			if err != nil {
+				log.Error("Failed to scrape product from catalog", map[string]interface{}{
+					"url":   productURL,
+					"error": err.Error(),
+				})
+				continue
+			}
+			savedCount++
+
+			// Небольшая пауза между товарами
+			time.Sleep(2 * time.Second)
+		}
+
+		log.Info("✅ Catalog discovery completed", map[string]interface{}{
+			"shop":  shop.Name,
+			"found": result.TotalFound,
+			"saved": savedCount,
+		})
+
+		// Пауза между магазинами
+		time.Sleep(5 * time.Second)
+	}
 }

@@ -44,6 +44,13 @@ type Service struct {
 	stats   *scrapingstats.Service
 }
 
+// CatalogResult результат парсинга каталога
+type CatalogResult struct {
+	ProductURLs []string `json:"product_urls"`
+	NextPageURL string   `json:"next_page_url,omitempty"`
+	TotalFound  int      `json:"total_found"`
+}
+
 // New создаёт новый сервис парсеров
 func New(storage Storage, queue Queue, stats *scrapingstats.Service, log *logger.Logger) *Service {
 	return &Service{
