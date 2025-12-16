@@ -60,15 +60,33 @@ jobs:
             
             # Останавливаем контейнеры, которые могут занимать порты 80/443
             echo "🔍 Checking for containers using ports 80/443..."
-            # Находим контейнеры, использующие порты 80 или 443
-            for port in 80 443; do
-              container_id=$(docker ps --format "{{.ID}}\t{{.Ports}}" | grep -E ":$port->" | awk '{print $1}' | head -1)
-              if [ ! -z "$container_id" ]; then
-                echo "Stopping container $container_id using port $port..."
-                docker stop "$container_id" || true
-                docker rm "$container_id" || true
+            # Находим все контейнеры (включая остановленные) и проверяем их порты
+            for container in $(docker ps -a --format "{{.ID}}"); do
+              ports=$(docker port "$container" 2>/dev/null || echo "")
+              if echo "$ports" | grep -qE ":(80|443)->"; then
+                echo "Stopping container $container using ports 80/443..."
+                docker stop "$container" 2>/dev/null || true
+                docker rm "$container" 2>/dev/null || true
               fi
             done
+            
+            # Дополнительно: проверяем через ss/netstat, что занимает порты
+            echo "🔍 Checking system ports..."
+            if command -v ss >/dev/null 2>&1; then
+              for port in 80 443; do
+                pid=$(ss -tlnp | grep ":$port " | awk '{print $6}' | cut -d',' -f2 | cut -d'=' -f2 | head -1)
+                if [ ! -z "$pid" ] && [ "$pid" != "-" ]; then
+                  echo "Port $port is used by process $pid, checking if it's a container..."
+                  # Проверяем, не является ли это Docker контейнером
+                  container=$(docker ps --format "{{.ID}}\t{{.Pid}}" | grep "$pid" | awk '{print $1}' | head -1)
+                  if [ ! -z "$container" ]; then
+                    echo "Stopping container $container..."
+                    docker stop "$container" 2>/dev/null || true
+                    docker rm "$container" 2>/dev/null || true
+                  fi
+                fi
+              done
+            fi
             
             # Пересобираем и перезапускаем контейнеры
             echo "🔨 Building and restarting containers..."
