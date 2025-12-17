@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/solomonczyk/izborator/internal/ai"
+	"github.com/solomonczyk/izborator/internal/autoconfig"
 	"github.com/solomonczyk/izborator/internal/attributes"
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
@@ -46,6 +47,7 @@ type App struct {
 	attributesStorage    attributes.Storage
 	citiesStorage        cities.Storage
 	classifierStorage    classifier.Storage
+	autoconfigStorage    autoconfig.Storage
 
 	// Services (публичные - используются в cmd/*)
 	ScraperService       *scraper.Service
@@ -59,6 +61,7 @@ type App struct {
 	AttributesService    *attributes.Service
 	CitiesService        *cities.Service
 	Classifier           *classifier.Service
+	AutoconfigService    *autoconfig.Service
 
 	// AI
 	AIClient *ai.Client
@@ -95,6 +98,11 @@ func (a *App) GetClassifierStorage() classifier.Storage {
 // GetAIClient возвращает AI клиент (может быть nil, если API ключ не задан)
 func (a *App) GetAIClient() *ai.Client {
 	return a.AIClient
+}
+
+// GetAutoconfigService возвращает сервис AutoConfig (может быть nil, если AI клиент недоступен)
+func (a *App) GetAutoconfigService() *autoconfig.Service {
+	return a.AutoconfigService
 }
 
 // ReindexAll переиндексирует все товары в Meilisearch
@@ -268,6 +276,7 @@ func (a *App) initAdapters() {
 	a.attributesStorage = storage.NewAttributesAdapter(a.pg)
 	a.citiesStorage = storage.NewCitiesAdapter(a.pg)
 	a.classifierStorage = storage.NewClassifierAdapter(a.pg)
+	a.autoconfigStorage = storage.NewAutoconfigAdapter(a.pg)
 }
 
 // initServices инициализирует доменные сервисы
@@ -309,6 +318,14 @@ func (a *App) initServices() {
 
 	// Classifier service
 	a.Classifier = classifier.New(a.classifierStorage, a.logger)
+
+	// Autoconfig service (требует AI клиент)
+	if a.AIClient != nil {
+		a.AutoconfigService = autoconfig.NewService(a.autoconfigStorage, a.AIClient, a.logger)
+		a.logger.Info("Autoconfig service initialized", nil)
+	} else {
+		a.logger.Warn("Autoconfig service not initialized (AI client unavailable)", nil)
+	}
 
 	// AI Client (опционально, если API ключ задан)
 	if a.config.OpenAI.APIKey != "" {

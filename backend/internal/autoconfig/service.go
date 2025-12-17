@@ -40,7 +40,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 		return fmt.Errorf("failed to get candidates: %w", err)
 	}
 	if len(candidates) == 0 {
-		return nil // Нет работы
+		return fmt.Errorf("no candidates available")
 	}
 	candidate := candidates[0]
 
