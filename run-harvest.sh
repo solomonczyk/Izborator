@@ -17,7 +17,10 @@ NC='\033[0m'
 # Шаг 1: Discovery
 echo -e "${YELLOW}🔍 Шаг 1: Discovery (поиск кандидатов)${NC}"
 echo "Запускаем поиск новых доменов..."
-docker-compose run --rm backend ./discovery
+docker-compose run --rm \
+  -e GOOGLE_API_KEY="${GOOGLE_API_KEY}" \
+  -e GOOGLE_CX="${GOOGLE_CX}" \
+  backend ./discovery
 echo -e "${GREEN}✅ Discovery завершен${NC}"
 echo ""
 
