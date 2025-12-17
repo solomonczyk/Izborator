@@ -16,6 +16,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o api ./cmd/api/main.go
 RUN CGO_ENABLED=0 GOOS=linux go build -o worker ./cmd/worker/main.go
 RUN CGO_ENABLED=0 GOOS=linux go build -o migrate ./cmd/migrate/main.go
 RUN CGO_ENABLED=0 GOOS=linux go build -o indexer ./cmd/indexer/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o classifier ./cmd/classifier/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o discovery ./cmd/discovery/main.go
 
 # Этап 2: Финальный образ (Runner)
 FROM alpine:latest
@@ -30,6 +32,8 @@ COPY --from=builder /app/api .
 COPY --from=builder /app/worker .
 COPY --from=builder /app/migrate .
 COPY --from=builder /app/indexer .
+COPY --from=builder /app/classifier .
+COPY --from=builder /app/discovery .
 
 # Копируем миграции и локали (они нужны в рантайме)
 COPY --from=builder /app/migrations ./migrations

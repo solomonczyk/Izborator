@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/solomonczyk/izborator/internal/app"
 	"github.com/solomonczyk/izborator/internal/classifier"
 	"github.com/solomonczyk/izborator/internal/config"
 	"github.com/solomonczyk/izborator/internal/logger"
@@ -27,6 +29,8 @@ func main() {
 	// Флаги
 	testDomain := flag.String("domain", "", "Test single domain")
 	testList := flag.Bool("test-list", false, "Test on predefined list of shops and non-shops")
+	classifyAll := flag.Bool("classify-all", false, "Classify all domains with status 'new' from database")
+	limit := flag.Int("limit", 0, "Limit number of domains to classify (0 = no limit)")
 	flag.Parse()
 
 	// Для тестирования создаем классификатор напрямую без БД
@@ -45,10 +49,18 @@ func main() {
 		return
 	}
 
+	if *classifyAll {
+		// Классификация всех доменов из БД
+		classifyAllDomains(ctx, *limit, log)
+		return
+	}
+
 	// Если флагов нет, показываем usage
 	fmt.Println("Usage:")
 	fmt.Println("  -domain <domain>     Test single domain")
 	fmt.Println("  -test-list           Test on predefined list")
+	fmt.Println("  -classify-all        Classify all domains with status 'new' from database")
+	fmt.Println("  -limit <number>      Limit number of domains to classify (use with -classify-all)")
 }
 
 // createTestClassifier создает классификатор для тестирования без БД
@@ -158,5 +170,139 @@ func testPredefinedList(ctx context.Context, classifierService *classifier.Servi
 		fmt.Println("\n❌ FAILED: Accuracy < 85%")
 		os.Exit(1)
 	}
+}
+
+// classifyAllDomains классифицирует все домены со статусом "new" из БД
+func classifyAllDomains(ctx context.Context, limit int, log *logger.Logger) {
+	// Загрузка конфигурации
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal("Failed to load config", map[string]interface{}{"error": err.Error()})
+	}
+
+	// Инициализация приложения
+	application, err := app.NewWorkerApp(cfg)
+	if err != nil {
+		log.Fatal("Failed to init app", map[string]interface{}{"error": err.Error()})
+	}
+	defer application.Close()
+
+	storage := application.GetClassifierStorage()
+	classifierService := application.Classifier
+
+	// Получаем все домены со статусом "new"
+	if limit == 0 {
+		limit = 1000 // Большое число, чтобы получить все
+	}
+
+	log.Info("Fetching domains to classify", map[string]interface{}{
+		"status": "new",
+		"limit":  limit,
+	})
+
+	domains, err := storage.ListPotentialShopsByStatus("new", limit)
+	if err != nil {
+		log.Fatal("Failed to fetch domains", map[string]interface{}{"error": err.Error()})
+	}
+
+	if len(domains) == 0 {
+		log.Info("No domains to classify", nil)
+		return
+	}
+
+	log.Info("Starting classification", map[string]interface{}{
+		"total": len(domains),
+	})
+
+	classified := 0
+	rejected := 0
+	pendingReview := 0
+	errors := 0
+
+	for i, shop := range domains {
+		log.Info("Classifying domain", map[string]interface{}{
+			"domain": shop.Domain,
+			"number": i + 1,
+			"total":  len(domains),
+		})
+
+		result, err := classifierService.Classify(ctx, shop.Domain)
+		if err != nil {
+			log.Error("Classification failed", map[string]interface{}{
+				"domain": shop.Domain,
+				"error":  err.Error(),
+			})
+			errors++
+			continue
+		}
+
+		// Обновляем статус и confidence score
+		shop.ConfidenceScore = result.Score.TotalScore
+
+		// Определяем статус на основе результата
+		if result.IsShop {
+			shop.Status = "classified"
+			classified++
+		} else if result.Score.TotalScore >= 0.5 {
+			shop.Status = "pending_review"
+			pendingReview++
+		} else {
+			shop.Status = "rejected"
+			rejected++
+		}
+
+		// Обновляем метаданные с результатами классификации
+		if shop.Metadata == nil {
+			shop.Metadata = make(map[string]interface{})
+		}
+		shop.Metadata["classification"] = map[string]interface{}{
+			"keywords_score":  result.Score.KeywordsScore,
+			"platform_score":  result.Score.PlatformScore,
+			"structure_score": result.Score.StructureScore,
+			"total_score":      result.Score.TotalScore,
+			"detected_platform": result.DetectedPlatform,
+			"reasons":          result.Reasons,
+			"classified_at":    time.Now().Format(time.RFC3339),
+		}
+
+		// Сохраняем обновленный результат
+		if err := storage.UpdatePotentialShop(shop); err != nil {
+			log.Error("Failed to update shop", map[string]interface{}{
+				"domain": shop.Domain,
+				"error":  err.Error(),
+			})
+			errors++
+			continue
+		}
+
+		statusIcon := "✅"
+		if shop.Status == "rejected" {
+			statusIcon = "❌"
+		} else if shop.Status == "pending_review" {
+			statusIcon = "⚠️"
+		}
+
+		log.Info("Domain classified", map[string]interface{}{
+			"domain":  shop.Domain,
+			"status":  shop.Status,
+			"score":   result.Score.TotalScore,
+			"platform": result.DetectedPlatform,
+		})
+
+		fmt.Printf("%s [%d/%d] %s -> %s (score: %.2f)\n",
+			statusIcon, i+1, len(domains), shop.Domain, shop.Status, result.Score.TotalScore)
+
+		// Небольшая задержка, чтобы не перегружать серверы
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	// Итоговая статистика
+	fmt.Println("\n=== Classification Summary ===")
+	fmt.Printf("Total processed: %d\n", len(domains))
+	fmt.Printf("✅ Classified (shops): %d\n", classified)
+	fmt.Printf("⚠️  Pending review: %d\n", pendingReview)
+	fmt.Printf("❌ Rejected: %d\n", rejected)
+	fmt.Printf("⚠️  Errors: %d\n", errors)
+	fmt.Printf("\nSuccess rate: %.1f%%\n", float64(classified+pendingReview)/float64(len(domains))*100)
 }
 

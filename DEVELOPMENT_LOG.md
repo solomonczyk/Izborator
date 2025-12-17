@@ -3686,6 +3686,49 @@ curl http://152.53.227.37:8081/api/v1/products/browse?category=sport&limit=10
 
 **Статус:** ✅ Рефакторинг завершен! Все ключи вынесены в переменные окружения. Готово к очистке истории Git.
 
+---
+
+### День X+1 - Project Horizon: Фаза 2 - Классификатор для всех доменов
+**Дата:** 2025-01-17  
+**Время:** День
+
+**Задача:** Добавить функционал для классификации всех найденных доменов из таблицы `potential_shops`.
+
+**Выполнено:**
+
+1. **Расширение функционала классификатора:**
+   - ✅ Добавлен флаг `-classify-all` в `backend/cmd/classifier/main.go`
+   - ✅ Реализована функция `classifyAllDomains()` для пакетной классификации
+   - ✅ Автоматическое обновление статусов: `classified`, `pending_review`, `rejected`
+   - ✅ Сохранение результатов классификации в метаданные
+
+2. **Интеграция с Docker:**
+   - ✅ Добавлена сборка `classifier` и `discovery` в `backend/Dockerfile`
+   - ✅ Добавлены переменные окружения `GOOGLE_API_KEY` и `GOOGLE_CX` в `docker-compose.yml`
+   - ✅ Создана инструкция `CLASSIFIER_RUN.md` для запуска в Docker
+
+3. **Логика классификации:**
+   - ✅ Score >= 0.8 → статус `classified` (магазин)
+   - ✅ Score >= 0.5 → статус `pending_review` (требует проверки)
+   - ✅ Score < 0.5 → статус `rejected` (не магазин)
+   - ✅ Сохранение детальной информации (keywords_score, platform_score, structure_score) в метаданные
+
+**Следующие шаги:**
+- Запустить классификатор на сервере: `docker-compose run --rm backend ./classifier -classify-all`
+- Проверить результаты классификации
+- Перейти к Фазе 3: AutoConfig (AI-генерация селекторов)
+
+**Команды для запуска:**
+```bash
+# Классификация всех доменов
+docker-compose run --rm backend ./classifier -classify-all
+
+# С лимитом (первые 10)
+docker-compose run --rm backend ./classifier -classify-all -limit 10
+```
+
+**Статус:** ✅ Классификатор готов к использованию! Можно запускать на всех найденных доменах.
+
 
 
 
