@@ -46,7 +46,10 @@ fi
 echo ""
 echo -e "${YELLOW}🤖 Шаг 3: AutoConfig (AI генерация селекторов)${NC}"
 echo "Запускаем генерацию конфигов для 5 магазинов..."
-docker-compose run --rm backend ./autoconfig -limit 5
+docker-compose run --rm \
+  -e OPENAI_API_KEY="${OPENAI_API_KEY}" \
+  -e OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}" \
+  backend ./autoconfig -limit 5
 echo -e "${GREEN}✅ AutoConfig завершен${NC}"
 echo ""
 
