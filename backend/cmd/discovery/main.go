@@ -61,15 +61,27 @@ func main() {
 	log := application.Logger()
 	storage := application.GetClassifierStorage()
 
-	// Флаги
-	apiKey := flag.String("key", "", "Google API Key (required)")
-	cx := flag.String("cx", "", "Custom Search Engine ID (required)")
+	// Получаем ключи из конфигурации
+	apiKey := cfg.Google.APIKey
+	cx := cfg.Google.CX
+
+	// Флаги (опциональные, для переопределения)
+	apiKeyFlag := flag.String("key", "", "Google API Key (optional, overrides env)")
+	cxFlag := flag.String("cx", "", "Custom Search Engine ID (optional, overrides env)")
 	maxResults := flag.Int("max-results", 100, "Maximum results per query (default: 100, max: 100)")
 	delay := flag.Duration("delay", 1*time.Second, "Delay between requests (default: 1s)")
 	flag.Parse()
 
-	if *apiKey == "" || *cx == "" {
-		log.Fatal("API Key and CX are required. Use -key and -cx flags", nil)
+	// Если переданы флаги, используем их (для обратной совместимости)
+	if *apiKeyFlag != "" {
+		apiKey = *apiKeyFlag
+	}
+	if *cxFlag != "" {
+		cx = *cxFlag
+	}
+
+	if apiKey == "" || cx == "" {
+		log.Fatal("API Key and CX are required. Set GOOGLE_API_KEY and GOOGLE_CX in .env or use -key and -cx flags", nil)
 	}
 
 	if *maxResults > 100 {
@@ -108,7 +120,7 @@ func main() {
 
 			googleURL := fmt.Sprintf(
 				"https://www.googleapis.com/customsearch/v1?key=%s&cx=%s&q=%s&start=%d&gl=rs&num=10",
-				*apiKey, *cx, url.QueryEscape(query), start,
+				apiKey, cx, url.QueryEscape(query), start,
 			)
 
 			resp, err := client.Get(googleURL)

@@ -17,6 +17,7 @@ type Config struct {
 	Redis  RedisConfig
 	Meili  MeilisearchConfig
 	Queue  QueueConfig
+	Google GoogleConfig
 }
 
 // ServerConfig конфигурация HTTP сервера
@@ -64,6 +65,12 @@ type QueueConfig struct {
 	MaxWorkers int
 }
 
+// GoogleConfig конфигурация Google API
+type GoogleConfig struct {
+	APIKey string // Google Cloud API Key
+	CX     string // Custom Search Engine ID
+}
+
 // Load загружает конфигурацию из переменных окружения
 func Load() (*Config, error) {
 	cfg := &Config{
@@ -108,6 +115,11 @@ func Load() (*Config, error) {
 			Topic:      getEnv("QUEUE_TOPIC", "scraping_tasks"),
 			GroupID:    getEnv("QUEUE_GROUP_ID", "izborator_workers"),
 			MaxWorkers: getEnvAsInt("QUEUE_MAX_WORKERS", 10),
+		},
+
+		Google: GoogleConfig{
+			APIKey: getEnv("GOOGLE_API_KEY", ""),
+			CX:     getEnv("GOOGLE_CX", ""),
 		},
 	}
 
