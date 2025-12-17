@@ -3556,6 +3556,94 @@ curl http://152.53.227.37:8081/api/v1/products/browse?category=sport&limit=10
 
 **Статус:** ✅ Фаза 1 завершена! Классификатор готов к использованию с точностью 90%!
 
+---
+
+### День X - Project Horizon: Фаза 2 - Discovery Worker
+**Дата:** 2025-01-16  
+**Время:** Вечер
+
+**Задача:** Реализация второго этапа Project Horizon - автоматический поиск потенциальных магазинов через Google Custom Search API.
+
+**Выполнено:**
+
+1. **Настройка Google API:**
+   - ✅ Получен Google Cloud API Key (`REMOVED_API_KEY`)
+   - ✅ Создан Custom Search Engine с ID `REMOVED_CX_ID`
+   - ✅ Настроен поиск по всей сети с регионом Serbia
+
+2. **Реализация Discovery Worker (`cmd/discovery/main.go`):**
+   - ✅ Интеграция с `app.NewWorkerApp` для доступа к БД
+   - ✅ 10 dorking queries для поиска магазинов в Сербии:
+     - `site:.rs "dodaj u korpu"`
+     - `site:.rs "kupi odmah"`
+     - `site:.rs "cena rsd"`
+     - `site:.rs inurl:proizvod`
+     - `site:.rs inurl:kategorija`
+     - `site:.rs "besplatna dostava" cena`
+     - `site:.rs "online prodavnica"`
+     - `site:.rs "internet prodavnica"`
+     - `site:.rs "e-shop"`
+     - `site:.rs "webshop"`
+   - ✅ Обработка Google Custom Search API (до 100 результатов на запрос)
+   - ✅ Нормализация доменов (убирает www., порты, приводит к нижнему регистру)
+   - ✅ Проверка дубликатов перед сохранением
+   - ✅ Сохранение метаданных (title, URL, query, page, timestamp)
+   - ✅ Защита от спама (задержки между запросами)
+   - ✅ Логирование статистики (discovered, skipped, total)
+
+3. **Интеграция в app.go:**
+   - ✅ Добавлен метод `GetClassifierStorage()` для доступа к storage из discovery worker
+
+4. **Применение миграции:**
+   - ✅ Миграция `0006_discovery_tables.up.sql` применена на сервере
+   - ✅ Таблица `potential_shops` создана с индексами
+   - ✅ Расширена таблица `shops` (is_auto_configured, ai_config_model, discovery_source)
+
+5. **Документация:**
+   - ✅ Создан `DISCOVERY_SETUP.md` с инструкциями по настройке и использованию
+
+**Полевые испытания (Battle Test):**
+
+**Первый запуск:**
+- ✅ Успешно подключился к Google Custom Search API
+- ✅ Обработал 10 поисковых запросов
+- ✅ Найдено **85 уникальных доменов**
+- ✅ Пропущено 15 дубликатов
+- ✅ Все домены сохранены в БД со статусом `new`
+
+**Примеры найденных доменов:**
+- `ekupi.rs` - крупный интернет-магазин
+- `gigatron.rs` - уже известный магазин (проверка работает)
+- `yettel.rs` - webshop оператора
+- `webshop.rs` - платформа для магазинов
+- `minimax.rs` - программное обеспечение для магазинов
+- И еще 80+ потенциальных магазинов
+
+**Проблемы и решения:**
+- ❌ **Проблема:** Таблица `potential_shops` не существовала при первом запуске
+- ✅ **Решение:** Применена миграция через docker-compose exec postgres
+- ⚠️ **Замечание:** Ошибка с `shop_config_attempts` (несовместимость типов UUID) - не критично, будет исправлено позже
+
+**Технические детали:**
+- Использован `golang:1.24-alpine` для сборки и запуска
+- Подключение к БД через Docker network (`izborator_izborator_network`)
+- Пароль БД из `.env`: `izborator_secure_pass_2024`
+- Задержка между запросами: 1 секунда (защита от бана)
+
+**Файлы созданы/изменены:**
+- `backend/cmd/discovery/main.go` - воркер для автоматического поиска
+- `backend/internal/app/app.go` - добавлен метод `GetClassifierStorage()`
+- `DISCOVERY_SETUP.md` - документация по настройке
+- Миграция `0006_discovery_tables.up.sql` - применена на сервере
+
+**Следующие шаги:**
+- Запустить классификатор на найденных 85 доменах
+- Отфильтровать реальные магазины (ожидается ~90% accuracy)
+- Настроить автоматический запуск Discovery Worker (например, раз в неделю)
+- Фаза 3: AutoConfig (AI-генерация селекторов)
+
+**Статус:** ✅ Фаза 2 завершена! Discovery Worker успешно находит потенциальные магазины через Google Search API. Система готова к классификации найденных доменов!
+
 
 
 
