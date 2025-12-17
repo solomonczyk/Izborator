@@ -2,17 +2,16 @@ name: Run Harvest (Project Horizon)
 
 on:
   workflow_dispatch: # Позволяет запускать вручную
-  workflow_run:
-    workflows: ["Deploy to Production"]
-    types:
-      - completed
+  push:
     branches:
       - main
+    paths:
+      - '.github/workflows/run-harvest.yml'
+      - 'run-harvest.sh'
 
 jobs:
   harvest:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     
     steps:
       - name: Checkout code
