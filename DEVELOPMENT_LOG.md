@@ -3567,7 +3567,7 @@ curl http://152.53.227.37:8081/api/v1/products/browse?category=sport&limit=10
 **Выполнено:**
 
 1. **Настройка Google API:**
-   - ✅ Получен Google Cloud API Key (`REMOVED_API_KEY`)
+   - ✅ Получен Google Cloud API Key (хранится в переменных окружения)
    - ✅ Создан Custom Search Engine с ID `REMOVED_CX_ID`
    - ✅ Настроен поиск по всей сети с регионом Serbia
 
