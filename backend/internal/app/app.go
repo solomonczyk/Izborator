@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/solomonczyk/izborator/internal/ai"
 	"github.com/solomonczyk/izborator/internal/attributes"
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
@@ -59,6 +60,9 @@ type App struct {
 	CitiesService        *cities.Service
 	Classifier           *classifier.Service
 
+	// AI
+	AIClient *ai.Client
+
 	// i18n
 	Translator *i18n.Translator
 }
@@ -86,6 +90,11 @@ func (a *App) GetShopConfig(shopID string) (*scraper.ShopConfig, error) {
 // GetClassifierStorage возвращает storage для classifier (для discovery worker)
 func (a *App) GetClassifierStorage() classifier.Storage {
 	return a.classifierStorage
+}
+
+// GetAIClient возвращает AI клиент (может быть nil, если API ключ не задан)
+func (a *App) GetAIClient() *ai.Client {
+	return a.AIClient
 }
 
 // ReindexAll переиндексирует все товары в Meilisearch
@@ -300,6 +309,16 @@ func (a *App) initServices() {
 
 	// Classifier service
 	a.Classifier = classifier.New(a.classifierStorage, a.logger)
+
+	// AI Client (опционально, если API ключ задан)
+	if a.config.OpenAI.APIKey != "" {
+		a.AIClient = ai.New(a.config.OpenAI.APIKey, a.config.OpenAI.Model)
+		a.logger.Info("AI client initialized", map[string]interface{}{
+			"model": a.config.OpenAI.Model,
+		})
+	} else {
+		a.logger.Warn("OpenAI API key not set, AI features will be unavailable", nil)
+	}
 }
 
 // initI18n инициализирует переводчик

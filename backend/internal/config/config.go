@@ -18,6 +18,7 @@ type Config struct {
 	Meili  MeilisearchConfig
 	Queue  QueueConfig
 	Google GoogleConfig
+	OpenAI OpenAIConfig
 }
 
 // ServerConfig конфигурация HTTP сервера
@@ -71,6 +72,12 @@ type GoogleConfig struct {
 	CX     string // Custom Search Engine ID
 }
 
+// OpenAIConfig конфигурация OpenAI API
+type OpenAIConfig struct {
+	APIKey string // OpenAI API Key
+	Model  string // Модель для использования (по умолчанию gpt-4o-mini)
+}
+
 // Load загружает конфигурацию из переменных окружения
 func Load() (*Config, error) {
 	cfg := &Config{
@@ -120,6 +127,11 @@ func Load() (*Config, error) {
 		Google: GoogleConfig{
 			APIKey: getEnv("GOOGLE_API_KEY", ""),
 			CX:     getEnv("GOOGLE_CX", ""),
+		},
+
+		OpenAI: OpenAIConfig{
+			APIKey: getEnv("OPENAI_API_KEY", ""),
+			Model:  getEnv("OPENAI_MODEL", ""), // Пустое = gpt-4o-mini по умолчанию
 		},
 	}
 
