@@ -43,5 +43,5 @@ SELECT
 FROM shop_config_attempts
 GROUP BY status
 ORDER BY status;
-"
+" 2>/dev/null || echo "⚠️  Таблица shop_config_attempts не существует (нужно применить миграции)"
 
