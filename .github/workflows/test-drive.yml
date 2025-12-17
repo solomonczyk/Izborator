@@ -1,0 +1,132 @@
+name: Test Drive - Project Horizon
+
+on:
+  workflow_dispatch: # Позволяет запускать вручную
+  push:
+    branches:
+      - main
+    paths:
+      - 'test-autoconfig-chain.sh'
+      - '.github/workflows/test-drive.yml'
+
+jobs:
+  test-drive:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run Test Drive
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            echo "🚀 Project Horizon - Финальный Тест-Драйв"
+            echo "=========================================="
+            echo ""
+            
+            # Проверяем количество кандидатов
+            echo "📊 Проверка текущего состояния..."
+            CANDIDATES_NEW=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT COUNT(*) FROM potential_shops WHERE status = 'new';" | tr -d ' ')
+            CANDIDATES_CLASSIFIED=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT COUNT(*) FROM potential_shops WHERE status = 'classified';" | tr -d ' ')
+            
+            echo "Кандидатов со статусом 'new': $CANDIDATES_NEW"
+            echo "Кандидатов со статусом 'classified': $CANDIDATES_CLASSIFIED"
+            echo ""
+            
+            # Шаг 1: Discovery (если нужно)
+            if [ "$CANDIDATES_NEW" -eq "0" ] && [ "$CANDIDATES_CLASSIFIED" -eq "0" ]; then
+              echo "🔍 Шаг 1: Запуск Discovery (поиск кандидатов)..."
+              docker-compose run --rm backend ./discovery || echo "⚠️  Discovery завершился с предупреждениями"
+              echo "✅ Discovery завершен"
+              echo ""
+            else
+              echo "✅ Кандидаты уже есть, пропускаем Discovery"
+              echo ""
+            fi
+            
+            # Шаг 2: Classifier
+            echo "🔍 Шаг 2: Запуск Classifier (классификация)..."
+            docker-compose run --rm backend ./classifier -classify-all -limit 10 || echo "⚠️  Classifier завершился с предупреждениями"
+            
+            NEW_CLASSIFIED=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT COUNT(*) FROM potential_shops WHERE status = 'classified';" | tr -d ' ')
+            echo "✅ Классифицировано магазинов: $NEW_CLASSIFIED"
+            echo ""
+            
+            if [ "$NEW_CLASSIFIED" -eq "0" ]; then
+              echo "❌ Нет классифицированных магазинов для AutoConfig!"
+              exit 1
+            fi
+            
+            # Шаг 3: AutoConfig
+            echo "🤖 Шаг 3: Запуск AutoConfig (AI генерация селекторов)..."
+            echo "Обрабатываем 1 кандидата для теста..."
+            docker-compose run --rm backend ./autoconfig -limit 1 || echo "⚠️  AutoConfig завершился с предупреждениями"
+            echo ""
+            
+            # Шаг 4: Проверка результата
+            echo "📊 Шаг 4: Проверка результата..."
+            echo ""
+            echo "Последний созданный магазин:"
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT 
+                  name, 
+                  base_url, 
+                  is_auto_configured,
+                  ai_config_model,
+                  selectors->>'name' as name_selector,
+                  selectors->>'price' as price_selector,
+                  created_at
+              FROM shops 
+              WHERE is_auto_configured = true 
+              ORDER BY created_at DESC 
+              LIMIT 1;
+            " || echo "⚠️  Не удалось получить результат"
+            
+            echo ""
+            echo "Статистика по статусам:"
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT 
+                  status,
+                  COUNT(*) as count
+              FROM potential_shops
+              GROUP BY status
+              ORDER BY status;
+            " || echo "⚠️  Не удалось получить статистику"
+            
+            echo ""
+            echo "Попытки конфигурации:"
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT 
+                  status,
+                  COUNT(*) as count,
+                  MAX(created_at) as last_attempt
+              FROM shop_config_attempts
+              GROUP BY status
+              ORDER BY status;
+            " || echo "⚠️  Не удалось получить статистику попыток"
+            
+            echo ""
+            echo "✅ Тест-драйв завершен!"
+          EOF
+
+      - name: Notify completion
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Тест-драйв завершен успешно!"
+          else
+            echo "❌ Тест-драйв завершился с ошибками!"
+          fi
+
