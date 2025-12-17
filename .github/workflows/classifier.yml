@@ -1,0 +1,59 @@
+name: Run Classifier
+
+on:
+  workflow_dispatch: # Позволяет запускать вручную
+  schedule:
+    # Запускается каждую неделю в понедельник в 2:00 UTC
+    - cron: '0 2 * * 1'
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run Classifier
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            echo "🔍 Running classifier on discovered domains..."
+            docker-compose run --rm backend ./classifier -classify-all
+            
+            echo "✅ Classifier completed successfully!"
+            
+            # Показываем статистику
+            echo ""
+            echo "📊 Classification Results:"
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT 
+                status,
+                COUNT(*) as count,
+                ROUND(AVG(confidence_score), 2) as avg_score
+              FROM potential_shops
+              GROUP BY status
+              ORDER BY status;
+            " || echo "⚠️  Could not fetch statistics"
+          EOF
+
+      - name: Notify completion
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Classifier run completed successfully!"
+          else
+            echo "❌ Classifier run failed!"
+          fi
+
