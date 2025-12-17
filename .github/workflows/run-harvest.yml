@@ -39,7 +39,13 @@ jobs:
             
             # Шаг 0: Применение миграций
             echo "📦 Шаг 0: Применение миграций..."
-            docker-compose run --rm backend ./migrate 2>&1 | tail -5 || echo "⚠️  Миграции уже применены или ошибка"
+            MIGRATE_OUTPUT=$(docker-compose run --rm backend ./migrate 2>&1)
+            echo "$MIGRATE_OUTPUT"
+            if echo "$MIGRATE_OUTPUT" | grep -q "Migration up finished successfully\|no change"; then
+              echo "✅ Миграции применены успешно"
+            else
+              echo "⚠️  Миграции: $MIGRATE_OUTPUT"
+            fi
             echo ""
             
             # Загружаем переменные из .env
@@ -69,11 +75,23 @@ jobs:
             
             # Шаг 2: Classifier
             echo "🔍 Шаг 2: Classifier (классификация всех кандидатов)..."
-            docker-compose run --rm backend ./classifier -classify-all || echo "⚠️  Classifier завершился с предупреждениями"
+            echo "Проверяем количество кандидатов перед классификацией..."
+            BEFORE_COUNT=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT COUNT(*) FROM potential_shops WHERE status = 'new';" | tr -d ' ')
+            echo "Кандидатов со статусом 'new': $BEFORE_COUNT"
+            
+            if [ "$BEFORE_COUNT" -gt "0" ]; then
+              echo "Запускаем Classifier..."
+              CLASSIFIER_OUTPUT=$(docker-compose run --rm backend ./classifier -classify-all 2>&1)
+              echo "$CLASSIFIER_OUTPUT"
+            else
+              echo "⚠️  Нет кандидатов для классификации"
+            fi
             echo ""
             
             CLASSIFIED_COUNT=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT COUNT(*) FROM potential_shops WHERE status = 'classified';" | tr -d ' ')
+            REJECTED_COUNT=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT COUNT(*) FROM potential_shops WHERE status = 'rejected';" | tr -d ' ')
             echo "✅ Классифицировано магазинов: $CLASSIFIED_COUNT"
+            echo "❌ Отклонено: $REJECTED_COUNT"
             echo ""
             
             # Показываем статистику
