@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/run-harvest.yml'
       - 'run-harvest.sh'
+      - '.trigger-harvest'
 
 jobs:
   harvest:
