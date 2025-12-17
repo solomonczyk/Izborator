@@ -87,6 +87,8 @@ services:
     container_name: izborator_backend
     restart: always
     # Порт убран - доступен только через Nginx
+    env_file:
+      - ./backend/.env
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
