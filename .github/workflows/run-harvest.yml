@@ -1,0 +1,120 @@
+name: Run Harvest (Project Horizon)
+
+on:
+  workflow_dispatch: # Позволяет запускать вручную
+  workflow_run:
+    workflows: ["Deploy to Production"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  harvest:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run Harvest (Discovery → Classifier → AutoConfig)
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            echo "🏭 Project Horizon - Запуск 'Фабрики'"
+            echo "======================================"
+            echo ""
+            
+            # Загружаем переменные из .env
+            if [ -f .env ]; then
+              export $(cat .env | grep -v '^#' | xargs)
+            fi
+            
+            # Шаг 1: Discovery
+            echo "🔍 Шаг 1: Discovery (поиск кандидатов)..."
+            docker-compose run --rm \
+              -e GOOGLE_API_KEY="${GOOGLE_API_KEY}" \
+              -e GOOGLE_CX="${GOOGLE_CX}" \
+              backend ./discovery || echo "⚠️  Discovery завершился с предупреждениями"
+            echo "✅ Discovery завершен"
+            echo ""
+            
+            sleep 2
+            
+            # Шаг 2: Classifier
+            echo "🔍 Шаг 2: Classifier (классификация)..."
+            docker-compose run --rm backend ./classifier -classify-all || echo "⚠️  Classifier завершился с предупреждениями"
+            
+            CLASSIFIED_COUNT=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT COUNT(*) FROM potential_shops WHERE status = 'classified';" | tr -d ' ')
+            echo "✅ Классифицировано магазинов: $CLASSIFIED_COUNT"
+            echo ""
+            
+            if [ "$CLASSIFIED_COUNT" -eq "0" ]; then
+              echo "⚠️  Нет классифицированных магазинов для AutoConfig"
+              exit 0
+            fi
+            
+            # Шаг 3: AutoConfig
+            echo "🤖 Шаг 3: AutoConfig (AI генерация селекторов)..."
+            echo "Обрабатываем 5 магазинов..."
+            docker-compose run --rm \
+              -e OPENAI_API_KEY="${OPENAI_API_KEY}" \
+              -e OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}" \
+              backend ./autoconfig -limit 5 || echo "⚠️  AutoConfig завершился с предупреждениями"
+            echo "✅ AutoConfig завершен"
+            echo ""
+            
+            # Шаг 4: Проверка результатов
+            echo "📊 Шаг 4: Проверка результатов..."
+            echo ""
+            echo "Созданные магазины (AutoConfig):"
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT 
+                  name, 
+                  base_url, 
+                  is_active,
+                  is_auto_configured,
+                  ai_config_model,
+                  created_at
+              FROM shops 
+              WHERE is_auto_configured = true 
+              ORDER BY created_at DESC
+              LIMIT 10;
+            " || echo "⚠️  Не удалось получить результаты"
+            
+            echo ""
+            echo "Статистика по статусам:"
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT 
+                  status,
+                  COUNT(*) as count
+              FROM potential_shops
+              GROUP BY status
+              ORDER BY status;
+            " || echo "⚠️  Не удалось получить статистику"
+            
+            echo ""
+            echo "✅ 'Фабрика' завершила работу!"
+          EOF
+
+      - name: Notify completion
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Harvest completed successfully!"
+          else
+            echo "❌ Harvest completed with errors!"
+          fi
+
