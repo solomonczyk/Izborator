@@ -83,6 +83,11 @@ func (a *App) GetShopConfig(shopID string) (*scraper.ShopConfig, error) {
 	return a.scraperStorage.GetShopConfig(shopID)
 }
 
+// GetClassifierStorage возвращает storage для classifier (для discovery worker)
+func (a *App) GetClassifierStorage() classifier.Storage {
+	return a.classifierStorage
+}
+
 // ReindexAll переиндексирует все товары в Meilisearch
 // Использует те же методы, что и cmd/indexer
 func (a *App) ReindexAll() error {
