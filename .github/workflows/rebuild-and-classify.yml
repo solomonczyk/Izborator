@@ -1,0 +1,77 @@
+name: Rebuild Backend & Run Classifier
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/internal/storage/classifier_adapter.go'
+      - 'backend/cmd/classifier/main.go'
+
+jobs:
+  rebuild-and-classify:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Rebuild Backend & Run Classifier
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set +e
+            cd ~/Izborator
+            
+            echo "📥 Pulling latest changes..."
+            git fetch origin --prune
+            git reset --hard origin/main || {
+              echo "⚠️  Git reset failed, trying to fix refs..."
+              git remote prune origin
+              git fetch origin --prune
+              git reset --hard origin/main
+            }
+            git clean -fd
+            
+            echo "🔨 Пересборка backend с исправлениями..."
+            docker-compose build backend
+            if [ $? -ne 0 ]; then
+              echo "❌ Ошибка сборки backend"
+              exit 1
+            fi
+            echo "✅ Backend пересобран"
+            echo ""
+            
+            echo "🔄 Перезапуск контейнеров..."
+            docker-compose up -d
+            sleep 10
+            echo ""
+            
+            echo "🔍 Запуск Classifier..."
+            docker-compose run --rm backend ./classifier -classify-all
+            CLASSIFIER_EXIT=$?
+            echo ""
+            
+            if [ $CLASSIFIER_EXIT -eq 0 ]; then
+              echo "✅ Classifier завершился успешно"
+            else
+              echo "⚠️  Classifier завершился с ошибками (exit code: $CLASSIFIER_EXIT)"
+            fi
+            echo ""
+            
+            echo "📊 Проверка результатов..."
+            bash check-pipeline-results.sh
+            echo ""
+            
+            echo "✅ Готово!"
+          EOF
+
