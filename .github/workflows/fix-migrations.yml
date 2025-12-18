@@ -1,0 +1,74 @@
+name: Fix Migrations & Diagnose
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fix-migrations.yml'
+      - '.trigger-fix'
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Apply Migrations & Diagnose
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            echo "🔧 Шаг 1: Применение миграций..."
+            docker-compose run --rm backend ./migrate 2>&1 | tail -10
+            echo ""
+            
+            echo "✅ Шаг 2: Проверка таблицы shop_config_attempts..."
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "\d shop_config_attempts" || echo "❌ Таблица не существует"
+            echo ""
+            
+            echo "📊 Шаг 3: Статистика potential_shops..."
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT 
+                  status,
+                  COUNT(*) as count
+              FROM potential_shops
+              GROUP BY status
+              ORDER BY status;
+            "
+            echo ""
+            
+            echo "🔍 Шаг 4: Проверка переменных окружения..."
+            if [ -f .env ]; then
+              echo "✅ Файл .env существует"
+              if grep -q "GOOGLE_API_KEY" .env; then
+                echo "✅ GOOGLE_API_KEY найден"
+              else
+                echo "❌ GOOGLE_API_KEY не найден"
+              fi
+              if grep -q "OPENAI_API_KEY" .env; then
+                echo "✅ OPENAI_API_KEY найден"
+              else
+                echo "❌ OPENAI_API_KEY не найден"
+              fi
+            else
+              echo "❌ Файл .env не существует"
+            fi
+            echo ""
+            
+            echo "✅ Диагностика завершена"
+          EOF
+

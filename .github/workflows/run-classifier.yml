@@ -1,0 +1,71 @@
+name: Run Classifier
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/run-classifier.yml'
+      - '.trigger-classifier'
+
+jobs:
+  classifier:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Run Classifier
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            echo "🔍 Запуск Classifier..."
+            echo ""
+            
+            # Загружаем переменные из .env
+            if [ -f .env ]; then
+              export $(cat .env | grep -v '^#' | xargs)
+              echo "✅ Переменные окружения загружены"
+            else
+              echo "⚠️  Файл .env не найден"
+            fi
+            echo ""
+            
+            # Запускаем Classifier
+            echo "🚀 Запуск: ./classifier -classify-all"
+            docker-compose run --rm backend ./classifier -classify-all 2>&1 | tee /tmp/classifier.log
+            echo ""
+            
+            # Проверяем результаты
+            echo "📊 Результаты после Classifier:"
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT 
+                  status,
+                  COUNT(*) as count
+              FROM potential_shops
+              GROUP BY status
+              ORDER BY status;
+            "
+            echo ""
+            
+            # Показываем последние логи
+            echo "📝 Последние 20 строк логов:"
+            tail -20 /tmp/classifier.log || echo "Логи не найдены"
+            echo ""
+            
+            echo "✅ Classifier завершен"
+          EOF
+
