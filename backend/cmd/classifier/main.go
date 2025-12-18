@@ -271,12 +271,20 @@ func classifyAllDomains(ctx context.Context, limit int, log *logger.Logger) {
 				"domain": shop.Domain,
 				"id":     shop.ID,
 				"status": shop.Status,
+				"score":  shop.ConfidenceScore,
 				"error":  err.Error(),
 			})
-			fmt.Printf("❌ ERROR updating %s: %v\n", shop.Domain, err)
+			fmt.Printf("❌ ERROR updating %s (id=%s, status=%s): %v\n", shop.Domain, shop.ID, shop.Status, err)
 			errors++
 			continue
 		}
+		
+		// Дополнительная проверка - логируем успешное обновление
+		log.Info("Successfully updated shop", map[string]interface{}{
+			"domain": shop.Domain,
+			"id":     shop.ID,
+			"status": shop.Status,
+		})
 
 		statusIcon := "✅"
 		if shop.Status == "rejected" {

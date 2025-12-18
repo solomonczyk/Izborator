@@ -184,6 +184,11 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 		}
 	}
 
+	// Проверяем, что ID не пустой
+	if shop.ID == "" {
+		return fmt.Errorf("shop.ID is empty for domain=%s", shop.Domain)
+	}
+	
 	result, err := a.pg.DB().Exec(a.ctx, query,
 		shop.Status,
 		shop.ConfidenceScore,
@@ -192,12 +197,22 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 	)
 	
 	if err != nil {
-		return fmt.Errorf("failed to update potential_shop (id=%s, domain=%s): %w", shop.ID, shop.Domain, err)
+		return fmt.Errorf("failed to update potential_shop (id=%s, domain=%s, status=%s): %w", shop.ID, shop.Domain, shop.Status, err)
 	}
 	
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		return fmt.Errorf("no rows updated for potential_shop (id=%s, domain=%s) - record may not exist", shop.ID, shop.Domain)
+		// Проверяем, существует ли запись с таким ID
+		var exists bool
+		checkQuery := `SELECT EXISTS(SELECT 1 FROM potential_shops WHERE id = $1)`
+		err := a.pg.DB().QueryRow(a.ctx, checkQuery, shop.ID).Scan(&exists)
+		if err != nil {
+			return fmt.Errorf("no rows updated for potential_shop (id=%s, domain=%s) - failed to check existence: %w", shop.ID, shop.Domain, err)
+		}
+		if !exists {
+			return fmt.Errorf("no rows updated for potential_shop (id=%s, domain=%s) - record does not exist", shop.ID, shop.Domain)
+		}
+		return fmt.Errorf("no rows updated for potential_shop (id=%s, domain=%s) - record exists but update failed (possible WHERE condition mismatch)", shop.ID, shop.Domain)
 	}
 
 	return nil
