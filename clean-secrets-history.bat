@@ -25,12 +25,12 @@ echo [2/4] Удаление всех Google API ключей из всех фа�
 "C:\Program Files\Git\bin\bash.exe" -c "git filter-branch -f --tree-filter 'find . -type f -name \"*.md\" -o -name \"*.go\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" | while read f; do if [ -f \"$f\" ]; then sed -i.bak \"s/AIzaSy[A-Za-z0-9_-]\{35\}/REMOVED_GOOGLE_API_KEY/g\" \"$f\" 2>/dev/null; sed -i.bak \"s/f0fa9f5df0f5a4522/REMOVED_CX_ID/g\" \"$f\" 2>/dev/null; rm -f \"$f.bak\" 2>/dev/null; fi; done' --prune-empty --tag-name-filter cat -- --all"
 
 echo.
-echo [3/4] Удаление OpenAI API ключей из всех файлов...
-"C:\Program Files\Git\bin\bash.exe" -c "git filter-branch -f --tree-filter 'find . -type f -name \"*.env\" -o -name \"*.md\" -o -name \"*.go\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" | while read f; do if [ -f \"$f\" ]; then sed -i.bak \"s/sk-proj-[A-Za-z0-9_-]\{48,\}/REMOVED_OPENAI_API_KEY/g\" \"$f\" 2>/dev/null; sed -i.bak \"s/OPENAI_API_KEY=sk-[A-Za-z0-9_-]\{48,\}/OPENAI_API_KEY=REMOVED/g\" \"$f\" 2>/dev/null; rm -f \"$f.bak\" 2>/dev/null; fi; done' --prune-empty --tag-name-filter cat -- --all"
+echo [3/5] Удаление OpenAI API ключей из всех файлов...
+"C:\Program Files\Git\bin\bash.exe" -c "git filter-branch -f --tree-filter 'find . -type f \( -name \"*.env\" -o -name \"*.md\" -o -name \"*.go\" -o -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.js\" -o -name \"*.jsx\" -o -name \"*.bat\" -o -name \"*.sh\" \) ! -path \"*/.git/*\" ! -path \"*/node_modules/*\" ! -path \"*/.next/*\" | while read f; do if [ -f \"$f\" ]; then sed -i.bak \"s/sk-proj-[A-Za-z0-9_-]\{48,\}/REMOVED_OPENAI_API_KEY/g\" \"$f\" 2>/dev/null; sed -i.bak \"s/OPENAI_API_KEY=sk-[A-Za-z0-9_-]\{48,\}/OPENAI_API_KEY=REMOVED/g\" \"$f\" 2>/dev/null; sed -i.bak \"s/sk-[A-Za-z0-9_-]\{48,\}/REMOVED_OPENAI_API_KEY/g\" \"$f\" 2>/dev/null; rm -f \"$f.bak\" 2>/dev/null; fi; done' --prune-empty --tag-name-filter cat -- --all"
 
 echo.
-echo [4/4] Удаление backend/.env из истории...
-"C:\Program Files\Git\bin\bash.exe" -c "git filter-branch -f --tree-filter 'rm -f backend/.env 2>/dev/null || true' --prune-empty --tag-name-filter cat -- --all"
+echo [4/5] Удаление всех .env файлов из истории...
+"C:\Program Files\Git\bin\bash.exe" -c "git filter-branch -f --tree-filter 'find . -type f -name \".env\" ! -path \"*/.git/*\" -delete 2>/dev/null || true' --prune-empty --tag-name-filter cat -- --all"
 
 echo.
 echo [5/5] Очистка ссылок и оптимизация репозитория...
