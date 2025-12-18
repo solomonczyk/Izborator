@@ -165,17 +165,26 @@ func (a *classifierAdapter) ListPotentialShopsByStatus(status string, limit int)
 }
 
 // UpdatePotentialShop обновляет кандидата
+// Используем поиск по domain вместо id, так как domain уникален и является строкой
+// Это решает ошибку "inconsistent types deduced for parameter" (42P08)
 func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) error {
 	query := `
 		UPDATE potential_shops
-		SET status = $1,
-		    confidence_score = $2,
-		    classified_at = CASE WHEN $1 IN ('classified', 'configured') THEN COALESCE(classified_at, NOW()) ELSE classified_at END,
-		    metadata = COALESCE($3::jsonb, metadata),
+		SET status = $2,
+		    confidence_score = $3,
+		    classified_at = CASE WHEN $2 IN ('classified', 'configured') THEN COALESCE(classified_at, NOW()) ELSE classified_at END,
+		    metadata = COALESCE($4::jsonb, metadata),
 		    updated_at = NOW()
-		WHERE id = $4
+		WHERE domain = $1
 	`
 
+	// Проверяем, что domain не пустой
+	if shop.Domain == "" {
+		return fmt.Errorf("shop.Domain is empty for id=%s", shop.ID)
+	}
+
+	// Сериализуем метаданные в JSON
+	// Если shop.Metadata == nil, передаем пустой JSON объект "{}"
 	var metadataJSON []byte
 	var err error
 	if shop.Metadata != nil && len(shop.Metadata) > 0 {
@@ -183,43 +192,39 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 		if err != nil {
 			return fmt.Errorf("failed to marshal metadata: %w", err)
 		}
-	}
-
-	// Проверяем, что ID не пустой
-	if shop.ID == "" {
-		return fmt.Errorf("shop.ID is empty for domain=%s", shop.Domain)
+	} else {
+		metadataJSON = []byte("{}")
 	}
 	
-	// Парсим ID как UUID для правильного сравнения в WHERE
-	shopUUID, err := uuid.Parse(shop.ID)
-	if err != nil {
-		return fmt.Errorf("invalid shop ID format (id=%s, domain=%s): %w", shop.ID, shop.Domain, err)
-	}
-	
+	// Выполняем запрос
+	// $1 = shop.Domain (string) - используется в WHERE
+	// $2 = shop.Status (string)
+	// $3 = shop.ConfidenceScore (float)
+	// $4 = metadataJSON (jsonb)
 	result, err := a.pg.DB().Exec(a.ctx, query,
+		shop.Domain,
 		shop.Status,
 		shop.ConfidenceScore,
 		metadataJSON,
-		shopUUID,
 	)
 	
 	if err != nil {
-		return fmt.Errorf("failed to update potential_shop (id=%s, domain=%s, status=%s): %w", shop.ID, shop.Domain, shop.Status, err)
+		return fmt.Errorf("failed to update potential_shop (domain=%s, status=%s): %w", shop.Domain, shop.Status, err)
 	}
 	
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
-		// Проверяем, существует ли запись с таким ID
+		// Проверяем, существует ли запись с таким domain
 		var exists bool
-		checkQuery := `SELECT EXISTS(SELECT 1 FROM potential_shops WHERE id = $1)`
-		err := a.pg.DB().QueryRow(a.ctx, checkQuery, shopUUID).Scan(&exists)
+		checkQuery := `SELECT EXISTS(SELECT 1 FROM potential_shops WHERE domain = $1)`
+		err := a.pg.DB().QueryRow(a.ctx, checkQuery, shop.Domain).Scan(&exists)
 		if err != nil {
-			return fmt.Errorf("no rows updated for potential_shop (id=%s, domain=%s) - failed to check existence: %w", shop.ID, shop.Domain, err)
+			return fmt.Errorf("no rows updated for potential_shop (domain=%s) - failed to check existence: %w", shop.Domain, err)
 		}
 		if !exists {
-			return fmt.Errorf("no rows updated for potential_shop (id=%s, domain=%s) - record does not exist", shop.ID, shop.Domain)
+			return fmt.Errorf("no rows updated for potential_shop (domain=%s) - record does not exist", shop.Domain)
 		}
-		return fmt.Errorf("no rows updated for potential_shop (id=%s, domain=%s) - record exists but update failed (possible WHERE condition mismatch)", shop.ID, shop.Domain)
+		return fmt.Errorf("no rows updated for potential_shop (domain=%s) - record exists but update failed", shop.Domain)
 	}
 
 	return nil
