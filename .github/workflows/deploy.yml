@@ -139,8 +139,16 @@ jobs:
             
             # Пересобираем и перезапускаем контейнеры
             echo "🔨 Building and restarting containers..."
-            docker-compose build
+            docker-compose build 2>&1 | tail -50
+            echo ""
+            echo "🔄 Starting containers..."
             docker-compose up -d
+            echo ""
+            echo "⏳ Waiting 5 seconds for containers to initialize..."
+            sleep 5
+            echo ""
+            echo "📋 Container status after start:"
+            docker-compose ps
             
             # Ждем запуска сервисов (увеличиваем время для health checks)
             echo "⏳ Waiting for services to start..."
@@ -155,10 +163,24 @@ jobs:
             docker-compose ps
             
             # Проверяем, что backend запущен
+            echo "📋 Checking backend container status..."
+            docker-compose ps backend
+            echo ""
+            
             if ! docker-compose ps | grep -q "backend.*Up"; then
               echo "❌ Backend container is not running!"
-              echo "Showing backend logs..."
-              docker-compose logs --tail=100 backend
+              echo ""
+              echo "📋 Backend container logs (last 200 lines):"
+              docker-compose logs --tail=200 backend || echo "No logs available"
+              echo ""
+              echo "📋 Checking if container exists..."
+              docker ps -a | grep backend || echo "Backend container not found"
+              echo ""
+              echo "📋 Trying to start backend manually to see error..."
+              docker-compose up backend 2>&1 | head -50 || true
+              echo ""
+              echo "📋 Checking backend image..."
+              docker images | grep izborator_backend || echo "Backend image not found"
               exit 1
             fi
             
