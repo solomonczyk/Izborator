@@ -249,6 +249,16 @@ jobs:
               echo "📊 Проверка результатов..."
               bash check-pipeline-results.sh || true
             fi
+            
+            # После успешного деплоя всегда проверяем статус potential_shops
+            echo ""
+            echo "📊 Проверка статуса potential_shops после деплоя..."
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT status, COUNT(*) as count
+              FROM potential_shops
+              GROUP BY status
+              ORDER BY status;
+            " || echo "⚠️  Не удалось получить статистику"
           EOF
 
       - name: Notify deployment status
