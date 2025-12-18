@@ -30,16 +30,28 @@ jobs:
       - name: Rebuild Backend & Fix Migration
         run: |
           ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
-            set -e
+            set +e  # Не останавливаться при ошибках
             cd ~/Izborator
             git pull || true
             
             echo "🔨 Пересборка backend образа..."
-            docker-compose build backend || echo "⚠️  Ошибка сборки"
+            docker-compose build backend
+            BUILD_EXIT=$?
+            if [ $BUILD_EXIT -ne 0 ]; then
+              echo "❌ Ошибка сборки backend"
+              exit 1
+            fi
+            echo "✅ Backend пересобран"
             echo ""
             
             echo "🔧 Запуск скрипта исправления..."
             chmod +x fix-dirty-migration.sh || true
             bash fix-dirty-migration.sh
+            FIX_EXIT=$?
+            if [ $FIX_EXIT -ne 0 ]; then
+              echo "❌ Ошибка исправления миграций"
+              exit 1
+            fi
+            echo "✅ Миграции исправлены"
           EOF
 
