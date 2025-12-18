@@ -9,9 +9,21 @@ echo ""
 
 cd ~/Izborator
 
-# Шаг 1: Применение миграций
-echo "📦 Шаг 1: Применение миграций..."
-docker-compose run --rm backend ./migrate 2>&1 | tail -10 || echo "⚠️  Миграции уже применены или ошибка"
+# Шаг 1: Исправление dirty state (если есть)
+echo "📦 Шаг 1: Проверка и исправление dirty migration state..."
+MIGRATE_OUTPUT=$(docker-compose run --rm backend ./migrate 2>&1 || true)
+if echo "$MIGRATE_OUTPUT" | grep -q "Dirty database version"; then
+  echo "⚠️  Обнаружен dirty state, исправляем..."
+  DIRTY_VERSION=$(echo "$MIGRATE_OUTPUT" | grep -oP "version \K\d+")
+  if [ -n "$DIRTY_VERSION" ]; then
+    echo "🔧 Принудительная установка версии $DIRTY_VERSION..."
+    docker-compose run --rm backend ./migrate -force $DIRTY_VERSION || echo "⚠️  Не удалось установить версию"
+  fi
+  echo "✅ Повторное применение миграций..."
+  docker-compose run --rm backend ./migrate 2>&1 | tail -10 || echo "⚠️  Миграции уже применены или ошибка"
+else
+  echo "$MIGRATE_OUTPUT" | tail -10
+fi
 echo ""
 
 # Шаг 2: Проверка таблицы

@@ -1,0 +1,45 @@
+name: Fix Dirty Migration
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/fix-dirty-migration.yml'
+      - 'fix-dirty-migration.sh'
+      - '.trigger-fix-dirty'
+
+jobs:
+  fix-dirty:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Rebuild Backend & Fix Migration
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            git pull || true
+            
+            echo "🔨 Пересборка backend образа..."
+            docker-compose build backend || echo "⚠️  Ошибка сборки"
+            echo ""
+            
+            echo "🔧 Запуск скрипта исправления..."
+            chmod +x fix-dirty-migration.sh || true
+            bash fix-dirty-migration.sh
+          EOF
+
