@@ -211,6 +211,22 @@ jobs:
             fi
             
             echo "🎉 Deployment completed successfully!"
+            
+            # Если были изменения в classifier коде, пересобираем и запускаем Classifier
+            if git diff HEAD~1 HEAD --name-only | grep -qE "(classifier_adapter|classifier/main)"; then
+              echo ""
+              echo "🔍 Обнаружены изменения в Classifier - пересобираем и запускаем..."
+              docker-compose build backend
+              docker-compose up -d
+              sleep 10
+              
+              echo "🔍 Запуск Classifier..."
+              docker-compose run --rm backend ./classifier -classify-all || echo "⚠️  Classifier завершился с ошибками"
+              echo ""
+              
+              echo "📊 Проверка результатов..."
+              bash check-pipeline-results.sh || true
+            fi
           EOF
 
       - name: Notify deployment status
