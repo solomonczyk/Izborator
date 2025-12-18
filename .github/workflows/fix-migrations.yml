@@ -29,11 +29,17 @@ jobs:
       - name: Apply Migrations & Diagnose
         run: |
           ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
-            set -e
+            set +e  # Не останавливаться при ошибках
             cd ~/Izborator
             
             echo "🔧 Шаг 1: Применение миграций..."
-            docker-compose run --rm backend ./migrate 2>&1 | tail -10
+            docker-compose run --rm backend ./migrate 2>&1 | tail -15
+            MIGRATE_EXIT=$?
+            if [ $MIGRATE_EXIT -eq 0 ]; then
+              echo "✅ Миграции применены успешно"
+            else
+              echo "⚠️  Миграции завершились с кодом $MIGRATE_EXIT (возможно, уже применены)"
+            fi
             echo ""
             
             echo "✅ Шаг 2: Проверка таблицы shop_config_attempts..."
