@@ -269,8 +269,11 @@ func classifyAllDomains(ctx context.Context, limit int, log *logger.Logger) {
 		if err := storage.UpdatePotentialShop(shop); err != nil {
 			log.Error("Failed to update shop", map[string]interface{}{
 				"domain": shop.Domain,
+				"id":     shop.ID,
+				"status": shop.Status,
 				"error":  err.Error(),
 			})
+			fmt.Printf("❌ ERROR updating %s: %v\n", shop.Domain, err)
 			errors++
 			continue
 		}

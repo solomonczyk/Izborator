@@ -34,7 +34,7 @@ ALTER TABLE shops ADD COLUMN IF NOT EXISTS discovery_source VARCHAR(50); -- от
 CREATE TABLE IF NOT EXISTS shop_config_attempts (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     potential_shop_id UUID REFERENCES potential_shops(id) ON DELETE SET NULL,
-    shop_id         UUID REFERENCES shops(id) ON DELETE SET NULL,
+    shop_id         VARCHAR(255) REFERENCES shops(id) ON DELETE SET NULL,
     html_sample     TEXT,                                -- Очищенный HTML для анализа
     ai_response     JSONB,                               -- Ответ LLM
     validation_result JSONB,                            -- Результат проверки селекторов

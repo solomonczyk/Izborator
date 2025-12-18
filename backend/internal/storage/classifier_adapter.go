@@ -169,28 +169,37 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 		UPDATE potential_shops
 		SET status = $1,
 		    confidence_score = $2,
-		    classified_at = CASE WHEN $1 = 'classified' THEN NOW() ELSE classified_at END,
-		    metadata = $3,
+		    classified_at = CASE WHEN $1 IN ('classified', 'configured') THEN COALESCE(classified_at, NOW()) ELSE classified_at END,
+		    metadata = COALESCE($3::jsonb, metadata),
 		    updated_at = NOW()
 		WHERE id = $4
 	`
 
 	var metadataJSON []byte
-	if shop.Metadata != nil {
-		var err error
+	var err error
+	if shop.Metadata != nil && len(shop.Metadata) > 0 {
 		metadataJSON, err = json.Marshal(shop.Metadata)
 		if err != nil {
 			return fmt.Errorf("failed to marshal metadata: %w", err)
 		}
 	}
 
-	_, err := a.pg.DB().Exec(a.ctx, query,
+	result, err := a.pg.DB().Exec(a.ctx, query,
 		shop.Status,
 		shop.ConfidenceScore,
 		metadataJSON,
 		shop.ID,
 	)
+	
+	if err != nil {
+		return fmt.Errorf("failed to update potential_shop (id=%s, domain=%s): %w", shop.ID, shop.Domain, err)
+	}
+	
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return fmt.Errorf("no rows updated for potential_shop (id=%s, domain=%s) - record may not exist", shop.ID, shop.Domain)
+	}
 
-	return err
+	return nil
 }
 
