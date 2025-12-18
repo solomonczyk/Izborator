@@ -1,0 +1,41 @@
+name: Check Pipeline Results
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/check-results.yml'
+      - 'check-pipeline-results.sh'
+      - '.trigger-check-results'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check Pipeline Results
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            cd ~/Izborator
+            git fetch origin --prune || true
+            git reset --hard origin/main || true
+            git clean -fd || true
+            
+            chmod +x check-pipeline-results.sh || true
+            bash check-pipeline-results.sh
+          EOF
+
