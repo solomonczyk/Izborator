@@ -165,16 +165,16 @@ func (a *classifierAdapter) ListPotentialShopsByStatus(status string, limit int)
 
 // UpdatePotentialShop обновляет кандидата
 // Используем поиск по domain вместо id, так как domain уникален и является строкой
-// Это решает ошибку "inconsistent types deduced for parameter" (42P08)
+// Явно указываем тип параметра, чтобы избежать ошибки "inconsistent types deduced for parameter" (42P08)
 func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) error {
 	query := `
 		UPDATE potential_shops
-		SET status = $2,
-		    confidence_score = $3,
-		    classified_at = CASE WHEN $2 IN ('classified', 'configured') THEN COALESCE(classified_at, NOW()) ELSE classified_at END,
+		SET status = $2::VARCHAR,
+		    confidence_score = $3::FLOAT,
+		    classified_at = CASE WHEN $2::VARCHAR IN ('classified', 'configured') THEN COALESCE(classified_at, NOW()) ELSE classified_at END,
 		    metadata = COALESCE($4::jsonb, metadata),
 		    updated_at = NOW()
-		WHERE domain = $1
+		WHERE domain = $1::VARCHAR
 	`
 
 	// Проверяем, что domain не пустой
