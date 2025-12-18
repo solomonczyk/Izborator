@@ -26,6 +26,7 @@ func main() {
 	l := logger.New(cfg.LogLevel)
 
 	down := flag.Bool("down", false, "Rollback migrations")
+	force := flag.Int("force", -1, "Force migration version (to fix dirty state)")
 	flag.Parse()
 
 	migrationsPath := "file://migrations"
@@ -50,6 +51,19 @@ func main() {
 		l.Fatal("Failed to create migrate instance", map[string]interface{}{
 			"error": err.Error(),
 		})
+	}
+
+	if *force >= 0 {
+		if err := m.Force(*force); err != nil {
+			l.Fatal("Failed to force migration version", map[string]interface{}{
+				"error": err.Error(),
+				"version": *force,
+			})
+		}
+		l.Info("Migration version forced", map[string]interface{}{
+			"version": *force,
+		})
+		return
 	}
 
 	if *down {
