@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/solomonczyk/izborator/internal/classifier"
 )
@@ -189,11 +190,17 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 		return fmt.Errorf("shop.ID is empty for domain=%s", shop.Domain)
 	}
 	
+	// Парсим ID как UUID для правильного сравнения в WHERE
+	shopUUID, err := uuid.Parse(shop.ID)
+	if err != nil {
+		return fmt.Errorf("invalid shop ID format (id=%s, domain=%s): %w", shop.ID, shop.Domain, err)
+	}
+	
 	result, err := a.pg.DB().Exec(a.ctx, query,
 		shop.Status,
 		shop.ConfidenceScore,
 		metadataJSON,
-		shop.ID,
+		shopUUID,
 	)
 	
 	if err != nil {
@@ -205,7 +212,7 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 		// Проверяем, существует ли запись с таким ID
 		var exists bool
 		checkQuery := `SELECT EXISTS(SELECT 1 FROM potential_shops WHERE id = $1)`
-		err := a.pg.DB().QueryRow(a.ctx, checkQuery, shop.ID).Scan(&exists)
+		err := a.pg.DB().QueryRow(a.ctx, checkQuery, shopUUID).Scan(&exists)
 		if err != nil {
 			return fmt.Errorf("no rows updated for potential_shop (id=%s, domain=%s) - failed to check existence: %w", shop.ID, shop.Domain, err)
 		}
