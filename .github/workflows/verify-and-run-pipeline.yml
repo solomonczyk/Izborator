@@ -31,7 +31,14 @@ jobs:
           ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
             set +e
             cd ~/Izborator
-            git pull || true
+            git fetch origin --prune || true
+            git reset --hard origin/main || {
+              echo "⚠️  Git reset failed, trying to fix refs..."
+              git remote prune origin || true
+              git fetch origin --prune || true
+              git reset --hard origin/main || true
+            }
+            git clean -fd || true
             
             echo "🔍 Шаг 1: Проверка состояния миграций..."
             docker-compose exec -T postgres psql -U postgres -d izborator -c "

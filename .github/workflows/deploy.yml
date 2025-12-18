@@ -40,8 +40,13 @@ jobs:
             
             # Обновляем код (сбрасываем локальные изменения)
             echo "📥 Pulling latest changes..."
-            git fetch origin
-            git reset --hard origin/main
+            git fetch origin --prune
+            git reset --hard origin/main || {
+              echo "⚠️  Git reset failed, trying to fix refs..."
+              git remote prune origin
+              git fetch origin --prune
+              git reset --hard origin/main
+            }
             git clean -fd
             
             # Генерируем SSL сертификаты, если их нет
