@@ -446,3 +446,5 @@ func NewWorkerApp(cfg *config.Config) (*App, error) {
 
 	return app, nil
 }
+   
+ 
