@@ -97,7 +97,7 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 	shopCode := strings.ToLower(nonAlphanumericRegex.ReplaceAllString(shopName, ""))
 	// Если code пустой (только спецсимволы в названии), используем домен
 	if shopCode == "" {
-		shopCode = strings.ToLower(re.ReplaceAllString(domain, ""))
+		shopCode = strings.ToLower(nonAlphanumericRegex.ReplaceAllString(domain, ""))
 		// Удаляем точку из домена для code
 		shopCode = strings.ReplaceAll(shopCode, ".", "")
 	}
