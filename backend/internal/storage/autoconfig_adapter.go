@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -88,6 +89,11 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 	// Генерируем ID для магазина (используем UUID)
 	shopID := uuid.New().String()
 
+	// Генерируем code из name (как в миграции 0002)
+	// Удаляем все символы кроме букв и цифр, приводим к нижнему регистру
+	re := regexp.MustCompile(`[^a-zA-Z0-9]`)
+	shopCode := strings.ToLower(re.ReplaceAllString(shopName, ""))
+
 	// Формируем base_url
 	baseURL := domain
 	if !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
@@ -102,9 +108,9 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 
 	// Создаем магазин в таблице shops
 	_, err = tx.Exec(a.ctx, `
-		INSERT INTO shops (id, name, base_url, selectors, rate_limit, is_active, is_auto_configured, ai_config_model, discovery_source, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
-	`, shopID, shopName, baseURL, selectorsJSON, 1, true, true, "gpt-4o-mini", "google_search")
+		INSERT INTO shops (id, name, code, base_url, selectors, rate_limit, is_active, is_auto_configured, ai_config_model, discovery_source, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
+	`, shopID, shopName, shopCode, baseURL, selectorsJSON, 1, true, true, "gpt-4o-mini", "google_search")
 	if err != nil {
 		return fmt.Errorf("failed to insert shop: %w", err)
 	}
