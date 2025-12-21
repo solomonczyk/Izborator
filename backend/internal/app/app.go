@@ -770,15 +770,7 @@ func (a *App) initServices() {
 	// Classifier service
 	a.Classifier = classifier.New(a.classifierStorage, a.logger)
 
-	// Autoconfig service (требует AI клиент)
-	if a.AIClient != nil {
-		a.AutoconfigService = autoconfig.NewService(a.autoconfigStorage, a.AIClient, a.logger)
-		a.logger.Info("Autoconfig service initialized", nil)
-	} else {
-		a.logger.Warn("Autoconfig service not initialized (AI client unavailable)", nil)
-	}
-
-	// AI Client (опционально, если API ключ задан)
+	// AI Client (опционально, если API ключ задан) - ДОЛЖЕН быть инициализирован ДО AutoconfigService
 	if a.config.OpenAI.APIKey != "" {
 		a.AIClient = ai.New(a.config.OpenAI.APIKey, a.config.OpenAI.Model)
 		a.logger.Info("AI client initialized", map[string]interface{}{
@@ -786,6 +778,14 @@ func (a *App) initServices() {
 		})
 	} else {
 		a.logger.Warn("OpenAI API key not set, AI features will be unavailable", nil)
+	}
+
+	// Autoconfig service (требует AI клиент) - ПОСЛЕ инициализации AI Client
+	if a.AIClient != nil {
+		a.AutoconfigService = autoconfig.NewService(a.autoconfigStorage, a.AIClient, a.logger)
+		a.logger.Info("Autoconfig service initialized", nil)
+	} else {
+		a.logger.Warn("Autoconfig service not initialized (AI client unavailable)", nil)
 	}
 }
 
