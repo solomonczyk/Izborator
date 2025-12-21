@@ -56,7 +56,7 @@ func main() {
 	if *force >= 0 {
 		if err := m.Force(*force); err != nil {
 			l.Fatal("Failed to force migration version", map[string]interface{}{
-				"error": err.Error(),
+				"error":   err.Error(),
 				"version": *force,
 			})
 		}

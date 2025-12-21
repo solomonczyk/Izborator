@@ -115,7 +115,7 @@ func testPredefinedList(ctx context.Context, classifierService *classifier.Servi
 		"novosti.rs",
 	}
 
-	fmt.Println("\n=== Testing on Predefined List ===\n")
+	fmt.Println("\n=== Testing on Predefined List ===")
 
 	// Тестируем магазины
 	fmt.Println("--- SHOPS (should be classified as shops) ---")
