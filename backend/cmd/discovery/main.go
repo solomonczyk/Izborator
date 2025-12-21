@@ -241,9 +241,7 @@ func normalizeDomain(domain string) string {
 	domain = strings.TrimSpace(domain)
 	
 	// Убираем www.
-	if strings.HasPrefix(domain, "www.") {
-		domain = domain[4:]
-	}
+		domain = strings.TrimPrefix(domain, "www.")
 	
 	// Убираем порт, если есть
 	if idx := strings.Index(domain, ":"); idx != -1 {

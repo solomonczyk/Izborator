@@ -56,10 +56,7 @@ func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 	if len(result) == 0 {
 		finalResult = []CategoryNode{}
 	} else {
-		finalResult = make([]CategoryNode, 0, len(result))
-		for _, node := range result {
-			finalResult = append(finalResult, node)
-		}
+		finalResult = append([]CategoryNode{}, result...)
 	}
 
 	h.respondJSON(w, http.StatusOK, finalResult)
@@ -150,7 +147,7 @@ func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data 
 	// Специальная обработка для []CategoryNode - всегда возвращаем массив
 	if slice, ok := data.([]CategoryNode); ok {
 		// Если это слайс категорий, всегда сериализуем как массив
-		if slice == nil || len(slice) == 0 {
+		if len(slice) == 0 {
 			// Явно пишем пустой массив
 			_, _ = w.Write([]byte("[]\n"))
 			return
