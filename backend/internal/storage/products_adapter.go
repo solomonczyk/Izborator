@@ -529,7 +529,7 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 
 	// Проверяем, что есть результаты (может быть пустой результат из-за неверного API ключа)
 	// Если результатов нет - делаем fallback на PostgreSQL
-	if searchResult.Hits == nil || len(searchResult.Hits) == 0 {
+	if len(searchResult.Hits) == 0 {
 		// Fallback на PostgreSQL для получения товаров из БД
 		return a.browseViaPostgres(ctx, params)
 	}

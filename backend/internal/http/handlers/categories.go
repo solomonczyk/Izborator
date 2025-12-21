@@ -41,7 +41,7 @@ func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Если нет категорий, сразу возвращаем пустой массив
-	if tree == nil || len(tree) == 0 {
+	if len(tree) == 0 {
 		emptyArray := []CategoryNode{}
 		h.respondJSON(w, http.StatusOK, emptyArray)
 		return
@@ -53,7 +53,7 @@ func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 	// Убеждаемся, что возвращаем массив, даже если пустой
 	// Всегда создаем новый слайс явно
 	var finalResult []CategoryNode
-	if result == nil || len(result) == 0 {
+	if len(result) == 0 {
 		finalResult = []CategoryNode{}
 	} else {
 		finalResult = make([]CategoryNode, 0, len(result))
@@ -187,6 +187,8 @@ func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data 
 }
 
 // respondError отправляет JSON ошибку
+// Используется для обработки ошибок в будущем
+//nolint:unused // может использоваться в будущем
 func (h *CategoriesHandler) respondError(w http.ResponseWriter, r *http.Request, status int, key string) {
 	lang := httpMiddleware.GetLangFromContext(r.Context())
 	message := h.translator.T(lang, key)

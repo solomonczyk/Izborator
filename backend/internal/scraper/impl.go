@@ -470,7 +470,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		c.OnResponse(func(r *colly.Response) {
 			savedHTML = r.Body
 			// Сохраняем в файл для анализа
-			os.WriteFile("tehnomanija_debug.html", r.Body, 0644)
+			_ = os.WriteFile("tehnomanija_debug.html", r.Body, 0644)
 			s.logger.Info("Saved HTML to tehnomanija_debug.html", map[string]interface{}{
 				"size": len(r.Body),
 			})
@@ -991,7 +991,7 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 
 	// Ограничение скорости (rate limiting)
 	if shopConfig.RateLimit > 0 {
-		c.Limit(&colly.LimitRule{
+		_ = c.Limit(&colly.LimitRule{
 			DomainGlob:  "*",
 			Parallelism: 1,
 			Delay:       time.Duration(1000/shopConfig.RateLimit) * time.Millisecond,

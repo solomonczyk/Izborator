@@ -186,7 +186,7 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 	// Если shop.Metadata == nil, передаем пустой JSON объект "{}"
 	var metadataJSON []byte
 	var err error
-	if shop.Metadata != nil && len(shop.Metadata) > 0 {
+	if len(shop.Metadata) > 0 {
 		metadataJSON, err = json.Marshal(shop.Metadata)
 		if err != nil {
 			return fmt.Errorf("failed to marshal metadata: %w", err)
