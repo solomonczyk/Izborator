@@ -102,7 +102,7 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 
 	// Создаем магазин в таблице shops
 	_, err = tx.Exec(a.ctx, `
-		INSERT INTO shops (id, name, base_url, selectors, rate_limit, enabled, is_auto_configured, ai_config_model, discovery_source, created_at, updated_at)
+		INSERT INTO shops (id, name, base_url, selectors, rate_limit, is_active, is_auto_configured, ai_config_model, discovery_source, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
 	`, shopID, shopName, baseURL, selectorsJSON, 1, true, true, "gpt-4o-mini", "google_search")
 	if err != nil {
