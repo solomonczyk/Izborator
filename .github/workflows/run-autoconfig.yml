@@ -1,0 +1,133 @@
+name: Run AutoConfig
+
+on:
+  workflow_dispatch: # Позволяет запускать вручную
+  schedule:
+    # Запускается каждый день в 5:00 UTC (перед проверкой результатов)
+    - cron: '0 5 * * *'
+
+jobs:
+  run-autoconfig:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check classified candidates
+        id: check-candidates
+        run: |
+          CLASSIFIED_COUNT=$(ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            docker exec -i izborator_postgres psql -U postgres -d izborator -t -c "
+            SELECT COUNT(*) 
+            FROM potential_shops 
+            WHERE status = 'classified';
+            " | tr -d ' \n'
+          EOF
+          )
+          echo "count=$CLASSIFIED_COUNT" >> $GITHUB_OUTPUT
+          echo "📊 Found $CLASSIFIED_COUNT classified candidates"
+
+      - name: Run AutoConfig
+        if: steps.check-candidates.outputs.count > 0
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            echo "🤖 Running AutoConfig..."
+            echo "=========================================="
+            
+            # Загружаем переменные из .env
+            export $(cat .env | grep -v '^#' | xargs)
+            
+            # Запускаем AutoConfig (обрабатываем до 10 магазинов)
+            docker-compose run --rm \
+              -e OPENAI_API_KEY="${OPENAI_API_KEY}" \
+              -e OPENAI_MODEL="${OPENAI_MODEL:-gpt-4o-mini}" \
+              backend ./autoconfig -limit 10 2>&1 | tee /tmp/autoconfig.log || true
+            
+            echo ""
+            echo "✅ AutoConfig completed!"
+            echo ""
+            
+            # Показываем последние строки логов
+            echo "📋 Last 20 lines of AutoConfig logs:"
+            tail -20 /tmp/autoconfig.log || echo "⚠️  Could not read logs"
+          EOF
+
+      - name: Show results
+        if: steps.check-candidates.outputs.count > 0
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            echo ""
+            echo "📊 AutoConfig Results:"
+            echo "=========================================="
+            
+            # Показываем созданные магазины
+            echo "🛍️  Auto-configured shops:"
+            docker exec -i izborator_postgres psql -U postgres -d izborator -c "
+            SELECT 
+                id,
+                name, 
+                base_url, 
+                is_active, 
+                is_auto_configured,
+                created_at 
+            FROM shops 
+            WHERE is_auto_configured = true 
+            ORDER BY created_at DESC
+            LIMIT 10;
+            " || echo "⚠️  Could not fetch shops"
+            
+            echo ""
+            echo "📈 Statistics:"
+            docker exec -i izborator_postgres psql -U postgres -d izborator -c "
+            SELECT 
+                COUNT(*) FILTER (WHERE is_auto_configured = true) as auto_configured_count,
+                COUNT(*) FILTER (WHERE is_auto_configured = false) as manual_count,
+                COUNT(*) as total_shops
+            FROM shops;
+            " || echo "⚠️  Could not fetch statistics"
+            
+            echo ""
+            echo "🔧 Config attempts status:"
+            docker exec -i izborator_postgres psql -U postgres -d izborator -c "
+            SELECT 
+                status,
+                COUNT(*) as count
+            FROM shop_config_attempts
+            GROUP BY status
+            ORDER BY status;
+            " || echo "⚠️  Could not fetch attempts"
+          EOF
+
+      - name: No candidates message
+        if: steps.check-candidates.outputs.count == 0
+        run: |
+          echo "⚠️  No classified candidates found. Run Classifier first:"
+          echo "   docker-compose run --rm backend ./classifier -classify-all"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🤖 AutoConfig Execution" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-candidates.outputs.count }}" -gt "0" ]; then
+            echo "✅ AutoConfig executed for ${{ steps.check-candidates.outputs.count }} candidates" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️  No classified candidates found. Run Classifier first." >> $GITHUB_STEP_SUMMARY
+          fi
+
