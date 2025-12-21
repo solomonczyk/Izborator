@@ -61,9 +61,9 @@ echo "🛍️  Количество спарсенных товаров:"
 docker exec -i izborator_postgres psql -U postgres -d izborator -c "
 SELECT 
     s.name as shop_name,
-    COUNT(rp.id) as raw_products_count,
-    COUNT(rp.id) FILTER (WHERE rp.processed = true) as processed_count,
-    COUNT(rp.id) FILTER (WHERE rp.processed = false) as unprocessed_count
+    COUNT(rp.shop_id) as raw_products_count,
+    COUNT(rp.shop_id) FILTER (WHERE rp.processed = true) as processed_count,
+    COUNT(rp.shop_id) FILTER (WHERE rp.processed = false) as unprocessed_count
 FROM shops s
 LEFT JOIN raw_products rp ON rp.shop_id = s.id
 WHERE s.is_auto_configured = true
