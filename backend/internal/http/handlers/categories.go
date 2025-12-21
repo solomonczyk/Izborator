@@ -188,8 +188,7 @@ func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data 
 
 // respondError отправляет JSON ошибку
 // Используется для обработки ошибок в будущем
-//nolint:unused // может использоваться в будущем
-func (h *CategoriesHandler) respondError(w http.ResponseWriter, r *http.Request, status int, key string) {
+func (h *CategoriesHandler) respondError(w http.ResponseWriter, r *http.Request, status int, key string) { //nolint:unused
 	lang := httpMiddleware.GetLangFromContext(r.Context())
 	message := h.translator.T(lang, key)
 	if message == key || message == "" {

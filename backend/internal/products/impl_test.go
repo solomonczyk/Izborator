@@ -14,8 +14,7 @@ type mockStorage struct {
 	getProductByIDFunc    func(id string) (*Product, error)
 	browseProductsFunc    func(params BrowseParams) (*BrowseResult, error)
 	saveProductFunc       func(product *Product) error
-	//nolint:unused // может использоваться в будущем
-	savePriceFunc         func(productID string, price float64, currency string) error
+	savePriceFunc         func(productID string, price float64, currency string) error //nolint:unused
 }
 
 func (m *mockStorage) SearchProducts(query string, limit, offset int) ([]*Product, int, error) {

@@ -52,7 +52,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 	descriptionSelector := shopConfig.Selectors["description"]
 	categorySelector := shopConfig.Selectors["category"]
 	brandSelector := shopConfig.Selectors["brand"]
-	
+
 	s.logger.Debug("Loaded selectors", map[string]interface{}{
 		"name":        nameSelector,
 		"price":       priceSelector,
@@ -184,7 +184,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 			})
 		}
 	}
-	
+
 	// Fallback: парсинг названия из title страницы
 	c.OnHTML("title", func(e *colly.HTMLElement) {
 		if product.Name == "" {
@@ -381,7 +381,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		s.logger.Debug("Visiting", map[string]interface{}{
 			"url": r.URL.String(),
 		})
-		
+
 		// Добавляем заголовки для обхода защиты от ботов
 		r.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
 		r.Headers.Set("Accept-Language", "sr-RS,sr;q=0.9,en-US;q=0.8,en;q=0.7")
@@ -393,7 +393,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		r.Headers.Set("Sec-Fetch-Site", "none")
 		r.Headers.Set("Sec-Fetch-User", "?1")
 		r.Headers.Set("Cache-Control", "max-age=0")
-		
+
 		// Если Referer не установлен расширением, устанавливаем базовый URL магазина
 		if r.Headers.Get("Referer") == "" {
 			r.Headers.Set("Referer", shopConfig.BaseURL+"/")
@@ -405,17 +405,17 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 		if shopConfig.ID == "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22" {
 			htmlLen := len(r.Body)
 			s.logger.Info("Response received", map[string]interface{}{
-				"url":        r.Request.URL.String(),
-				"status":     r.StatusCode,
+				"url":         r.Request.URL.String(),
+				"status":      r.StatusCode,
 				"html_length": htmlLen,
 			})
-			
+
 			// Сохраняем HTML в файл для анализа
 			htmlStr := string(r.Body)
 			if err := os.WriteFile("tehnomanija_debug.html", []byte(htmlStr), 0644); err == nil {
 				s.logger.Info("HTML saved to tehnomanija_debug.html", map[string]interface{}{})
 			}
-			
+
 			// Ищем название и цену в HTML напрямую для отладки
 			if strings.Contains(htmlStr, "Dell Laptop XPS") {
 				idx := strings.Index(htmlStr, "Dell Laptop XPS")
@@ -432,7 +432,7 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 					"context": context,
 				})
 			}
-			
+
 			// Ищем цену в HTML
 			if strings.Contains(htmlStr, "RSD") || strings.Contains(htmlStr, "din") {
 				// Ищем паттерн цены
@@ -739,13 +739,13 @@ func (s *Service) ScrapeAndSave(ctx context.Context, url string, shopConfig *Sho
 	// Магазины, требующие JS-рендеринг (headless браузер)
 	jsRenderingShops := map[string]bool{
 		"b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22": true, // Tehnomanija
-		"shop-001": true, // Gigatron
+		"shop-001":                             true, // Gigatron
 	}
 
 	// Используем browser парсер для магазинов, требующих JS-рендеринг
 	if jsRenderingShops[shopConfig.ID] {
 		s.logger.Info("Using browser parser for JS-rendered page", map[string]interface{}{
-			"shop_id": shopConfig.ID,
+			"shop_id":   shopConfig.ID,
 			"shop_name": shopConfig.Name,
 		})
 		return s.scrapeAndSaveWithBrowser(ctx, url, shopConfig)
@@ -1068,8 +1068,8 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 		nextPageURL = "" // Сбрасываем перед каждой страницей
 
 		s.logger.Info("Parsing catalog page", map[string]interface{}{
-			"url":        currentURL,
-			"page":       pageCount,
+			"url":          currentURL,
+			"page":         pageCount,
 			"found_so_far": len(result.ProductURLs),
 		})
 
