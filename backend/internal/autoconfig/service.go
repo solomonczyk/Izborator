@@ -56,7 +56,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 			"domain": candidate.Domain,
 			"error":  err.Error(),
 		})
-		s.storage.MarkAsFailed(candidate.ID, "scout_failed: "+err.Error())
+		_ = s.storage.MarkAsFailed(candidate.ID, "scout_failed: "+err.Error())
 		return fmt.Errorf("scout failed: %w", err)
 	}
 	s.log.Info("Found product page", map[string]interface{}{
@@ -70,7 +70,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 			"url":   productURL,
 			"error": err.Error(),
 		})
-		s.storage.MarkAsFailed(candidate.ID, "fetch_failed: "+err.Error())
+		_ = s.storage.MarkAsFailed(candidate.ID, "fetch_failed: "+err.Error())
 		return fmt.Errorf("fetch failed: %w", err)
 	}
 
@@ -91,7 +91,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 		s.log.Error("AI generation failed", map[string]interface{}{
 			"error": err.Error(),
 		})
-		s.storage.MarkAsFailed(candidate.ID, "ai_failed: "+err.Error())
+		_ = s.storage.MarkAsFailed(candidate.ID, "ai_failed: "+err.Error())
 		return fmt.Errorf("AI generation failed: %w", err)
 	}
 
@@ -102,7 +102,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 			"json":  selectorsJSON,
 			"error": err.Error(),
 		})
-		s.storage.MarkAsFailed(candidate.ID, "invalid_json: "+err.Error())
+		_ = s.storage.MarkAsFailed(candidate.ID, "invalid_json: "+err.Error())
 		return fmt.Errorf("invalid JSON: %w", err)
 	}
 
@@ -111,7 +111,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 		s.log.Warn("Missing required selectors", map[string]interface{}{
 			"selectors": selectors,
 		})
-		s.storage.MarkAsFailed(candidate.ID, "missing_required_selectors")
+		_ = s.storage.MarkAsFailed(candidate.ID, "missing_required_selectors")
 		return fmt.Errorf("missing required selectors (name or price)")
 	}
 
@@ -121,7 +121,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 			"error":    err.Error(),
 			"selectors": selectors,
 		})
-		s.storage.MarkAsFailed(candidate.ID, "validation_failed: "+err.Error())
+		_ = s.storage.MarkAsFailed(candidate.ID, "validation_failed: "+err.Error())
 		return fmt.Errorf("validation failed: %w", err)
 	}
 

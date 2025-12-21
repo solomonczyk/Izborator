@@ -129,7 +129,7 @@ func setupRoutes(r *chi.Mux, h *Handlers, translator *i18n.Translator, redisClie
 		if message == "" {
 			message = "not found"
 		}
-		json.NewEncoder(w).Encode(map[string]string{
+		_ = json.NewEncoder(w).Encode(map[string]string{
 			"error": message,
 		})
 	})

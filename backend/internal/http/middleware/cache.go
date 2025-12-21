@@ -46,7 +46,7 @@ func CacheMiddleware(redisClient *redis.Client, log *logger.Logger, ttl time.Dur
 					}
 					w.Header().Set("X-Cache", "HIT")
 					w.WriteHeader(cachedResponse.StatusCode)
-					w.Write(cachedResponse.Body)
+					_, _ = w.Write(cachedResponse.Body)
 					return
 				}
 			}

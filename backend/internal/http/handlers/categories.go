@@ -152,7 +152,7 @@ func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data 
 		// Если это слайс категорий, всегда сериализуем как массив
 		if slice == nil || len(slice) == 0 {
 			// Явно пишем пустой массив
-			w.Write([]byte("[]\n"))
+			_, _ = w.Write([]byte("[]\n"))
 			return
 		}
 		// Сериализуем непустой слайс
@@ -161,16 +161,16 @@ func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data 
 			h.logger.Error("Failed to marshal JSON response", map[string]interface{}{
 				"error": err,
 			})
-			w.Write([]byte("[]\n"))
+			_, _ = w.Write([]byte("[]\n"))
 			return
 		}
-		w.Write(jsonBytes)
+		_, _ = w.Write(jsonBytes)
 		return
 	}
 	
 	// Для других типов используем стандартную сериализацию
 	if data == nil {
-		w.Write([]byte("[]\n"))
+		_, _ = w.Write([]byte("[]\n"))
 		return
 	}
 	
@@ -179,11 +179,11 @@ func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data 
 		h.logger.Error("Failed to marshal JSON response", map[string]interface{}{
 			"error": err,
 		})
-		w.Write([]byte("[]\n"))
+		_, _ = w.Write([]byte("[]\n"))
 		return
 	}
 	
-	w.Write(jsonBytes)
+	_, _ = w.Write(jsonBytes)
 }
 
 // respondError отправляет JSON ошибку
