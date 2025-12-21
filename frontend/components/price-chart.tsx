@@ -69,8 +69,8 @@ export function PriceChart({ data, locale = 'en' }: PriceChartProps) {
   const sortedData = Array.from(dateMap.values())
   sortedData.sort((a, b) => {
     // Создаём временные даты для сравнения из строки даты
-    const dateA = new Date(a.date as string)
-    const dateB = new Date(b.date as string)
+    const dateA = new Date(a.date)
+    const dateB = new Date(b.date)
     return dateA.getTime() - dateB.getTime()
   })
   chartData.push(...sortedData)
