@@ -64,7 +64,9 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(a.ctx)
+	defer func() {
+		_ = tx.Rollback(a.ctx)
+	}()
 
 	// Получаем данные кандидата
 	var domain string
