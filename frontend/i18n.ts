@@ -1,5 +1,4 @@
 import { getRequestConfig } from 'next-intl/server'
-import { notFound } from 'next/navigation'
 
 // Поддерживаемые языки
 export const locales = ['en', 'sr', 'ru', 'hu', 'zh'] as const

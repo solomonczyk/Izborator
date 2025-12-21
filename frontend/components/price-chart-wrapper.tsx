@@ -6,6 +6,31 @@ import { PriceChart } from './price-chart'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8081'
 
+interface PricePoint {
+  price: number
+  timestamp: string
+  shop_id: string
+}
+
+interface PriceChartData {
+  product_id: string
+  period: string
+  from: string
+  to: string
+  shops: Record<string, PricePoint[]>
+  shop_names?: Record<string, string>
+  stats: {
+    min_price: number
+    max_price: number
+    avg_price: number
+    price_change: number
+    first_price: number
+    last_price: number
+    first_date: string
+    last_date: string
+  }
+}
+
 interface PriceChartWrapperProps {
   productId: string
   locale?: string
@@ -13,7 +38,7 @@ interface PriceChartWrapperProps {
 
 export function PriceChartWrapper({ productId, locale = 'en' }: PriceChartWrapperProps) {
   const t = useTranslations('product')
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<PriceChartData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<string>('month')

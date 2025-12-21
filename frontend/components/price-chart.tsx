@@ -33,12 +33,17 @@ interface PriceChartProps {
   locale?: string
 }
 
+interface ChartDataPoint {
+  date: string
+  [shopId: string]: string | number
+}
+
 export function PriceChart({ data, locale = 'en' }: PriceChartProps) {
   const t = useTranslations('product')
   // Преобразуем данные для графика
   // Группируем по датам и собираем цены всех магазинов
-  const chartData: Array<Record<string, any>> = []
-  const dateMap = new Map<string, Record<string, any>>()
+  const chartData: ChartDataPoint[] = []
+  const dateMap = new Map<string, ChartDataPoint>()
 
   // Определяем локаль для форматирования дат
   const dateLocale = locale === 'sr' ? 'sr-RS' : locale === 'ru' ? 'ru-RU' : locale === 'hu' ? 'hu-HU' : locale === 'zh' ? 'zh-CN' : 'en-US'
