@@ -4684,11 +4684,15 @@ bash run-harvest.sh
 - ✅ Улучшен `check-openai-key.sh` с более детальной диагностикой
 - ✅ Скрипт автоматически проверяет ключ после обновления
 
+**Статус:**
+- ✅ OpenAI API ключ успешно обновлен и валиден!
+- ✅ Ключ проверен через OpenAI API - работает корректно
+- ✅ `.env` обновлен, резервная копия создана
+
 **Следующие шаги (на сервере):**
-1. ⏳ `git pull` - получить новый скрипт
-2. ⏳ `chmod +x update-openai-key.sh && ./update-openai-key.sh` - обновить ключ
-3. ⏳ Скрипт попросит вставить новый ключ и автоматически обновит `.env`
-4. ⏳ После успешного обновления: `chmod +x run-autoconfig-server.sh && ./run-autoconfig-server.sh`
+1. ✅ Ключ обновлен и валиден
+2. ⏳ `chmod +x run-autoconfig-server.sh && ./run-autoconfig-server.sh` - запустить AutoConfig
+3. ⏳ После выполнения AutoConfig - проверить результаты через "Check AutoConfig Results"
 
 
 
