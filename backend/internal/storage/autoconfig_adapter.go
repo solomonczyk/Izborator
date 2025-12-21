@@ -12,6 +12,9 @@ import (
 	"github.com/solomonczyk/izborator/internal/autoconfig"
 )
 
+// nonAlphanumericRegex регулярное выражение для удаления неалфавитных символов
+var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9]`)
+
 // autoconfigAdapter реализация Storage для autoconfig
 type autoconfigAdapter struct {
 	pg  *Postgres
@@ -91,8 +94,7 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 
 	// Генерируем code из name (как в миграции 0002)
 	// Удаляем все символы кроме букв и цифр, приводим к нижнему регистру
-	re := regexp.MustCompile(`[^a-zA-Z0-9]`)
-	shopCode := strings.ToLower(re.ReplaceAllString(shopName, ""))
+	shopCode := strings.ToLower(nonAlphanumericRegex.ReplaceAllString(shopName, ""))
 	// Если code пустой (только спецсимволы в названии), используем домен
 	if shopCode == "" {
 		shopCode = strings.ToLower(re.ReplaceAllString(domain, ""))
@@ -133,13 +135,11 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 	}
 
 	// Сохраняем попытку конфигурации в shop_config_attempts
-	_, err = tx.Exec(a.ctx, `
+	// Игнорируем ошибку, так как это не критично для основной операции
+	_, _ = tx.Exec(a.ctx, `
 		INSERT INTO shop_config_attempts (potential_shop_id, shop_id, ai_response, validation_result, status, created_at)
 		VALUES ($1, $2, $3, $4, 'success', NOW())
 	`, id, shopID, selectorsJSON, json.RawMessage(`{"validated": true}`))
-	if err != nil {
-		// Не критично, продолжаем
-	}
 
 	// Коммитим транзакцию
 	if err := tx.Commit(a.ctx); err != nil {
@@ -166,13 +166,11 @@ func (a *autoconfigAdapter) MarkAsFailed(id string, reason string) error {
 	}
 
 	// Сохраняем попытку конфигурации в shop_config_attempts
-	_, err = a.pg.DB().Exec(a.ctx, `
+	// Игнорируем ошибку, так как это не критично для основной операции
+	_, _ = a.pg.DB().Exec(a.ctx, `
 		INSERT INTO shop_config_attempts (potential_shop_id, status, error_message, created_at)
 		VALUES ($1, 'failed', $2, NOW())
 	`, id, reason)
-	if err != nil {
-		// Не критично, продолжаем
-	}
 
 	return nil
 }
