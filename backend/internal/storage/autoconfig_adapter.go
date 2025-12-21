@@ -93,6 +93,12 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 	// Удаляем все символы кроме букв и цифр, приводим к нижнему регистру
 	re := regexp.MustCompile(`[^a-zA-Z0-9]`)
 	shopCode := strings.ToLower(re.ReplaceAllString(shopName, ""))
+	// Если code пустой (только спецсимволы в названии), используем домен
+	if shopCode == "" {
+		shopCode = strings.ToLower(re.ReplaceAllString(domain, ""))
+		// Удаляем точку из домена для code
+		shopCode = strings.ReplaceAll(shopCode, ".", "")
+	}
 
 	// Формируем base_url
 	baseURL := domain
