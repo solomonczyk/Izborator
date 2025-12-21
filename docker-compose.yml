@@ -114,7 +114,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - GOOGLE_CX=${GOOGLE_CX:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O- http://localhost:8080/api/health | grep -q ok || exit 1"]
@@ -154,7 +154,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - GOOGLE_CX=${GOOGLE_CX:-}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
     depends_on:
       - backend
