@@ -1,18 +1,27 @@
 services:
+  # ⚠️  SECURITY WARNING FOR PRODUCTION:
+  # - Change DB_PASSWORD to a strong password
+  # - Change MEILISEARCH_API_KEY to a strong key (generate: openssl rand -base64 32)
+  # - Change INFLUX_PASSWORD to a strong password
+  # - Never use default values shown below - they're for development only!
+  # - All passwords should be stored in GitHub Secrets or external Secret Manager
+  #
+  # For production setup, see: SECURITY_GUIDELINES.md
+
   # 1. Основная база данных (Canonical Data)
   postgres:
     image: postgres:15-alpine
     container_name: izborator_postgres
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
-      POSTGRES_DB: ${DB_NAME:-izborator}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     # Порт убран - доступен только через Docker network
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,8 +34,8 @@ services:
     container_name: izborator_meilisearch
     restart: always
     environment:
-      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY:-masterKey123}
-      MEILI_ENV: development
+      MEILI_MASTER_KEY: ${MEILISEARCH_API_KEY}
+      MEILI_ENV: ${ENV:-development}
     ports:
       - "7700:7700"
     volumes:
@@ -63,10 +72,10 @@ services:
     restart: always
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER:-admin}
-      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD:-adminpassword}
-      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG:-izborator_org}
-      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET:-price_history}
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUX_USER}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUX_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUX_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUX_BUCKET}
     ports:
       - "8086:8086"
     volumes:
@@ -93,12 +102,12 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
-      - DB_NAME=${DB_NAME:-izborator}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
       - MEILISEARCH_HOST=meilisearch
       - MEILISEARCH_PORT=7700
-      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY:-masterKey123}
+      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SERVER_PORT=8080
@@ -134,12 +143,12 @@ services:
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
-      - DB_NAME=${DB_NAME:-izborator}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
       - MEILISEARCH_HOST=meilisearch
       - MEILISEARCH_PORT=7700
-      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY:-masterKey123}
+      - MEILISEARCH_API_KEY=${MEILISEARCH_API_KEY}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - LOG_LEVEL=${LOG_LEVEL:-info}
