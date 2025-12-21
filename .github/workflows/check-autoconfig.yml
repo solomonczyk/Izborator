@@ -1,0 +1,134 @@
+name: Check AutoConfig Results
+
+on:
+  workflow_dispatch: # Позволяет запускать вручную
+  schedule:
+    # Запускается каждый день в 6:00 UTC (после возможного AutoConfig)
+    - cron: '0 6 * * *'
+
+jobs:
+  check-results:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check AutoConfig Results
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            echo "🔍 Проверка результатов AutoConfig..."
+            echo "=========================================="
+            echo ""
+            
+            # Проверка автоматически созданных магазинов
+            echo "📊 Магазины с is_auto_configured = true:"
+            docker exec -i izborator_postgres psql -U postgres -d izborator -c "
+            SELECT 
+                id,
+                name, 
+                base_url, 
+                is_active, 
+                is_auto_configured,
+                created_at 
+            FROM shops 
+            WHERE is_auto_configured = true 
+            ORDER BY created_at DESC;
+            " || echo "⚠️  Не удалось получить данные"
+            
+            echo ""
+            echo "📈 Статистика по магазинам:"
+            docker exec -i izborator_postgres psql -U postgres -d izborator -c "
+            SELECT 
+                COUNT(*) FILTER (WHERE is_auto_configured = true) as auto_configured_count,
+                COUNT(*) FILTER (WHERE is_auto_configured = false) as manual_count,
+                COUNT(*) as total_shops
+            FROM shops;
+            " || echo "⚠️  Не удалось получить статистику"
+            
+            echo ""
+            echo "🔧 Проверка shop_config_attempts:"
+            docker exec -i izborator_postgres psql -U postgres -d izborator -c "
+            SELECT 
+                status,
+                COUNT(*) as count
+            FROM shop_config_attempts
+            GROUP BY status
+            ORDER BY status;
+            " || echo "⚠️  Не удалось получить данные"
+            
+            echo ""
+            echo "📋 Проверка potential_shops (классифицированные кандидаты):"
+            docker exec -i izborator_postgres psql -U postgres -d izborator -c "
+            SELECT 
+                status,
+                COUNT(*) as count
+            FROM potential_shops
+            GROUP BY status
+            ORDER BY status;
+            " || echo "⚠️  Не удалось получить данные"
+            
+            echo ""
+            echo "✅ Проверка завершена!"
+          EOF
+
+      - name: Check .env Configuration
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            echo ""
+            echo "🔐 Проверка конфигурации .env..."
+            echo "=========================================="
+            
+            if [ -f .env ]; then
+              echo "✅ Файл .env существует"
+              
+              # Проверяем наличие обязательных переменных
+              if grep -q "OPENAI_API_KEY=" .env && ! grep -q "OPENAI_API_KEY=$" .env && ! grep -q "OPENAI_API_KEY=your_" .env; then
+                echo "✅ OPENAI_API_KEY настроен"
+              else
+                echo "⚠️  OPENAI_API_KEY не настроен или содержит placeholder"
+              fi
+              
+              if grep -q "DB_PASSWORD=" .env && ! grep -q "DB_PASSWORD=$" .env && ! grep -q "DB_PASSWORD=your_" .env; then
+                echo "✅ DB_PASSWORD настроен"
+              else
+                echo "⚠️  DB_PASSWORD не настроен или содержит placeholder"
+              fi
+              
+              if grep -q "MEILISEARCH_API_KEY=" .env && ! grep -q "MEILISEARCH_API_KEY=$" .env && ! grep -q "MEILISEARCH_API_KEY=your_" .env; then
+                echo "✅ MEILISEARCH_API_KEY настроен"
+              else
+                echo "⚠️  MEILISEARCH_API_KEY не настроен или содержит placeholder"
+              fi
+            else
+              echo "❌ Файл .env не найден!"
+              echo "⚠️  Создайте .env из .env.example и заполните значения"
+            fi
+            
+            echo ""
+            echo "🐳 Проверка контейнеров:"
+            docker-compose ps backend worker || echo "⚠️  Не удалось получить статус контейнеров"
+          EOF
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 📊 Результаты проверки AutoConfig" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Проверка выполнена. Смотри логи выше для деталей." >> $GITHUB_STEP_SUMMARY
+
