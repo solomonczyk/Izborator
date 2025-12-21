@@ -90,6 +90,44 @@ ORDER BY classified_at DESC;
 - Проверь, что `OPENAI_API_KEY` задан в `.env`
 - Перезапусти контейнеры: `docker-compose restart backend`
 
+### Ошибка: "401 Unauthorized: Incorrect API key provided"
+**КРИТИЧНО:** Это означает, что OpenAI API ключ неверный, истек или был отозван.
+
+**Решение:**
+1. Проверь ключ в `.env` файле:
+   ```bash
+   cat .env | grep OPENAI_API_KEY
+   ```
+
+2. Создай новый API ключ:
+   - Перейди на https://platform.openai.com/account/api-keys
+   - Нажми "Create new secret key"
+   - Скопируй новый ключ
+
+3. Обнови `.env` файл:
+   ```bash
+   nano .env
+   # Или
+   vi .env
+   ```
+   Замени значение `OPENAI_API_KEY` на новый ключ
+
+4. Проверь, что ключ правильный:
+   ```bash
+   # Ключ должен начинаться с sk-proj- или sk-
+   # Длина обычно 50+ символов
+   ```
+
+5. Перезапусти AutoConfig:
+   ```bash
+   ./run-autoconfig-server.sh
+   ```
+
+**Важно:** 
+- Не коммить `.env` файл в Git (он должен быть в `.gitignore`)
+- Если ключ был скомпрометирован - отзови его на platform.openai.com
+- Проверь баланс аккаунта OpenAI (может быть недостаточно средств)
+
 ### Ошибка: "Scout failed"
 - Сайт может быть недоступен
 - Сайт может требовать JS для рендеринга (нужен browser parser)

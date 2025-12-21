@@ -23,7 +23,14 @@ export $(cat .env | grep -v '^#' | xargs)
 if [ -z "$OPENAI_API_KEY" ] || [ "$OPENAI_API_KEY" = "your_openai_api_key_here" ]; then
   echo "❌ OPENAI_API_KEY не настроен в .env файле!"
   echo "⚠️  Откройте .env и установите реальный ключ OpenAI"
+  echo "📝 Создайте ключ на https://platform.openai.com/account/api-keys"
   exit 1
+fi
+
+# Проверяем формат ключа (должен начинаться с sk-)
+if [[ ! "$OPENAI_API_KEY" =~ ^sk- ]]; then
+  echo "⚠️  Предупреждение: OPENAI_API_KEY не начинается с 'sk-'"
+  echo "   Убедитесь, что ключ правильный"
 fi
 
 echo "✅ OPENAI_API_KEY загружен"
