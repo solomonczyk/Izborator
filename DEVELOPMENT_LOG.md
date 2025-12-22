@@ -4809,6 +4809,13 @@ bash run-harvest.sh
 3. ⏳ Протестировать парсинг для созданных магазинов (если Code Quality Check пройдет успешно)
 4. ⏳ Исправить frontend warnings о `<img>` (низкий приоритет)
 
+**Обновление после Code Quality Check #15:**
+- ❌ Code Quality Check #15 провалился с 1 реальной ошибкой в коде
+- ✅ **Исправлено:** `backend/internal/http/handlers/products.go:279` - удалена неиспользуемая переменная `allDates` и строка `append(allDates, point.Timestamp)` (SM0010: staticcheck)
+- ⚠️  Остальные ошибки связаны с внешними сервисами (Codecov, Cache) - не критично
+- ✅ Исправление применено и запушено в main
+- ⏳ Ожидается результат Code Quality Check #16
+
 **Заметки:**
 - Все исправления применены локально и запушены в main
 - Линтер локально не находит ошибок
