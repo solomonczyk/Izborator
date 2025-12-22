@@ -268,7 +268,6 @@ func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 	}
 
 	var allPrices []float64
-	var allDates []time.Time
 	var firstPrice, lastPrice float64
 	var firstDate, lastDate time.Time
 
@@ -276,7 +275,6 @@ func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 	for _, points := range chart.Shops {
 		for _, point := range points {
 			allPrices = append(allPrices, point.Price)
-			allDates = append(allDates, point.Timestamp)
 
 			if firstDate.IsZero() || point.Timestamp.Before(firstDate) {
 				firstDate = point.Timestamp
