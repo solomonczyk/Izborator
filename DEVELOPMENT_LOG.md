@@ -4816,6 +4816,12 @@ bash run-harvest.sh
 - ✅ Исправление применено и запушено в main
 - ⏳ Ожидается результат Code Quality Check #16
 
+**Обновление после Code Quality Check #16:**
+- ❌ Code Quality Check #16 провалился с ошибкой "invalid BOM in the middle of the file"
+- ✅ **Исправлено:** Файл `backend/internal/http/handlers/products.go` отформатирован через `gofmt` для удаления потенциальных проблем с BOM и кодировкой
+- ✅ Исправление применено и запушено в main (коммит `46c6c0f`)
+- ⏳ Ожидается результат Code Quality Check #17
+
 **Заметки:**
 - Все исправления применены локально и запушены в main
 - Линтер локально не находит ошибок
