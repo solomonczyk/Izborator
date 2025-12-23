@@ -4,135 +4,265 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
-	"izborator/internal/http/middleware"
-	"izborator/internal/products"
+	"github.com/go-chi/chi/v5"
+	"github.com/solomonczyk/izborator/internal/categories"
+	"github.com/solomonczyk/izborator/internal/cities"
+	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
+	"github.com/solomonczyk/izborator/internal/i18n"
+	"github.com/solomonczyk/izborator/internal/logger"
+	"github.com/solomonczyk/izborator/internal/pricehistory"
+	"github.com/solomonczyk/izborator/internal/products"
 )
 
+// ProductsHandler обработчик для работы с товарами
 type ProductsHandler struct {
-	service   products.Service
-	logger    Logger
-	translator Translator
-	citiesSvc CitiesService
+	service         *products.Service
+	priceHistorySvc *pricehistory.Service
+	categoriesSvc   *categories.Service
+	citiesSvc       *cities.Service
+	logger          *logger.Logger
+	translator      *i18n.Translator
 }
 
-type Logger interface {
-	Info(msg string, fields map[string]interface{})
-	Warn(msg string, fields map[string]interface{})
-	Error(msg string, fields map[string]interface{})
-	Debug(msg string, fields map[string]interface{})
-}
-
-type Translator interface {
-	T(lang string, key string) string
-}
-
-type CitiesService interface {
-	GetBySlug(slug string) (City, error)
-}
-
-type City struct {
-	ID string
-}
-
-func NewProductsHandler(service products.Service, logger Logger, translator Translator, citiesSvc CitiesService) *ProductsHandler {
+// NewProductsHandler создаёт новый обработчик товаров
+func NewProductsHandler(service *products.Service, priceHistorySvc *pricehistory.Service, categoriesSvc *categories.Service, citiesSvc *cities.Service, log *logger.Logger, translator *i18n.Translator) *ProductsHandler {
 	return &ProductsHandler{
-		service:   service,
-		logger:    logger,
-		translator: translator,
-		citiesSvc:  citiesSvc,
+		service:         service,
+		priceHistorySvc: priceHistorySvc,
+		categoriesSvc:   categoriesSvc,
+		citiesSvc:       citiesSvc,
+		logger:          log,
+		translator:      translator,
 	}
 }
 
-// GetProduct возвращает информацию о товаре по ID
-func (h *ProductsHandler) GetProduct(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	productID := vars["id"]
-
-	if productID == "" {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_product_id")
+// Search обрабатывает поиск товаров
+// GET /api/v1/products/search?q=query
+// GET /api/products?q=query&limit=10&offset=0 (старый формат)
+func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.missing_query")
 		return
 	}
 
 	ctx := r.Context()
-	product, err := h.service.GetByID(ctx, productID)
+
+	// Для нового endpoint /api/v1/products/search используем простой поиск
+	if r.URL.Path == "/api/v1/products/search" {
+		results, err := h.service.Search(ctx, query)
+		if err != nil {
+			h.logger.Error("search failed", map[string]interface{}{
+				"q":     query,
+				"error": err.Error(),
+			})
+			h.respondError(w, r, http.StatusInternalServerError, "api.errors.search_failed")
+			return
+		}
+
+		h.respondJSON(w, http.StatusOK, results)
+		return
+	}
+
+	// Старый формат с limit/offset
+	limitStr := r.URL.Query().Get("limit")
+	offsetStr := r.URL.Query().Get("offset")
+
+	limit := 20
+	offset := 0
+
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	if offsetStr != "" {
+		if o, err := strconv.Atoi(offsetStr); err == nil && o >= 0 {
+			offset = o
+		}
+	}
+
+	result, err := h.service.SearchWithPagination(ctx, query, limit, offset)
 	if err != nil {
-		h.logger.Error("get product failed", map[string]interface{}{
-			"product_id": productID,
-			"error":      err.Error(),
+		h.respondError(w, r, http.StatusInternalServerError, "api.errors.search_failed")
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, result)
+}
+
+// ProductResponse структура ответа для GetByID (товар + цены)
+type ProductResponse struct {
+	ID       string                   `json:"id"`
+	Name     string                   `json:"name"`
+	Brand    string                   `json:"brand,omitempty"`
+	Category string                   `json:"category,omitempty"`
+	ImageURL string                   `json:"image_url,omitempty"`
+	Specs    map[string]string        `json:"specs,omitempty"`
+	Prices   []*products.ProductPrice `json:"prices"`
+}
+
+// GetByID обрабатывает получение товара по ID с ценами
+// GET /api/v1/products/:id
+func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if id == "" {
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
+		return
+	}
+
+	ctx := r.Context()
+	_ = ctx // для будущего использования
+
+	// 1. Получаем товар
+	product, err := h.service.GetByID(id)
+	if err != nil {
+		if err == products.ErrProductNotFound || err == products.ErrInvalidProductID {
+			h.logger.Error("GetProduct failed", map[string]interface{}{
+				"id":    id,
+				"error": err.Error(),
+			})
+			h.respondError(w, r, http.StatusNotFound, "api.errors.product_not_found")
+			return
+		}
+		h.logger.Error("GetProduct failed", map[string]interface{}{
+			"id":    id,
+			"error": err.Error(),
 		})
-		h.respondError(w, r, http.StatusNotFound, "api.errors.product_not_found")
+		h.respondError(w, r, http.StatusInternalServerError, "api.errors.product_load_failed")
 		return
 	}
 
-	h.respondJSON(w, http.StatusOK, product)
+	// 2. Получаем цены
+	prices, err := h.service.GetPrices(id)
+	if err != nil {
+		h.logger.Error("GetProductPrices failed", map[string]interface{}{
+			"id":    id,
+			"error": err.Error(),
+		})
+		// Не критично - возвращаем товар без цен, но логируем ошибку
+		prices = []*products.ProductPrice{}
+	}
+
+	// 3. Формируем ответ
+	resp := ProductResponse{
+		ID:       product.ID,
+		Name:     product.Name,
+		Brand:    product.Brand,
+		Category: product.Category,
+		ImageURL: product.ImageURL,
+		Specs:    product.Specs,
+		Prices:   prices,
+	}
+
+	h.respondJSON(w, http.StatusOK, resp)
 }
 
-// GetProductPrices возвращает историю цен товара
-func (h *ProductsHandler) GetProductPrices(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	productID := vars["id"]
+// GetPrices обрабатывает получение цен товара из разных магазинов
+// GET /api/products/:id/prices
+func (h *ProductsHandler) GetPrices(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
 
-	if productID == "" {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_product_id")
+	if id == "" {
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
 		return
 	}
 
-	ctx := r.Context()
-	prices, err := h.service.GetPriceHistory(ctx, productID)
+	prices, err := h.service.GetPrices(id)
 	if err != nil {
-		h.logger.Error("get price history failed", map[string]interface{}{
-			"product_id": productID,
-			"error":      err.Error(),
+		if err == products.ErrInvalidProductID {
+			h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
+			return
+		}
+		h.respondError(w, r, http.StatusInternalServerError, "api.errors.internal")
+		return
+	}
+
+	result := map[string]interface{}{
+		"product_id": id,
+		"prices":     prices,
+	}
+
+	h.respondJSON(w, http.StatusOK, result)
+}
+
+// GetPriceHistory обрабатывает получение истории цен товара
+// GET /api/v1/products/{id}/price-history?period=month&shops=shop1,shop2
+func (h *ProductsHandler) GetPriceHistory(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if id == "" {
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
+		return
+	}
+
+	// Параметры запроса
+	period := r.URL.Query().Get("period")
+	if period == "" {
+		period = "month" // По умолчанию месяц
+	}
+
+	// Парсим список магазинов (опционально)
+	shopsParam := r.URL.Query().Get("shops")
+	var shopIDs []string
+	if shopsParam != "" {
+		// Простой парсинг через запятую
+		shops := strings.Split(shopsParam, ",")
+		for _, shop := range shops {
+			shop = strings.TrimSpace(shop)
+			if shop != "" {
+				shopIDs = append(shopIDs, shop)
+			}
+		}
+	}
+
+	// Получаем данные для графика
+	chart, err := h.priceHistorySvc.GetPriceChart(id, period, shopIDs)
+	if err != nil {
+		h.logger.Error("GetPriceHistory failed", map[string]interface{}{
+			"id":     id,
+			"error":  err.Error(),
+			"period": period,
 		})
 		h.respondError(w, r, http.StatusInternalServerError, "api.errors.price_history_failed")
 		return
 	}
 
-	h.respondJSON(w, http.StatusOK, prices)
-}
+	// Рассчитываем статистику
+	stats := calculatePriceStats(chart)
 
-// GetProductStats возвращает статистику по ценам товара
-func (h *ProductsHandler) GetProductStats(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	productID := vars["id"]
-
-	if productID == "" {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_product_id")
-		return
+	result := map[string]interface{}{
+		"product_id": id,
+		"period":     period,
+		"from":       chart.From.Format(time.RFC3339),
+		"to":         chart.To.Format(time.RFC3339),
+		"shops":      chart.Shops,
+		"shop_names": chart.ShopNames,
+		"stats":      stats,
 	}
 
-	ctx := r.Context()
-	chart, err := h.service.GetPriceChart(ctx, productID)
-	if err != nil {
-		h.logger.Error("get price chart failed", map[string]interface{}{
-			"product_id": productID,
-			"error":      err.Error(),
-		})
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.price_chart_failed")
-		return
-	}
-
-	stats := h.calculateStats(chart)
-	h.respondJSON(w, http.StatusOK, stats)
+	h.respondJSON(w, http.StatusOK, result)
 }
 
-// PriceStats представляет статистику по ценам
+// PriceStats статистика цен
 type PriceStats struct {
-	MinPrice    float64 `json:"min_price"`
-	MaxPrice    float64 `json:"max_price"`
-	AvgPrice    float64 `json:"avg_price"`
-	PriceChange float64 `json:"price_change"`
-	FirstPrice  float64 `json:"first_price"`
-	LastPrice   float64 `json:"last_price"`
-	FirstDate   string  `json:"first_date"`
-	LastDate    string  `json:"last_date"`
+	MinPrice    float64   `json:"min_price"`
+	MaxPrice    float64   `json:"max_price"`
+	AvgPrice    float64   `json:"avg_price"`
+	PriceChange float64   `json:"price_change"` // Изменение за период (%)
+	FirstPrice  float64   `json:"first_price"`
+	LastPrice   float64   `json:"last_price"`
+	FirstDate   time.Time `json:"first_date"`
+	LastDate    time.Time `json:"last_date"`
 }
 
-// calculateStats вычисляет статистику по ценам из графика
-func (h *ProductsHandler) calculateStats(chart *products.PriceChart) PriceStats {
+// calculatePriceStats рассчитывает статистику цен из графика
+func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 	if chart == nil || len(chart.Shops) == 0 {
 		return PriceStats{}
 	}
@@ -191,59 +321,89 @@ func (h *ProductsHandler) calculateStats(chart *products.PriceChart) PriceStats 
 		PriceChange: priceChange,
 		FirstPrice:  firstPrice,
 		LastPrice:   lastPrice,
-		FirstDate:   firstDate.Format(time.RFC3339),
-		LastDate:    lastDate.Format(time.RFC3339),
+		FirstDate:   firstDate,
+		LastDate:    lastDate,
 	}
 }
 
-// Browse возвращает список товаров с фильтрацией и пагинацией
+// respondJSON отправляет JSON ответ
+func (h *ProductsHandler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		h.logger.Error("Failed to encode JSON response", map[string]interface{}{
+			"error": err,
+		})
+	}
+}
+
+// Browse обрабатывает каталог товаров с фильтрами
+// GET /api/v1/products/browse?query=motorola&category=phones&min_price=10000&max_price=30000&shop_id=...&page=1&per_page=20&sort=price_asc
 func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
+	q := r.URL.Query()
 
-	// Парсим query параметры
-	query := r.URL.Query().Get("q")
-	category := r.URL.Query().Get("category")
-	categoryID := r.URL.Query().Get("category_id")
-	shopID := r.URL.Query().Get("shop_id")
-	city := r.URL.Query().Get("city")
-	minPriceStr := r.URL.Query().Get("min_price")
-	maxPriceStr := r.URL.Query().Get("max_price")
-	pageStr := r.URL.Query().Get("page")
-	perPageStr := r.URL.Query().Get("per_page")
-	sort := r.URL.Query().Get("sort")
+	query := q.Get("query")
+	category := q.Get("category")
+	city := q.Get("city")
+	shopID := q.Get("shop_id")
+	sort := q.Get("sort")
 
-	// Парсим цены
-	var minPrice, maxPrice *float64
-	if minPriceStr != "" {
-		if val, err := strconv.ParseFloat(minPriceStr, 64); err == nil && val >= 0 {
-			minPrice = &val
-		}
-	}
-	if maxPriceStr != "" {
-		if val, err := strconv.ParseFloat(maxPriceStr, 64); err == nil && val >= 0 {
-			maxPrice = &val
-		}
-	}
+	minPriceStr := q.Get("min_price")
+	maxPriceStr := q.Get("max_price")
 
-	// Парсим пагинацию
-	page := parseIntDefault(pageStr, 1)
-	perPage := parseIntDefault(perPageStr, 20)
+	page := parseIntDefault(q.Get("page"), 1)
+	perPage := parseIntDefault(q.Get("per_page"), 20)
 	if perPage > 100 {
 		perPage = 100
 	}
 
-	// Парсим category_id (может быть несколько через запятую)
-	var categoryIDs []string
-	if categoryID != "" {
-		ids := splitString(categoryID, ",")
-		for _, id := range ids {
-			if id != "" {
-				categoryIDs = append(categoryIDs, id)
-			}
+	var (
+		minPrice *float64
+		maxPrice *float64
+	)
+
+	if minPriceStr != "" {
+		if v, err := strconv.ParseFloat(minPriceStr, 64); err == nil {
+			minPrice = &v
+		}
+	}
+	if maxPriceStr != "" {
+		if v, err := strconv.ParseFloat(maxPriceStr, 64); err == nil {
+			maxPrice = &v
 		}
 	}
 
-	// Получаем city_id по slug
+	ctx := r.Context()
+
+	// Преобразуем category slug в category_id, если указан
+	var categoryID *string
+	var categoryIDs []string
+	if category != "" {
+		cat, err := h.categoriesSvc.GetBySlug(category)
+		if err == nil {
+			categoryID = &cat.ID
+			// Получаем все дочерние категории для включения в фильтр
+			childCats, err := h.categoriesSvc.GetByParentID(cat.ID)
+			if err == nil {
+				// Добавляем родительскую категорию и все дочерние
+				categoryIDs = append(categoryIDs, cat.ID)
+				for _, childCat := range childCats {
+					categoryIDs = append(categoryIDs, childCat.ID)
+				}
+			} else {
+				// Если не удалось получить дочерние, используем только родительскую
+				categoryIDs = []string{cat.ID}
+			}
+		} else {
+			// Если категория не найдена по slug, оставляем category как строку (для обратной совместимости)
+			h.logger.Warn("Category not found by slug", map[string]interface{}{
+				"slug":  category,
+				"error": err.Error(),
+			})
+		}
+	}
+
+	// Преобразуем city slug в city_id, если указан
 	var cityID *string
 	if city != "" {
 		cityObj, err := h.citiesSvc.GetBySlug(city)
@@ -284,11 +444,11 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		for i, item := range res.Items {
 			if i < 3 {
 				h.logger.Info("Browse handler: item before JSON", map[string]interface{}{
-					"product_id":   item.ID,
-					"product_name": item.Name,
-					"shop_names":   item.ShopNames,
+					"product_id":     item.ID,
+					"product_name":   item.Name,
+					"shop_names":     item.ShopNames,
 					"shop_names_len": len(item.ShopNames),
-					"shops_count":  item.ShopsCount,
+					"shops_count":    item.ShopsCount,
 				})
 			}
 		}
@@ -314,41 +474,13 @@ func (h *ProductsHandler) respondError(w http.ResponseWriter, r *http.Request, s
 	lang := httpMiddleware.GetLangFromContext(r.Context())
 	message := h.translator.T(lang, key)
 	if message == key || message == "" {
-		message = key
-	}
-
-	h.respondJSON(w, status, map[string]interface{}{
-		"error":   true,
-		"message": message,
-	})
-}
-
-// respondJSON отправляет JSON ответ
-func (h *ProductsHandler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
-}
-
-// splitString разбивает строку по разделителю
-func splitString(s, sep string) []string {
-	if s == "" {
-		return []string{}
-	}
-	parts := []string{}
-	current := ""
-	for _, char := range s {
-		if string(char) == sep {
-			if current != "" {
-				parts = append(parts, current)
-				current = ""
-			}
-		} else {
-			current += string(char)
+		// fallback на английский
+		message = h.translator.T("en", key)
+		if message == "" {
+			message = key
 		}
 	}
-	if current != "" {
-		parts = append(parts, current)
-	}
-	return parts
+	h.respondJSON(w, status, map[string]string{
+		"error": message,
+	})
 }
