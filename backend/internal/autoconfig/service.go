@@ -118,7 +118,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 	// 5. Validate: Проверяем, работают ли селекторы
 	if err := s.validateSelectors(productURL, selectors); err != nil {
 		s.log.Warn("Validation failed", map[string]interface{}{
-			"error":    err.Error(),
+			"error":     err.Error(),
 			"selectors": selectors,
 		})
 		_ = s.storage.MarkAsFailed(candidate.ID, "validation_failed: "+err.Error())
@@ -167,9 +167,18 @@ func (s *Service) findProductPage(domain string) (string, error) {
 		score := 0
 		linkLower := strings.ToLower(link)
 
+		// Игнорируем страницы коллекций/категорий (не товары)
+		if strings.Contains(linkLower, "/collections/") || strings.Contains(linkLower, "/collection/") ||
+			strings.Contains(linkLower, "/category/") || strings.Contains(linkLower, "/kategorija/") ||
+			strings.Contains(linkLower, "/kategorije/") || strings.Contains(linkLower, "/categories/") {
+			score = -100
+			return
+		}
+
 		// Ключевые слова для страниц товаров
 		if strings.Contains(linkLower, "/proizvod/") || strings.Contains(linkLower, "/p/") ||
-			strings.Contains(linkLower, "/product/") || strings.Contains(linkLower, "/artikal/") {
+			strings.Contains(linkLower, "/product/") || strings.Contains(linkLower, "/artikal/") ||
+			strings.Contains(linkLower, "/products/") || strings.Contains(linkLower, "/proizvodi/") {
 			score += 50
 		}
 
@@ -307,4 +316,3 @@ func (s *Service) validateSelectors(url string, selectors map[string]string) err
 
 	return nil
 }
-
