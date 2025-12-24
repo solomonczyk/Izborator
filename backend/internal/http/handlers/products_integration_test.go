@@ -151,7 +151,18 @@ func TestProductsHandler_Search_Integration(t *testing.T) {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
 
-		var result []*products.Product
+		// Search возвращает []*products.Product, но JSON декодирует в []products.Product
+		var result []struct {
+			ID          string            `json:"id"`
+			Name        string            `json:"name"`
+			Description string            `json:"description"`
+			Brand       string            `json:"brand"`
+			Category    string            `json:"category"`
+			ImageURL    string            `json:"image_url"`
+			Specs       map[string]string `json:"specs"`
+			CreatedAt   string            `json:"created_at"`
+			UpdatedAt   string            `json:"updated_at"`
+		}
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
@@ -161,8 +172,8 @@ func TestProductsHandler_Search_Integration(t *testing.T) {
 		}
 
 		found := false
-		for _, p := range result {
-			if p.Name == "iPhone 15 Pro" {
+		for i := range result {
+			if result[i].Name == "iPhone 15 Pro" {
 				found = true
 				break
 			}
