@@ -40,6 +40,9 @@ func New(
 	matching Matching,
 	log *logger.Logger,
 ) *Service {
+	if log == nil {
+		log = logger.New("info")
+	}
 	return &Service{
 		rawStorage:       rawStorage,
 		processedStorage: processedStorage,

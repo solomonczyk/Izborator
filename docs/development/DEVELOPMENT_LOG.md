@@ -4961,3 +4961,7 @@ bash run-harvest.sh
 
 **CI/CD (2025-12-24):**
 - Fix: Matching normalizeName now strips memory suffixes and similarity scoring handles memory/partial matches per tests.
+
+
+**CI/CD (2025-12-24):**
+- Fix: Processor service now defaults to a logger when nil to avoid test panics.
