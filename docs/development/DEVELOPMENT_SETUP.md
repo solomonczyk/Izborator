@@ -46,7 +46,7 @@ docker-compose logs -f backend
 ### 4. Запуск без Docker (локальная разработка)
 
 **Требования:**
-- Go 1.24+
+- Go 1.23+
 - Node.js 20+
 - PostgreSQL 15+
 - Redis 7+
