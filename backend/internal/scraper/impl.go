@@ -554,59 +554,74 @@ func (s *Service) ParseProduct(ctx context.Context, url string, shopConfig *Shop
 // cleanPrice превращает строку "120.000 RSD" -> (120000.0, "RSD", nil)
 // Ищет паттерн "число.число RSD" в тексте
 func cleanPrice(raw string) (float64, string, error) {
-	// Ищем паттерн "число.число RSD" или "число RSD"
-	// Примеры: "15.999 RSD", "16.999 RSD", "1.000.000 RSD"
+	text := strings.TrimSpace(raw)
+	if text == "" {
+		return 0, "", fmt.Errorf("empty price string")
+	}
 
-	// Сначала пробуем найти паттерн с точками и RSD
-	text := strings.ToUpper(raw)
+	upper := strings.ToUpper(text)
+	currency := "RSD"
+	if strings.Contains(upper, "EUR") {
+		currency = "EUR"
+	} else if strings.Contains(upper, "USD") {
+		currency = "USD"
+	} else if strings.Contains(upper, "DIN") || strings.Contains(upper, "RSD") {
+		currency = "RSD"
+	}
 
-	// Ищем "число.число RSD" - самый распространённый формат
-	// Паттерн: 1-3 цифры, точка, 3 цифры, пробел, RSD
-	idx := strings.Index(text, "RSD")
-	if idx > 0 {
-		// Ищем число перед RSD
-		beforeRSD := text[:idx]
-		// Ищем последнее число с точкой перед RSD
-		parts := strings.Fields(beforeRSD)
-		for i := len(parts) - 1; i >= 0; i-- {
-			part := strings.TrimSpace(parts[i])
-			// Проверяем, содержит ли часть точки и цифры
-			if strings.Contains(part, ".") && strings.ContainsAny(part, "0123456789") {
-				// Убираем все точки и пробуем распарсить
-				clean := strings.ReplaceAll(part, ".", "")
-				if val, err := strconv.ParseFloat(clean, 64); err == nil && val > 0 {
-					return val, "RSD", nil
-				}
-			}
+	var numBuilder strings.Builder
+	for _, r := range text {
+		if (r >= '0' && r <= '9') || r == '.' || r == ',' || r == ' ' {
+			numBuilder.WriteRune(r)
 		}
 	}
 
-	// Если не нашли, пробуем старый метод
-	clean := strings.ReplaceAll(raw, ".", "")
-	clean = strings.ReplaceAll(clean, "RSD", "")
-	clean = strings.ReplaceAll(clean, "DIN", "")
-	clean = strings.TrimSpace(clean)
-
-	// Убираем все нецифровые символы
-	var builder strings.Builder
-	for _, r := range clean {
-		if r >= '0' && r <= '9' {
-			builder.WriteRune(r)
-		}
-	}
-	clean = builder.String()
-
-	if clean == "" {
+	numStr := strings.ReplaceAll(numBuilder.String(), " ", "")
+	if numStr == "" {
 		return 0, "", fmt.Errorf("no numbers found in price string: '%s'", raw)
 	}
 
-	val, err := strconv.ParseFloat(clean, 64)
-	if err != nil {
-		return 0, "", fmt.Errorf("failed to parse price '%s' (cleaned: '%s'): %w", raw, clean, err)
+	lastDot := strings.LastIndex(numStr, ".")
+	lastComma := strings.LastIndex(numStr, ",")
+	decimalSep := ""
+	if lastDot >= 0 || lastComma >= 0 {
+		if lastDot > lastComma {
+			decimalSep = "."
+		} else {
+			decimalSep = ","
+		}
 	}
 
-	return val, "RSD", nil
+	var normalized string
+	if decimalSep == "" {
+		normalized = strings.ReplaceAll(strings.ReplaceAll(numStr, ".", ""), ",", "")
+	} else {
+		idx := strings.LastIndex(numStr, decimalSep)
+		intPart := numStr[:idx]
+		fracPart := numStr[idx+1:]
+		intPart = strings.ReplaceAll(intPart, ".", "")
+		intPart = strings.ReplaceAll(intPart, ",", "")
+		fracPart = strings.ReplaceAll(fracPart, ".", "")
+		fracPart = strings.ReplaceAll(fracPart, ",", "")
+		if fracPart == "" {
+			normalized = intPart
+		} else {
+			normalized = intPart + "." + fracPart
+		}
+	}
+
+	if normalized == "" {
+		return 0, "", fmt.Errorf("no numbers found in price string: '%s'", raw)
+	}
+
+	val, err := strconv.ParseFloat(normalized, 64)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to parse price '%s' (cleaned: '%s'): %w", raw, normalized, err)
+	}
+
+	return val, currency, nil
 }
+
 
 // recordScrapingStat сохраняет статистику парсинга, если сервис подключён
 func (s *Service) recordScrapingStat(stat *scrapingstats.ScrapingStat) {
