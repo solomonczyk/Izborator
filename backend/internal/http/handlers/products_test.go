@@ -2,12 +2,8 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/solomonczyk/izborator/internal/products"
 )
 
@@ -78,4 +74,3 @@ func TestProductsHandler_GetByID(t *testing.T) {
 func TestProductsHandler_Search(t *testing.T) {
 	t.Log("Handler test placeholder - requires full handler setup")
 }
-
