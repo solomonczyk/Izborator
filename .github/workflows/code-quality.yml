@@ -14,6 +14,31 @@ jobs:
   backend-check:
     name: Backend Code Quality
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: izborator_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d izborator_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: izborator_test
+      TEST_DB_HOST: localhost
+      TEST_DB_PORT: 5432
+      TEST_DB_USER: postgres
+      TEST_DB_PASSWORD: postgres
+      TEST_DB_NAME: izborator_test
     
     steps:
       - name: Checkout code
@@ -38,6 +63,13 @@ jobs:
           version: latest
           working-directory: ./backend
           args: --timeout=5m
+
+      - name: Run migrations
+        working-directory: ./backend
+        run: |
+          echo "Running test migrations..."
+          go run ./cmd/migrate/main.go
+          echo "Migrations finished"
 
       - name: Run tests
         working-directory: ./backend
