@@ -80,7 +80,8 @@ type Postgres struct {
 // NewPostgres создаёт новый клиент PostgreSQL (обёртка для обратной совместимости)
 func NewPostgres(cfg *config.DBConfig, log *logger.Logger) (*Postgres, error) {
 	// Используем контекст с таймаутом для инициализации
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx := context.Background()
+	connCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	log.Debug("Creating PostgreSQL connection", map[string]interface{}{
@@ -89,7 +90,7 @@ func NewPostgres(cfg *config.DBConfig, log *logger.Logger) (*Postgres, error) {
 		"database": cfg.Database,
 	})
 
-	repo, err := New(ctx, cfg, log)
+	repo, err := New(connCtx, cfg, log)
 	if err != nil {
 		log.Error("Failed to create PostgreSQL connection", map[string]interface{}{
 			"error": err.Error(),

@@ -1104,6 +1104,23 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 
 // isProductURL проверяет, является ли URL ссылкой на товар (а не на категорию)
 func (s *Service) isProductURL(url string, shopConfig *ShopConfig) bool {
+	urlLower := strings.ToLower(url)
+
+	if shopConfig != nil && strings.Contains(strings.ToLower(shopConfig.BaseURL), "gigatron.rs") {
+		baseURL := strings.TrimSuffix(strings.ToLower(shopConfig.BaseURL), "/")
+		if urlLower == baseURL || urlLower == baseURL+"/" {
+			return false
+		}
+		if strings.Contains(urlLower, "/kategorija/") {
+			path := strings.TrimPrefix(urlLower, baseURL)
+			parts := filterEmpty(strings.Split(path, "/"))
+			if len(parts) >= 3 {
+				return true
+			}
+			return false
+		}
+	}
+
 	// Исключаем URL категорий и других страниц
 	excludePatterns := []string{
 		"/kategorija/",
@@ -1120,25 +1137,9 @@ func (s *Service) isProductURL(url string, shopConfig *ShopConfig) bool {
 		"/page/",
 	}
 
-	urlLower := strings.ToLower(url)
 	for _, pattern := range excludePatterns {
 		if strings.Contains(urlLower, pattern) {
 			return false
-		}
-	}
-
-	// Для Gigatron: товары обычно имеют формат /kategorija/naziv-tovara
-	// Или содержат ID товара
-	if strings.Contains(shopConfig.BaseURL, "gigatron.rs") {
-		// Исключаем главную страницу и категории верхнего уровня
-		if url == shopConfig.BaseURL || url == shopConfig.BaseURL+"/" {
-			return false
-		}
-		// Товары обычно имеют более глубокий путь
-		parts := strings.Split(strings.TrimPrefix(url, shopConfig.BaseURL), "/")
-		parts = filterEmpty(parts)
-		if len(parts) >= 2 { // /kategorija/naziv-tovara
-			return true
 		}
 	}
 
