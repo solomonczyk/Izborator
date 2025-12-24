@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
+	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/http/validation"
 	"github.com/solomonczyk/izborator/internal/i18n"
@@ -52,7 +53,8 @@ func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	// Валидация поискового запроса
 	if err := validation.ValidateSearchQuery(query); err != nil {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_query")
+		appErr := appErrors.NewValidationError("Invalid search query", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -62,11 +64,8 @@ func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/api/v1/products/search" {
 		results, err := h.service.Search(ctx, query)
 		if err != nil {
-			h.logger.Error("search failed", map[string]interface{}{
-				"q":     query,
-				"error": err.Error(),
-			})
-			h.respondError(w, r, http.StatusInternalServerError, "api.errors.search_failed")
+			appErr := appErrors.NewInternalError("Search failed", err)
+			h.respondAppError(w, r, appErr)
 			return
 		}
 
@@ -95,7 +94,8 @@ func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.service.SearchWithPagination(ctx, query, limit, offset)
 	if err != nil {
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.search_failed")
+		appErr := appErrors.NewInternalError("Search failed", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -125,7 +125,8 @@ func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	// Валидация UUID
 	if err := validation.ValidateUUID(id); err != nil {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_product_id")
+		appErr := appErrors.NewValidationError("Invalid product ID format", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -135,19 +136,13 @@ func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	// 1. Получаем товар
 	product, err := h.service.GetByID(id)
 	if err != nil {
+		var appErr *appErrors.AppError
 		if err == products.ErrProductNotFound || err == products.ErrInvalidProductID {
-			h.logger.Error("GetProduct failed", map[string]interface{}{
-				"id":    id,
-				"error": err.Error(),
-			})
-			h.respondError(w, r, http.StatusNotFound, "api.errors.product_not_found")
-			return
+			appErr = appErrors.NewNotFound("Product not found")
+		} else {
+			appErr = appErrors.NewInternalError("Failed to load product", err)
 		}
-		h.logger.Error("GetProduct failed", map[string]interface{}{
-			"id":    id,
-			"error": err.Error(),
-		})
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.product_load_failed")
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -448,10 +443,8 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		Sort:        sort,
 	})
 	if err != nil {
-		h.logger.Error("browse failed", map[string]interface{}{
-			"error": err.Error(),
-		})
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.browse_failed")
+		appErr := appErrors.NewInternalError("Browse failed", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -498,5 +491,38 @@ func (h *ProductsHandler) respondError(w http.ResponseWriter, r *http.Request, s
 	}
 	h.respondJSON(w, status, map[string]string{
 		"error": message,
+	})
+}
+
+// respondAppError отправляет JSON ошибку из AppError
+func (h *ProductsHandler) respondAppError(w http.ResponseWriter, r *http.Request, err *appErrors.AppError) {
+	lang := httpMiddleware.GetLangFromContext(r.Context())
+	
+	// Пытаемся получить локализованное сообщение
+	messageKey := "api.errors." + err.Code
+	message := h.translator.T(lang, messageKey)
+	if message == messageKey || message == "" {
+		message = h.translator.T("en", messageKey)
+	}
+	if message == "" {
+		message = err.Message
+	}
+	
+	// Логируем оригинальную ошибку для отладки
+	if err.Err != nil {
+		h.logger.Error("App error occurred", map[string]interface{}{
+			"code":    err.Code,
+			"message": err.Message,
+			"error":   err.Err.Error(),
+		})
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(err.HTTPStatus)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": map[string]string{
+			"code":    err.Code,
+			"message": message,
+		},
 	})
 }
