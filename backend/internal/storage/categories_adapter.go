@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -11,21 +10,19 @@ import (
 
 // CategoriesAdapter адаптер для работы с категориями
 type CategoriesAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewCategoriesAdapter создаёт новый адаптер для категорий
 func NewCategoriesAdapter(pg *Postgres) categories.Storage {
 	return &CategoriesAdapter{
-		pg:  pg,
-		ctx: pg.Context(),
+		BaseAdapter: NewBaseAdapter(pg, nil),
 	}
 }
 
 // GetByID получает категорию по ID
 func (a *CategoriesAdapter) GetByID(id string) (*categories.Category, error) {
-	categoryUUID, err := uuid.Parse(id)
+	categoryUUID, err := a.ParseUUID(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid category ID: %w", err)
 	}
@@ -39,7 +36,7 @@ func (a *CategoriesAdapter) GetByID(id string) (*categories.Category, error) {
 	var cat categories.Category
 	var parentID *uuid.UUID
 
-	err = a.pg.DB().QueryRow(a.ctx, query, categoryUUID).Scan(
+	err = a.pg.DB().QueryRow(a.GetContext(), query, categoryUUID).Scan(
 		&cat.ID,
 		&parentID,
 		&cat.Slug,
@@ -77,7 +74,7 @@ func (a *CategoriesAdapter) GetBySlug(slug string) (*categories.Category, error)
 	var cat categories.Category
 	var parentID *uuid.UUID
 
-	err := a.pg.DB().QueryRow(a.ctx, query, slug).Scan(
+	err := a.pg.DB().QueryRow(a.GetContext(), query, slug).Scan(
 		&cat.ID,
 		&parentID,
 		&cat.Slug,
@@ -106,7 +103,7 @@ func (a *CategoriesAdapter) GetBySlug(slug string) (*categories.Category, error)
 
 // GetByParentID получает все подкатегории родительской категории
 func (a *CategoriesAdapter) GetByParentID(parentID string) ([]*categories.Category, error) {
-	parentUUID, err := uuid.Parse(parentID)
+	parentUUID, err := a.ParseUUID(parentID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid parent category ID: %w", err)
 	}
@@ -118,7 +115,7 @@ func (a *CategoriesAdapter) GetByParentID(parentID string) ([]*categories.Catego
 		ORDER BY sort_order, name_sr
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, parentUUID)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, parentUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get categories by parent: %w", err)
 	}
@@ -163,7 +160,7 @@ func (a *CategoriesAdapter) GetAllActive() ([]*categories.Category, error) {
 		ORDER BY sort_order, name_sr
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query)
+	rows, err := a.pg.DB().Query(a.GetContext(), query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all active categories: %w", err)
 	}
@@ -215,7 +212,7 @@ func (a *CategoriesAdapter) GetTree() ([]*categories.Category, error) {
 			name_sr
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query)
+	rows, err := a.pg.DB().Query(a.GetContext(), query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get categories tree: %w", err)
 	}
