@@ -256,11 +256,13 @@ func (a *MatchingAdapter) GetMatches(productID string) ([]*matching.ProductMatch
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}
 
+	// Оптимизированный запрос: использует индекс idx_product_matches_similarity
 	query := `
 		SELECT product_id, matched_id, similarity, confidence, matched_at
 		FROM product_matches
 		WHERE product_id = $1
 		ORDER BY similarity DESC, matched_at DESC
+		LIMIT 100
 	`
 
 	rows, err := a.pg.DB().Query(a.ctx, query, productUUID)

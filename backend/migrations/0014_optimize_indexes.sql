@@ -25,12 +25,28 @@ WHERE url IS NOT NULL AND updated_at IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_products_created_at ON products (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_products_updated_at ON products (updated_at DESC);
 
--- Индекс для matching (поиск похожих товаров)
-CREATE INDEX IF NOT EXISTS idx_products_name_lower ON products (LOWER(TRIM(name)));
-CREATE INDEX IF NOT EXISTS idx_products_brand_lower ON products (LOWER(TRIM(brand))) WHERE brand IS NOT NULL AND brand != '';
+-- Индексы для matching (поиск похожих товаров)
+-- Функциональные индексы для LOWER(TRIM()) операций
+CREATE INDEX IF NOT EXISTS idx_products_name_lower_trim ON products (LOWER(TRIM(name)));
+CREATE INDEX IF NOT EXISTS idx_products_brand_lower_trim ON products (LOWER(TRIM(brand))) WHERE brand IS NOT NULL AND brand != '';
+
+-- Индекс для product_matches
+CREATE INDEX IF NOT EXISTS idx_product_matches_product_id ON product_matches (product_id);
+CREATE INDEX IF NOT EXISTS idx_product_matches_similarity ON product_matches (product_id, similarity DESC);
+
+-- Индексы для categories
+CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories (parent_id) WHERE parent_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_categories_slug_active ON categories (slug) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_categories_active_sort ON categories (is_active, sort_order, name_sr) WHERE is_active = true;
+
+-- Индексы для cities
+CREATE INDEX IF NOT EXISTS idx_cities_slug_active ON cities (slug) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_cities_active_sort ON cities (is_active, sort_order, name_sr) WHERE is_active = true;
 
 -- Комментарии к индексам
 COMMENT ON INDEX idx_products_name_search IS 'Full-text search index for product names';
 COMMENT ON INDEX idx_products_brand_search IS 'Full-text search index for product brands';
 COMMENT ON INDEX idx_product_prices_rescrape IS 'Optimized index for rescraping outdated prices';
+COMMENT ON INDEX idx_products_name_lower_trim IS 'Functional index for matching queries with LOWER(TRIM(name))';
+COMMENT ON INDEX idx_product_matches_similarity IS 'Optimized index for GetMatches query';
 

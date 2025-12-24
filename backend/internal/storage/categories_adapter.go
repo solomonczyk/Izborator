@@ -200,63 +200,28 @@ func (a *CategoriesAdapter) GetAllActive() ([]*categories.Category, error) {
 }
 
 // GetTree получает дерево категорий (все корневые + их дети)
+// Оптимизировано: один запрос вместо двух
 func (a *CategoriesAdapter) GetTree() ([]*categories.Category, error) {
-	// Сначала получаем все корневые категории
-	rootQuery := `
+	// Оптимизированный запрос: получаем все активные категории одним запросом
+	// Используем UNION для объединения корневых и дочерних категорий
+	query := `
 		SELECT id, parent_id, slug, code, name_sr, name_sr_lc, level, is_active, sort_order
 		FROM categories
-		WHERE parent_id IS NULL AND is_active = true
-		ORDER BY sort_order, name_sr
+		WHERE is_active = true
+		ORDER BY 
+			CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END,
+			parent_id NULLS FIRST,
+			sort_order,
+			name_sr
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, rootQuery)
+	rows, err := a.pg.DB().Query(a.ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get root categories: %w", err)
+		return nil, fmt.Errorf("failed to get categories tree: %w", err)
 	}
 	defer rows.Close()
 
 	result := make([]*categories.Category, 0) // Явно инициализируем как пустой слайс, не nil
-	for rows.Next() {
-		var cat categories.Category
-		var parentID *uuid.UUID
-
-		if err := rows.Scan(
-			&cat.ID,
-			&parentID,
-			&cat.Slug,
-			&cat.Code,
-			&cat.NameSr,
-			&cat.NameSrLc,
-			&cat.Level,
-			&cat.IsActive,
-			&cat.SortOrder,
-		); err != nil {
-			continue
-		}
-
-		// Для корневых категорий parentID должен быть nil
-		if parentID != nil {
-			parentIDStr := parentID.String()
-			cat.ParentID = &parentIDStr
-		}
-
-		result = append(result, &cat)
-	}
-
-	// Затем получаем все подкатегории
-	childrenQuery := `
-		SELECT id, parent_id, slug, code, name_sr, name_sr_lc, level, is_active, sort_order
-		FROM categories
-		WHERE parent_id IS NOT NULL AND is_active = true
-		ORDER BY parent_id, sort_order, name_sr
-	`
-
-	rows, err = a.pg.DB().Query(a.ctx, childrenQuery)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get child categories: %w", err)
-	}
-	defer rows.Close()
-
 	for rows.Next() {
 		var cat categories.Category
 		var parentID *uuid.UUID
