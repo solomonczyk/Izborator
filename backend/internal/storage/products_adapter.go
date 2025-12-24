@@ -411,10 +411,21 @@ func (a *ProductsAdapter) GetProductPricesByCity(productID string, cityID string
 		return nil, fmt.Errorf("invalid city ID: %w", err)
 	}
 
+	// Оптимизированный запрос: использует UNION для эффективного использования индексов
 	query := `
-		SELECT product_id, shop_id, shop_name, price, currency, url, in_stock, updated_at
-		FROM product_prices
-		WHERE product_id = $1 AND (city_id = $2 OR city_id IS NULL)
+		(
+			SELECT product_id, shop_id, shop_name, price, currency, url, in_stock, updated_at
+			FROM product_prices
+			WHERE product_id = $1 AND city_id = $2
+			ORDER BY price ASC, updated_at DESC
+		)
+		UNION ALL
+		(
+			SELECT product_id, shop_id, shop_name, price, currency, url, in_stock, updated_at
+			FROM product_prices
+			WHERE product_id = $1 AND city_id IS NULL
+			ORDER BY price ASC, updated_at DESC
+		)
 		ORDER BY price ASC, updated_at DESC
 	`
 
@@ -759,14 +770,54 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 	var err error
 
 	if params.Query == "" {
-		// Если запрос пустой, получаем все товары напрямую
+		// Если запрос пустой, получаем товары с фильтрами и пагинацией
+		offset := (params.Page - 1) * params.PerPage
+		
+		// Строим запрос с фильтрами
 		querySQL := `
 			SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
 			FROM products
-			ORDER BY name
-			LIMIT $1
+			WHERE 1=1
 		`
-		rows, err := a.pg.DB().Query(a.ctx, querySQL, 1000)
+		args := []interface{}{}
+		argIndex := 1
+		
+		// Фильтр по category_id
+		if len(params.CategoryIDs) > 0 {
+			placeholders := make([]string, len(params.CategoryIDs))
+			for i, catID := range params.CategoryIDs {
+				placeholders[i] = fmt.Sprintf("$%d", argIndex)
+				args = append(args, catID)
+				argIndex++
+			}
+			querySQL += fmt.Sprintf(" AND category_id = ANY(ARRAY[%s])", strings.Join(placeholders, ","))
+		} else if params.CategoryID != nil {
+			querySQL += fmt.Sprintf(" AND category_id = $%d", argIndex)
+			args = append(args, *params.CategoryID)
+			argIndex++
+		}
+		
+		// Фильтр по brand (если нужен)
+		// Фильтр по shop_id будет применен позже через product_prices
+		
+		// Сортировка
+		switch params.Sort {
+		case "price_asc", "price_desc":
+			// Сортировка по цене требует JOIN с product_prices, делаем по имени
+			querySQL += " ORDER BY name ASC"
+		case "newest":
+			querySQL += " ORDER BY created_at DESC"
+		case "name_asc":
+			querySQL += " ORDER BY name ASC"
+		default:
+			querySQL += " ORDER BY name ASC"
+		}
+		
+		// Пагинация
+		querySQL += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
+		args = append(args, params.PerPage, offset)
+		
+		rows, err := a.pg.DB().Query(a.ctx, querySQL, args...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get products: %w", err)
 		}
