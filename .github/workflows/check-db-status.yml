@@ -1,0 +1,45 @@
+name: Check Database Status
+
+on:
+  workflow_dispatch: # Позволяет запускать вручную
+
+jobs:
+  check-db:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check Database Status
+        run: |
+          ssh -q -o LogLevel=ERROR root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd ~/Izborator
+            
+            # Обновляем код
+            git pull || true
+            
+            # Делаем скрипт исполняемым
+            chmod +x check-db-status.sh || true
+            
+            # Запускаем проверку
+            bash check-db-status.sh
+          EOF
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 📊 Проверка состояния базы данных" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Проверка выполнена. Смотри логи выше для деталей." >> $GITHUB_STEP_SUMMARY
+
