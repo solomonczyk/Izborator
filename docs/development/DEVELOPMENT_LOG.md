@@ -4957,3 +4957,7 @@ bash run-harvest.sh
 
 **CI/CD (2025-12-24):**
 - Fix: Browse handler now validates explicit page/per_page query params to return 400 for invalid pagination.
+
+
+**CI/CD (2025-12-24):**
+- Fix: Matching normalizeName now strips memory suffixes and similarity scoring handles memory/partial matches per tests.
