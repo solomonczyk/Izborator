@@ -108,9 +108,9 @@ func (s *Service) processRawProduct(ctx context.Context, raw *scraper.RawProduct
 	}
 
 	s.logger.Info("processor: matching result", map[string]interface{}{
-		"name":         normalized.Name,
+		"name":          normalized.Name,
 		"matches_count": matchResult.Count,
-		"matches":      matchResult.Matches,
+		"matches":       matchResult.Matches,
 	})
 
 	var (
@@ -128,7 +128,7 @@ func (s *Service) processRawProduct(ctx context.Context, raw *scraper.RawProduct
 	} else {
 		// Есть кандидаты - выбираем лучший по similarity
 		best := matchResult.Matches[0]
-		
+
 		// Проверяем точное совпадение (similarity >= 0.95) - это почти 100% уверенность
 		if best.Similarity >= 0.95 {
 			// Точное совпадение - используем существующий товар
@@ -198,6 +198,8 @@ func (s *Service) normalizeRawProduct(raw *scraper.RawProduct) *products.Product
 }
 
 // normalizeBrand нормализует название бренда
+// normalizeBrand нормализует название бренда (первая буква заглавная, остальные строчные)
+// Защита от паники: проверяет пустую строку перед доступом к символам
 func (s *Service) normalizeBrand(brand string) string {
 	brand = strings.TrimSpace(brand)
 	if brand == "" {
@@ -258,4 +260,3 @@ func (s *Service) savePriceForProduct(productID string, raw *scraper.RawProduct)
 
 	return nil
 }
-
