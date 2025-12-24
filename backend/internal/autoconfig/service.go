@@ -171,7 +171,6 @@ func (s *Service) findProductPage(domain string) (string, error) {
 		if strings.Contains(linkLower, "/collections/") || strings.Contains(linkLower, "/collection/") ||
 			strings.Contains(linkLower, "/category/") || strings.Contains(linkLower, "/kategorija/") ||
 			strings.Contains(linkLower, "/kategorije/") || strings.Contains(linkLower, "/categories/") {
-			score = -100
 			return
 		}
 

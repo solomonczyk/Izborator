@@ -3,16 +3,12 @@ package validation
 import (
 	"fmt"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 )
 
-var (
-	uuidRegex = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
-)
 
 // ValidateUUID проверяет, что строка является валидным UUID
 func ValidateUUID(id string) error {

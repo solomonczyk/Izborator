@@ -1,42 +1,8 @@
 package autoconfig
 
 import (
-	"context"
 	"testing"
 )
-
-// MockStorage мок для тестирования AutoConfig
-type mockAutoconfigStorage struct {
-	candidates []Candidate
-}
-
-func (m *mockAutoconfigStorage) GetClassifiedCandidates(limit int) ([]Candidate, error) {
-	if limit > len(m.candidates) {
-		limit = len(m.candidates)
-	}
-	return m.candidates[:limit], nil
-}
-
-func (m *mockAutoconfigStorage) MarkAsFailed(id, reason string) error {
-	return nil
-}
-
-func (m *mockAutoconfigStorage) MarkAsConfigured(id string, config ShopConfig) error {
-	return nil
-}
-
-// MockAI мок для AI клиента
-type mockAI struct {
-	selectorsJSON string
-	err           error
-}
-
-func (m *mockAI) GenerateSelectors(ctx context.Context, html string) (string, error) {
-	if m.err != nil {
-		return "", m.err
-	}
-	return m.selectorsJSON, nil
-}
 
 func TestCleanHTML(t *testing.T) {
 	tests := []struct {
@@ -72,9 +38,8 @@ func TestCleanHTML(t *testing.T) {
 				t.Errorf("CleanHTML() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			// Проверяем, что скрипты удалены (упрощенная проверка)
-			if len(result) > 0 && len(result) < len(tt.input) {
-				// HTML был очищен
+			if result != tt.expected {
+				t.Errorf("CleanHTML() = %q, want %q", result, tt.expected)
 			}
 		})
 	}
