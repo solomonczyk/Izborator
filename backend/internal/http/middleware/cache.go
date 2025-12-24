@@ -86,7 +86,7 @@ func CacheMiddleware(redisClient *redis.Client, log *logger.Logger, ttl time.Dur
 				go func() {
 					cacheCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 					defer cancel()
-					
+
 					data, err := response.Marshal()
 					if err == nil {
 						if err := redisClient.Set(cacheCtx, cacheKey, data, ttl).Err(); err != nil {
@@ -114,9 +114,9 @@ func generateCacheKey(r *http.Request) string {
 // responseRecorder записывает ответ для кэширования
 type responseRecorder struct {
 	http.ResponseWriter
-	statusCode int
-	body       *bytes.Buffer
-	headers    http.Header
+	statusCode  int
+	body        *bytes.Buffer
+	headers     http.Header
 	wroteHeader bool
 }
 
@@ -130,7 +130,7 @@ func (r *responseRecorder) WriteHeader(code int) {
 	}
 	r.statusCode = code
 	r.wroteHeader = true
-	
+
 	// Копируем заголовки в оригинальный ResponseWriter
 	for k, v := range r.headers {
 		r.ResponseWriter.Header()[k] = v
@@ -163,4 +163,3 @@ func (c *cachedResponse) Marshal() ([]byte, error) {
 func (c *cachedResponse) Unmarshal(data []byte) error {
 	return json.Unmarshal(data, c)
 }
-

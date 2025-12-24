@@ -32,4 +32,3 @@ func RequestLogger(log *logger.Logger) func(next http.Handler) http.Handler {
 		})
 	}
 }
-

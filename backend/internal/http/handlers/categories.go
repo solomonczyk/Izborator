@@ -49,7 +49,7 @@ func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 
 	// Преобразуем в JSON структуру с children
 	result := h.buildTree(tree)
-	
+
 	// Убеждаемся, что возвращаем массив, даже если пустой
 	// Всегда создаем новый слайс явно
 	var finalResult []CategoryNode
@@ -143,7 +143,7 @@ type CategoryNode struct {
 func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	
+
 	// Специальная обработка для []CategoryNode - всегда возвращаем массив
 	if slice, ok := data.([]CategoryNode); ok {
 		// Если это слайс категорий, всегда сериализуем как массив
@@ -164,13 +164,13 @@ func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data 
 		_, _ = w.Write(jsonBytes)
 		return
 	}
-	
+
 	// Для других типов используем стандартную сериализацию
 	if data == nil {
 		_, _ = w.Write([]byte("[]\n"))
 		return
 	}
-	
+
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
 		h.logger.Error("Failed to marshal JSON response", map[string]interface{}{
@@ -179,7 +179,7 @@ func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data 
 		_, _ = w.Write([]byte("[]\n"))
 		return
 	}
-	
+
 	_, _ = w.Write(jsonBytes)
 }
 

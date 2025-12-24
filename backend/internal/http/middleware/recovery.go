@@ -11,4 +11,3 @@ import (
 func Recovery(log *logger.Logger) func(next http.Handler) http.Handler {
 	return middleware.Recoverer
 }
-

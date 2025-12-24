@@ -72,7 +72,7 @@ func (h *StatsHandler) GetShopStats(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.GetShopStats(shopID, days)
 	if err != nil {
 		h.logger.Error("GetShopStats failed", map[string]interface{}{
-			"error":  err.Error(),
+			"error":   err.Error(),
 			"shop_id": shopID,
 			"days":    days,
 		})
@@ -135,4 +135,3 @@ func (h *StatsHandler) respondError(w http.ResponseWriter, r *http.Request, stat
 		"error": message,
 	})
 }
-

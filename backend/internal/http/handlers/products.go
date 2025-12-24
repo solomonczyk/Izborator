@@ -11,6 +11,7 @@ import (
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
+	"github.com/solomonczyk/izborator/internal/http/validation"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
 	"github.com/solomonczyk/izborator/internal/pricehistory"
@@ -46,6 +47,12 @@ func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
 		h.respondError(w, r, http.StatusBadRequest, "api.errors.missing_query")
+		return
+	}
+
+	// Валидация поискового запроса
+	if err := validation.ValidateSearchQuery(query); err != nil {
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_query")
 		return
 	}
 
@@ -113,6 +120,12 @@ func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	if id == "" {
 		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
+		return
+	}
+
+	// Валидация UUID
+	if err := validation.ValidateUUID(id); err != nil {
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_product_id")
 		return
 	}
 
@@ -353,8 +366,11 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 
 	page := parseIntDefault(q.Get("page"), 1)
 	perPage := parseIntDefault(q.Get("per_page"), 20)
-	if perPage > 100 {
-		perPage = 100
+
+	// Валидация пагинации
+	if err := validation.ValidatePagination(page, perPage); err != nil {
+		h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_pagination")
+		return
 	}
 
 	var (

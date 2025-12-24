@@ -15,7 +15,7 @@ const LangKey LangContextKey = "lang"
 func DetectLanguage(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lang := detectLanguageFromRequest(r)
-		
+
 		// Сохраняем язык в контексте
 		ctx := context.WithValue(r.Context(), LangKey, lang)
 		next.ServeHTTP(w, r.WithContext(ctx))
@@ -64,7 +64,7 @@ func parseAcceptLanguage(header string) []string {
 // normalizeLang нормализует код языка
 func normalizeLang(lang string) string {
 	lang = strings.ToLower(strings.TrimSpace(lang))
-	
+
 	// Убираем регион (например, "sr-RS" -> "sr")
 	if idx := strings.Index(lang, "-"); idx > 0 {
 		lang = lang[:idx]
@@ -92,4 +92,3 @@ func GetLangFromContext(ctx context.Context) string {
 	}
 	return "en"
 }
-

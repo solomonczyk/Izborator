@@ -185,11 +185,11 @@ Get-ChildItem -Path . -Filter "do-*.sh" | ForEach-Object {
 }
 
 Write-Host ""
-Write-Host "✅ Организация завершена!" -ForegroundColor Green
+Write-Host "✅ Organization completed!" -ForegroundColor Green
 Write-Host ""
-Write-Host "📝 Следующие шаги:" -ForegroundColor Cyan
-Write-Host "  1. Проверьте перемещенные файлы"
-Write-Host "  2. Обновите ссылки в документации"
-Write-Host "  3. Обновите .gitignore при необходимости"
-Write-Host "  4. Закоммитьте изменения"
+Write-Host "📝 Next steps:" -ForegroundColor Cyan
+Write-Host "  1. Check moved files"
+Write-Host "  2. Update links in documentation"
+Write-Host "  3. Update .gitignore if needed"
+Write-Host "  4. Commit changes"
 
