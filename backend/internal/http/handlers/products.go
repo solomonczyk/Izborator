@@ -360,8 +360,18 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	minPriceStr := q.Get("min_price")
 	maxPriceStr := q.Get("max_price")
 
-	page := h.ParseIntParam(q.Get("page"), 1)
-	perPage := h.ParseIntParam(q.Get("per_page"), 20)
+	page, err := validation.ParseIntParam(q, "page", 1)
+	if err != nil {
+		appErr := appErrors.NewValidationError("Invalid page parameter", err)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+	perPage, err := validation.ParseIntParam(q, "per_page", 20)
+	if err != nil {
+		appErr := appErrors.NewValidationError("Invalid per_page parameter", err)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
 
 	// Валидация пагинации
 	if err := validation.ValidatePagination(page, perPage); err != nil {
