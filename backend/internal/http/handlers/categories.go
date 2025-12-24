@@ -135,4 +135,3 @@ type CategoryNode struct {
 	SortOrder int            `json:"sort_order"`
 	Children  []CategoryNode `json:"children,omitempty"`
 }
-

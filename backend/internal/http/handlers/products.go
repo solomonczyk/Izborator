@@ -346,7 +346,6 @@ func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 	}
 }
 
-
 // Browse обрабатывает каталог товаров с фильтрами
 // GET /api/v1/products/browse?query=motorola&category=phones&min_price=10000&max_price=30000&shop_id=...&page=1&per_page=20&sort=price_asc
 func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
@@ -494,5 +493,3 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 
 	h.RespondJSON(w, http.StatusOK, res)
 }
-
-
