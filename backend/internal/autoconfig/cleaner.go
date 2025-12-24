@@ -13,38 +13,26 @@ func CleanHTML(rawHTML string) (string, error) {
 		return "", err
 	}
 
-	// Удаляем мусор
 	doc.Find("script, style, iframe, noscript, svg, footer, header, nav").Remove()
 
-	// Очищаем комментарии (goquery их не парсит, но на всякий случай)
-	// Основная очистка через удаление ненужных элементов
-
-	// Для MVP просто берем body и обрезаем, если слишком длинно
 	body := doc.Find("body")
+	var text string
 	if body.Length() == 0 {
-		// Если body нет, берем весь документ
-		html, _ := doc.Html()
-		return truncateHTML(html), nil
+		text = doc.Text()
+	} else {
+		text = body.Text()
 	}
-
-	html, _ := body.Html()
-
-	// Простое обрезание по длине (например, 20000 символов),
-	// чтобы влезть в дешевый контекст. Обычно цена и имя в начале body.
-	return truncateHTML(html), nil
+	text = strings.TrimSpace(text)
+	text = strings.Join(strings.Fields(text), " ")
+	return truncateHTML(text), nil
 }
+
 
 // truncateHTML обрезает HTML до разумного размера
 func truncateHTML(html string) string {
 	if len(html) > 20000 {
-		// Обрезаем, но стараемся не обрезать посередине тега
-		truncated := html[:20000]
-		// Находим последний закрывающий тег
-		lastTag := strings.LastIndex(truncated, ">")
-		if lastTag > 0 {
-			truncated = truncated[:lastTag+1]
-		}
-		return truncated
+		return html[:20000]
 	}
 	return html
 }
+

@@ -4949,3 +4949,7 @@ bash run-harvest.sh
 
 **CI/CD (2025-12-24):**
 - Reviewed Code Quality Check #59 logs; Run tests failure cause not visible in provided snippet. Requested full error segment from the failing step.
+
+
+**CI/CD (2025-12-24):**
+- Fix: CleanHTML now returns cleaned text content to satisfy TestCleanHTML.
