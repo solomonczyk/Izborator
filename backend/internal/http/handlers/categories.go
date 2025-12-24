@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/solomonczyk/izborator/internal/categories"
-	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"

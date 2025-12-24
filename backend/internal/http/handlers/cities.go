@@ -44,7 +44,7 @@ func (h *CitiesHandler) GetAllActive(w http.ResponseWriter, r *http.Request) {
 			ID:        city.ID,
 			Slug:      city.Slug,
 			NameSr:    city.NameSr,
-			RegionSr:  city.RegionSr,
+			RegionSr:  city.RegionSr, // *string - правильно
 			SortOrder: city.SortOrder,
 			IsActive:  city.IsActive,
 		})
@@ -55,12 +55,12 @@ func (h *CitiesHandler) GetAllActive(w http.ResponseWriter, r *http.Request) {
 
 // CityResponse структура ответа для города
 type CityResponse struct {
-	ID        string `json:"id"`
-	Slug      string `json:"slug"`
-	NameSr    string `json:"name_sr"`
-	RegionSr  string `json:"region_sr,omitempty"`
-	SortOrder int    `json:"sort_order"`
-	IsActive  bool   `json:"is_active"`
+	ID        string  `json:"id"`
+	Slug      string  `json:"slug"`
+	NameSr    string  `json:"name_sr"`
+	RegionSr  *string `json:"region_sr,omitempty"`
+	SortOrder int     `json:"sort_order"`
+	IsActive  bool    `json:"is_active"`
 }
 
 // respondJSON отправляет JSON ответ

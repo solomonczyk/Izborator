@@ -1,11 +1,9 @@
 package storage
 
 import (
-	"context"
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/solomonczyk/izborator/internal/products"
 )
 
 // TestProductsAdapter_GetProduct тестирует получение товара по ID
