@@ -53,6 +53,7 @@ func TestProductsHandler_GetByID_Integration(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
+	storage.EnsureTestShop(t, pg, price.ShopID, price.ShopName)
 	if err := productsStorage.SaveProductPrice(price); err != nil {
 		t.Fatalf("Failed to save price: %v", err)
 	}
@@ -240,6 +241,7 @@ func TestProductsHandler_Browse_Integration(t *testing.T) {
 			UpdatedAt: time.Now(),
 		}
 
+		storage.EnsureTestShop(t, pg, price.ShopID, price.ShopName)
 		if err := productsStorage.SaveProductPrice(price); err != nil {
 			t.Fatalf("Failed to save price: %v", err)
 		}
@@ -348,6 +350,7 @@ func TestProductsHandler_GetPrices_Integration(t *testing.T) {
 	}
 
 	for _, price := range prices {
+		storage.EnsureTestShop(t, pg, price.ShopID, price.ShopName)
 		if err := productsStorage.SaveProductPrice(price); err != nil {
 			t.Fatalf("Failed to save price: %v", err)
 		}
