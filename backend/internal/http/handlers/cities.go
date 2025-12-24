@@ -44,7 +44,7 @@ func (h *CitiesHandler) GetAllActive(w http.ResponseWriter, r *http.Request) {
 			ID:        city.ID,
 			Slug:      city.Slug,
 			NameSr:    city.NameSr,
-			RegionSr:  city.RegionSr, // *string - правильно
+			RegionSr:  city.RegionSr,
 			SortOrder: city.SortOrder,
 			IsActive:  city.IsActive,
 		})

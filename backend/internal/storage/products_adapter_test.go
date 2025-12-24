@@ -2,8 +2,6 @@ package storage
 
 import (
 	"testing"
-
-	"github.com/google/uuid"
 )
 
 // TestProductsAdapter_GetProduct тестирует получение товара по ID
@@ -17,10 +15,8 @@ func TestProductsAdapter_GetProduct(t *testing.T) {
 	// pg := setupTestDB(t)
 	// adapter := NewProductsAdapter(pg, nil, nil)
 	
-	// Создаем тестовый UUID
-	testID := uuid.New().String()
-	
-	// Тест: несуществующий товар
+	// TODO: Настроить тестовую БД и реализовать тест
+	// testID := uuid.New().String()
 	// product, err := adapter.GetProduct(testID)
 	// if err == nil {
 	// 	t.Errorf("Expected error for non-existent product, got nil")
@@ -29,7 +25,6 @@ func TestProductsAdapter_GetProduct(t *testing.T) {
 	// 	t.Errorf("Expected ErrProductNotFound, got %v", err)
 	// }
 	
-	_ = testID
 	t.Log("Integration test placeholder - requires test DB setup")
 }
 
