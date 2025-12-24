@@ -1,28 +1,24 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/solomonczyk/izborator/internal/categories"
-	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
 )
 
 // CategoriesHandler обработчик для работы с категориями
 type CategoriesHandler struct {
-	service    *categories.Service
-	logger     *logger.Logger
-	translator *i18n.Translator
+	*BaseHandler
+	service *categories.Service
 }
 
 // NewCategoriesHandler создаёт новый обработчик категорий
 func NewCategoriesHandler(service *categories.Service, log *logger.Logger, translator *i18n.Translator) *CategoriesHandler {
 	return &CategoriesHandler{
-		service:    service,
-		logger:     log,
-		translator: translator,
+		BaseHandler: NewBaseHandler(log, translator),
+		service:     service,
 	}
 }
 
@@ -37,14 +33,14 @@ func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 			"error": err.Error(),
 		})
 		emptyArray := []CategoryNode{}
-		h.respondJSON(w, http.StatusOK, emptyArray)
+		h.RespondJSON(w, http.StatusOK, emptyArray)
 		return
 	}
 
 	// Если нет категорий, сразу возвращаем пустой массив
 	if len(tree) == 0 {
 		emptyArray := []CategoryNode{}
-		h.respondJSON(w, http.StatusOK, emptyArray)
+		h.RespondJSON(w, http.StatusOK, emptyArray)
 		return
 	}
 
@@ -60,7 +56,7 @@ func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 		finalResult = append([]CategoryNode{}, result...)
 	}
 
-	h.respondJSON(w, http.StatusOK, finalResult)
+	h.RespondJSON(w, http.StatusOK, finalResult)
 }
 
 // buildTree строит иерархическое дерево из плоского списка
@@ -140,63 +136,3 @@ type CategoryNode struct {
 	Children  []CategoryNode `json:"children,omitempty"`
 }
 
-// respondJSON отправляет JSON ответ
-func (h *CategoriesHandler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-
-	// Специальная обработка для []CategoryNode - всегда возвращаем массив
-	if slice, ok := data.([]CategoryNode); ok {
-		// Если это слайс категорий, всегда сериализуем как массив
-		if len(slice) == 0 {
-			// Явно пишем пустой массив
-			_, _ = w.Write([]byte("[]\n"))
-			return
-		}
-		// Сериализуем непустой слайс
-		jsonBytes, err := json.Marshal(slice)
-		if err != nil {
-			h.logger.Error("Failed to marshal JSON response", map[string]interface{}{
-				"error": err,
-			})
-			_, _ = w.Write([]byte("[]\n"))
-			return
-		}
-		_, _ = w.Write(jsonBytes)
-		return
-	}
-
-	// Для других типов используем стандартную сериализацию
-	if data == nil {
-		_, _ = w.Write([]byte("[]\n"))
-		return
-	}
-
-	jsonBytes, err := json.Marshal(data)
-	if err != nil {
-		h.logger.Error("Failed to marshal JSON response", map[string]interface{}{
-			"error": err,
-		})
-		_, _ = w.Write([]byte("[]\n"))
-		return
-	}
-
-	_, _ = w.Write(jsonBytes)
-}
-
-// respondError отправляет JSON ошибку
-// Используется для обработки ошибок в будущем
-func (h *CategoriesHandler) respondError(w http.ResponseWriter, r *http.Request, status int, key string) { //nolint:unused
-	lang := httpMiddleware.GetLangFromContext(r.Context())
-	message := h.translator.T(lang, key)
-	if message == key || message == "" {
-		// fallback на английский
-		message = h.translator.T("en", key)
-		if message == "" {
-			message = key
-		}
-	}
-	h.respondJSON(w, status, map[string]string{
-		"error": message,
-	})
-}

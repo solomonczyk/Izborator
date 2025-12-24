@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
 	appErrors "github.com/solomonczyk/izborator/internal/errors"
-	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/http/validation"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
@@ -21,23 +19,21 @@ import (
 
 // ProductsHandler обработчик для работы с товарами
 type ProductsHandler struct {
+	*BaseHandler
 	service         *products.Service
 	priceHistorySvc *pricehistory.Service
 	categoriesSvc   *categories.Service
 	citiesSvc       *cities.Service
-	logger          *logger.Logger
-	translator      *i18n.Translator
 }
 
 // NewProductsHandler создаёт новый обработчик товаров
 func NewProductsHandler(service *products.Service, priceHistorySvc *pricehistory.Service, categoriesSvc *categories.Service, citiesSvc *cities.Service, log *logger.Logger, translator *i18n.Translator) *ProductsHandler {
 	return &ProductsHandler{
+		BaseHandler:     NewBaseHandler(log, translator),
 		service:         service,
 		priceHistorySvc: priceHistorySvc,
 		categoriesSvc:   categoriesSvc,
 		citiesSvc:       citiesSvc,
-		logger:          log,
-		translator:      translator,
 	}
 }
 
@@ -48,14 +44,14 @@ func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
 		appErr := appErrors.NewValidationError("Search query is required", nil)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
 	// Валидация поискового запроса
 	if err := validation.ValidateSearchQuery(query); err != nil {
 		appErr := appErrors.NewValidationError("Invalid search query", err)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -66,11 +62,11 @@ func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 		results, err := h.service.Search(ctx, query)
 		if err != nil {
 			appErr := appErrors.NewInternalError("Search failed", err)
-			h.respondAppError(w, r, appErr)
+			h.RespondAppError(w, r, appErr)
 			return
 		}
 
-		h.respondJSON(w, http.StatusOK, results)
+		h.RespondJSON(w, http.StatusOK, results)
 		return
 	}
 
@@ -96,11 +92,11 @@ func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 	result, err := h.service.SearchWithPagination(ctx, query, limit, offset)
 	if err != nil {
 		appErr := appErrors.NewInternalError("Search failed", err)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
-	h.respondJSON(w, http.StatusOK, result)
+	h.RespondJSON(w, http.StatusOK, result)
 }
 
 // ProductResponse структура ответа для GetByID (товар + цены)
@@ -121,14 +117,14 @@ func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 
 	if id == "" {
 		appErr := appErrors.NewValidationError("Product ID is required", nil)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
 	// Валидация UUID
 	if err := validation.ValidateUUID(id); err != nil {
 		appErr := appErrors.NewValidationError("Invalid product ID format", err)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -144,7 +140,7 @@ func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		} else {
 			appErr = appErrors.NewInternalError("Failed to load product", err)
 		}
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -170,7 +166,7 @@ func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		Prices:   prices,
 	}
 
-	h.respondJSON(w, http.StatusOK, resp)
+	h.RespondJSON(w, http.StatusOK, resp)
 }
 
 // GetPrices обрабатывает получение цен товара из разных магазинов
@@ -180,14 +176,14 @@ func (h *ProductsHandler) GetPrices(w http.ResponseWriter, r *http.Request) {
 
 	if id == "" {
 		appErr := appErrors.NewValidationError("Product ID is required", nil)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
 	// Валидация UUID
 	if err := validation.ValidateUUID(id); err != nil {
 		appErr := appErrors.NewValidationError("Invalid product ID format", err)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -199,7 +195,7 @@ func (h *ProductsHandler) GetPrices(w http.ResponseWriter, r *http.Request) {
 		} else {
 			appErr = appErrors.NewInternalError("Failed to get prices", err)
 		}
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -208,7 +204,7 @@ func (h *ProductsHandler) GetPrices(w http.ResponseWriter, r *http.Request) {
 		"prices":     prices,
 	}
 
-	h.respondJSON(w, http.StatusOK, result)
+	h.RespondJSON(w, http.StatusOK, result)
 }
 
 // GetPriceHistory обрабатывает получение истории цен товара
@@ -218,14 +214,14 @@ func (h *ProductsHandler) GetPriceHistory(w http.ResponseWriter, r *http.Request
 
 	if id == "" {
 		appErr := appErrors.NewValidationError("Product ID is required", nil)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
 	// Валидация UUID
 	if err := validation.ValidateUUID(id); err != nil {
 		appErr := appErrors.NewValidationError("Invalid product ID format", err)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -253,7 +249,7 @@ func (h *ProductsHandler) GetPriceHistory(w http.ResponseWriter, r *http.Request
 	chart, err := h.priceHistorySvc.GetPriceChart(id, period, shopIDs)
 	if err != nil {
 		appErr := appErrors.NewInternalError("Failed to get price history", err)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -270,7 +266,7 @@ func (h *ProductsHandler) GetPriceHistory(w http.ResponseWriter, r *http.Request
 		"stats":      stats,
 	}
 
-	h.respondJSON(w, http.StatusOK, result)
+	h.RespondJSON(w, http.StatusOK, result)
 }
 
 // PriceStats статистика цен
@@ -350,16 +346,6 @@ func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 	}
 }
 
-// respondJSON отправляет JSON ответ
-func (h *ProductsHandler) respondJSON(w http.ResponseWriter, status int, data interface{}) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(data); err != nil {
-		h.logger.Error("Failed to encode JSON response", map[string]interface{}{
-			"error": err,
-		})
-	}
-}
 
 // Browse обрабатывает каталог товаров с фильтрами
 // GET /api/v1/products/browse?query=motorola&category=phones&min_price=10000&max_price=30000&shop_id=...&page=1&per_page=20&sort=price_asc
@@ -375,13 +361,13 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	minPriceStr := q.Get("min_price")
 	maxPriceStr := q.Get("max_price")
 
-	page := parseIntDefault(q.Get("page"), 1)
-	perPage := parseIntDefault(q.Get("per_page"), 20)
+	page := h.ParseIntParam(q.Get("page"), 1)
+	perPage := h.ParseIntParam(q.Get("per_page"), 20)
 
 	// Валидация пагинации
 	if err := validation.ValidatePagination(page, perPage); err != nil {
 		appErr := appErrors.NewValidationError("Invalid pagination parameters", err)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -395,13 +381,13 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		if v, err := strconv.ParseFloat(minPriceStr, 64); err == nil {
 			if err := validation.ValidatePrice(v); err != nil {
 				appErr := appErrors.NewValidationError("Invalid min_price", err)
-				h.respondAppError(w, r, appErr)
+				h.RespondAppError(w, r, appErr)
 				return
 			}
 			minPrice = &v
 		} else {
 			appErr := appErrors.NewValidationError("Invalid min_price format", err)
-			h.respondAppError(w, r, appErr)
+			h.RespondAppError(w, r, appErr)
 			return
 		}
 	}
@@ -409,13 +395,13 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		if v, err := strconv.ParseFloat(maxPriceStr, 64); err == nil {
 			if err := validation.ValidatePrice(v); err != nil {
 				appErr := appErrors.NewValidationError("Invalid max_price", err)
-				h.respondAppError(w, r, appErr)
+				h.RespondAppError(w, r, appErr)
 				return
 			}
 			maxPrice = &v
 		} else {
 			appErr := appErrors.NewValidationError("Invalid max_price format", err)
-			h.respondAppError(w, r, appErr)
+			h.RespondAppError(w, r, appErr)
 			return
 		}
 	}
@@ -423,7 +409,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	// Проверка, что min_price <= max_price
 	if minPrice != nil && maxPrice != nil && *minPrice > *maxPrice {
 		appErr := appErrors.NewValidationError("min_price cannot be greater than max_price", nil)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -487,7 +473,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		appErr := appErrors.NewInternalError("Browse failed", err)
-		h.respondAppError(w, r, appErr)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 
@@ -506,50 +492,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	h.respondJSON(w, http.StatusOK, res)
+	h.RespondJSON(w, http.StatusOK, res)
 }
 
-// parseIntDefault парсит строку в int с значением по умолчанию
-func parseIntDefault(s string, def int) int {
-	if s == "" {
-		return def
-	}
-	v, err := strconv.Atoi(s)
-	if err != nil || v <= 0 {
-		return def
-	}
-	return v
-}
 
-// respondAppError отправляет JSON ошибку из AppError
-func (h *ProductsHandler) respondAppError(w http.ResponseWriter, r *http.Request, err *appErrors.AppError) {
-	lang := httpMiddleware.GetLangFromContext(r.Context())
-
-	// Пытаемся получить локализованное сообщение
-	messageKey := "api.errors." + err.Code
-	message := h.translator.T(lang, messageKey)
-	if message == messageKey || message == "" {
-		message = h.translator.T("en", messageKey)
-	}
-	if message == "" {
-		message = err.Message
-	}
-
-	// Логируем оригинальную ошибку для отладки
-	if err.Err != nil {
-		h.logger.Error("App error occurred", map[string]interface{}{
-			"code":    err.Code,
-			"message": err.Message,
-			"error":   err.Err.Error(),
-		})
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(err.HTTPStatus)
-	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"error": map[string]string{
-			"code":    err.Code,
-			"message": message,
-		},
-	})
-}

@@ -1,1 +1,0 @@
-Fix UpdatePotentialShop: handle NULL metadata and improve error logging
