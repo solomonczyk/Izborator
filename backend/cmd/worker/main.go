@@ -91,10 +91,10 @@ func main() {
 		go func() {
 			// Сразу при старте сделаем один прогон всего
 			log.Info("Running initial startup tasks...", nil)
-			runCatalogDiscovery(ctx, application, log) // Обнаружение новых товаров в каталогах
-			runMonitoring(ctx, application, log)       // Скрапинг списка
-			runProcessor(ctx, application, *batchSize, log)  // Процессинг
-			runReindex(ctx, application, log)          // Индексация
+			runCatalogDiscovery(ctx, application, log)      // Обнаружение новых товаров в каталогах
+			runMonitoring(ctx, application, log)            // Скрапинг списка
+			runProcessor(ctx, application, *batchSize, log) // Процессинг
+			runReindex(ctx, application, log)               // Индексация
 
 			for {
 				select {
@@ -104,7 +104,7 @@ func main() {
 				case <-scrapeTicker.C:
 					log.Info("⏰ Scheduled scraping started", nil)
 					runCatalogDiscovery(ctx, application, log) // Обнаружение новых товаров
-					runMonitoring(ctx, application, log)        // Обновление цен
+					runMonitoring(ctx, application, log)       // Обновление цен
 					// После скрапинга логично обновить индекс
 					runReindex(ctx, application, log)
 
@@ -117,8 +117,26 @@ func main() {
 		// Блокируем main, пока не придет сигнал стоп
 		<-stop
 		log.Info("Shutting down daemon...", nil)
+
+		// Отменяем контекст для остановки всех горутин
+		cancel()
+
+		// Останавливаем тикеры
 		processTicker.Stop()
 		scrapeTicker.Stop()
+
+		// Даем время на завершение активных задач (graceful shutdown)
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer shutdownCancel()
+
+		// Ждем завершения с таймаутом
+		select {
+		case <-shutdownCtx.Done():
+			log.Info("Graceful shutdown completed", nil)
+		case <-time.After(30 * time.Second):
+			log.Warn("Shutdown timeout reached, forcing exit", nil)
+		}
+
 		return
 	}
 
@@ -254,13 +272,13 @@ func runCatalogDiscovery(ctx context.Context, app *app.App, log *logger.Logger) 
 
 		// Получаем URL каталога из конфига
 		catalogURL := shop.Selectors["catalog_url"]
-		
+
 		// Если catalog_url не указан, пробуем использовать base_url как точку входа
 		if catalogURL == "" {
 			log.Info("No catalog_url configured, trying base_url", map[string]interface{}{"shop": shop.Name})
 			catalogURL = shop.BaseURL
 		}
-		
+
 		if catalogURL == "" {
 			log.Info("No catalog URL available, skipping", map[string]interface{}{"shop": shop.Name})
 			continue
@@ -287,7 +305,7 @@ func runCatalogDiscovery(ctx context.Context, app *app.App, log *logger.Logger) 
 		}
 
 		log.Info("Found products in catalog", map[string]interface{}{
-			"shop":       shop.Name,
+			"shop":        shop.Name,
 			"total_found": result.TotalFound,
 		})
 
