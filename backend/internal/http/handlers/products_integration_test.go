@@ -151,7 +151,7 @@ func TestProductsHandler_Search_Integration(t *testing.T) {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode)
 		}
 
-		var result []products.Product
+		var result []*products.Product
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			t.Fatalf("Failed to decode response: %v", err)
 		}
