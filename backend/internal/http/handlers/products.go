@@ -47,7 +47,8 @@ func NewProductsHandler(service *products.Service, priceHistorySvc *pricehistory
 func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
 	if query == "" {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.missing_query")
+		appErr := appErrors.NewValidationError("Search query is required", nil)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -119,7 +120,8 @@ func (h *ProductsHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if id == "" {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
+		appErr := appErrors.NewValidationError("Product ID is required", nil)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -177,17 +179,27 @@ func (h *ProductsHandler) GetPrices(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if id == "" {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
+		appErr := appErrors.NewValidationError("Product ID is required", nil)
+		h.respondAppError(w, r, appErr)
+		return
+	}
+
+	// Валидация UUID
+	if err := validation.ValidateUUID(id); err != nil {
+		appErr := appErrors.NewValidationError("Invalid product ID format", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
 	prices, err := h.service.GetPrices(id)
 	if err != nil {
+		var appErr *appErrors.AppError
 		if err == products.ErrInvalidProductID {
-			h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
-			return
+			appErr = appErrors.NewValidationError("Invalid product ID", err)
+		} else {
+			appErr = appErrors.NewInternalError("Failed to get prices", err)
 		}
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.internal")
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -205,7 +217,15 @@ func (h *ProductsHandler) GetPriceHistory(w http.ResponseWriter, r *http.Request
 	id := chi.URLParam(r, "id")
 
 	if id == "" {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.product_id_required")
+		appErr := appErrors.NewValidationError("Product ID is required", nil)
+		h.respondAppError(w, r, appErr)
+		return
+	}
+
+	// Валидация UUID
+	if err := validation.ValidateUUID(id); err != nil {
+		appErr := appErrors.NewValidationError("Invalid product ID format", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -232,12 +252,8 @@ func (h *ProductsHandler) GetPriceHistory(w http.ResponseWriter, r *http.Request
 	// Получаем данные для графика
 	chart, err := h.priceHistorySvc.GetPriceChart(id, period, shopIDs)
 	if err != nil {
-		h.logger.Error("GetPriceHistory failed", map[string]interface{}{
-			"id":     id,
-			"error":  err.Error(),
-			"period": period,
-		})
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.price_history_failed")
+		appErr := appErrors.NewInternalError("Failed to get price history", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -364,7 +380,8 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 
 	// Валидация пагинации
 	if err := validation.ValidatePagination(page, perPage); err != nil {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_pagination")
+		appErr := appErrors.NewValidationError("Invalid pagination parameters", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -373,15 +390,41 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		maxPrice *float64
 	)
 
+	// Валидация цен
 	if minPriceStr != "" {
 		if v, err := strconv.ParseFloat(minPriceStr, 64); err == nil {
+			if err := validation.ValidatePrice(v); err != nil {
+				appErr := appErrors.NewValidationError("Invalid min_price", err)
+				h.respondAppError(w, r, appErr)
+				return
+			}
 			minPrice = &v
+		} else {
+			appErr := appErrors.NewValidationError("Invalid min_price format", err)
+			h.respondAppError(w, r, appErr)
+			return
 		}
 	}
 	if maxPriceStr != "" {
 		if v, err := strconv.ParseFloat(maxPriceStr, 64); err == nil {
+			if err := validation.ValidatePrice(v); err != nil {
+				appErr := appErrors.NewValidationError("Invalid max_price", err)
+				h.respondAppError(w, r, appErr)
+				return
+			}
 			maxPrice = &v
+		} else {
+			appErr := appErrors.NewValidationError("Invalid max_price format", err)
+			h.respondAppError(w, r, appErr)
+			return
 		}
+	}
+
+	// Проверка, что min_price <= max_price
+	if minPrice != nil && maxPrice != nil && *minPrice > *maxPrice {
+		appErr := appErrors.NewValidationError("min_price cannot be greater than max_price", nil)
+		h.respondAppError(w, r, appErr)
+		return
 	}
 
 	ctx := r.Context()

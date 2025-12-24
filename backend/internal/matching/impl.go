@@ -54,10 +54,26 @@ func (s *Service) normalizeName(name string) string {
 	name = strings.ToLower(name)
 	name = strings.TrimSpace(name)
 
-	// Удаляем спецсимволы, оставляем только буквы, цифры и пробелы
+	if name == "" {
+		return ""
+	}
+
+	// Нормализуем тире и дефисы (заменяем на пробелы)
+	name = strings.ReplaceAll(name, "-", " ")
+	name = strings.ReplaceAll(name, "_", " ")
+	name = strings.ReplaceAll(name, "–", " ") // en-dash
+	name = strings.ReplaceAll(name, "—", " ") // em-dash
+
+	// Удаляем спецсимволы, оставляем только буквы (включая кириллицу), цифры, пробелы и слэш
 	var normalized strings.Builder
 	for _, r := range name {
-		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == ' ' || r == '/' {
+		// Буквы (латиница, кириллица), цифры, пробелы, слэш
+		if (r >= 'a' && r <= 'z') ||
+			(r >= 'а' && r <= 'я') ||
+			(r >= '0' && r <= '9') ||
+			r == ' ' ||
+			r == '/' ||
+			r == 'ё' || r == 'Ё' {
 			normalized.WriteRune(r)
 		}
 	}
@@ -68,23 +84,31 @@ func (s *Service) normalizeName(name string) string {
 
 	// Удаляем несущественные слова (цвета, описания) и нормализуем память
 	filteredWords := make([]string, 0, len(words))
+	stopWords := map[string]bool{
+		"crni": true, "black": true, "white": true, "midnight": true,
+		"gb": true, "mb": true, "tb": true,
+		"pro": true, "max": true, "mini": true, "plus": true,
+	}
+
 	for _, word := range words {
-		// Пропускаем цвета и описания
-		if word == "crni" || word == "black" || word == "white" || word == "midnight" || word == "-" {
+		// Пропускаем стоп-слова
+		if stopWords[word] {
 			continue
 		}
-		// Нормализуем память: "12/512gb" -> "512", "512" -> "512", "gb" пропускаем
-		if word == "gb" {
+		// Пропускаем очень короткие слова (меньше 2 символов), кроме цифр
+		if len(word) < 2 && !(word >= "0" && word <= "9") {
 			continue
 		}
-		// Если слово содержит "/", извлекаем последнее число (память)
+		// Нормализуем память: "12/512gb" -> "512", "512" -> "512"
 		if strings.Contains(word, "/") {
 			parts := strings.Split(word, "/")
 			if len(parts) > 0 {
 				// Берем последнюю часть (обычно это память)
 				lastPart := parts[len(parts)-1]
-				// Удаляем "gb" если есть
+				// Удаляем единицы измерения если есть
 				lastPart = strings.TrimSuffix(lastPart, "gb")
+				lastPart = strings.TrimSuffix(lastPart, "mb")
+				lastPart = strings.TrimSuffix(lastPart, "tb")
 				if lastPart != "" {
 					filteredWords = append(filteredWords, lastPart)
 				}
@@ -103,7 +127,35 @@ func (s *Service) normalizeBrand(brand string) string {
 	if brand == "" {
 		return ""
 	}
-	return strings.ToLower(strings.TrimSpace(brand))
+
+	brand = strings.ToLower(strings.TrimSpace(brand))
+
+	// Нормализуем тире и дефисы
+	brand = strings.ReplaceAll(brand, "-", "")
+	brand = strings.ReplaceAll(brand, "_", "")
+	brand = strings.ReplaceAll(brand, " ", "")
+
+	// Известные варианты написания брендов
+	brandAliases := map[string]string{
+		"samsung":  "samsung",
+		"apple":    "apple",
+		"xiaomi":   "xiaomi",
+		"huawei":   "huawei",
+		"motorola": "motorola",
+		"lg":       "lg",
+		"sony":     "sony",
+		"nokia":    "nokia",
+		"oneplus":  "oneplus",
+		"oppo":     "oppo",
+		"vivo":     "vivo",
+		"realme":   "realme",
+	}
+
+	if normalized, ok := brandAliases[brand]; ok {
+		return normalized
+	}
+
+	return brand
 }
 
 // calculateSimilarity рассчитывает схожесть между товарами
