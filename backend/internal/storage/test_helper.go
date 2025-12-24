@@ -11,9 +11,9 @@ import (
 	"github.com/solomonczyk/izborator/internal/logger"
 )
 
-// setupTestDB создаёт подключение к тестовой БД
+// SetupTestDB создаёт подключение к тестовой БД
 // Использует переменные окружения или значения по умолчанию
-func setupTestDB(t *testing.T) *Postgres {
+func SetupTestDB(t *testing.T) *Postgres {
 	t.Helper()
 
 	// Загружаем конфиг из переменных окружения
@@ -47,8 +47,8 @@ func setupTestDB(t *testing.T) *Postgres {
 	return pg
 }
 
-// cleanupTestData очищает тестовые данные после теста
-func cleanupTestData(t *testing.T, pg *Postgres, tables []string) {
+// CleanupTestData очищает тестовые данные после теста
+func CleanupTestData(t *testing.T, pg *Postgres, tables []string) {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

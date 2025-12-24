@@ -15,7 +15,7 @@ func TestMatchingAdapter_FindSimilarProducts(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	adapter := NewMatchingAdapter(pg)
@@ -116,7 +116,7 @@ func TestMatchingAdapter_FindSimilarProducts(t *testing.T) {
 	})
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"products", "product_matches"})
+	CleanupTestData(t, pg, []string{"products", "product_matches"})
 }
 
 // TestMatchingAdapter_SaveMatch тестирует сохранение сопоставления
@@ -125,7 +125,7 @@ func TestMatchingAdapter_SaveMatch(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	adapter := NewMatchingAdapter(pg)
@@ -202,7 +202,7 @@ func TestMatchingAdapter_SaveMatch(t *testing.T) {
 	})
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"products", "product_matches"})
+	CleanupTestData(t, pg, []string{"products", "product_matches"})
 }
 
 // TestMatchingAdapter_GetMatches тестирует получение сопоставлений
@@ -211,7 +211,7 @@ func TestMatchingAdapter_GetMatches(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	adapter := NewMatchingAdapter(pg)
@@ -293,6 +293,6 @@ func TestMatchingAdapter_GetMatches(t *testing.T) {
 	}
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"products", "product_matches"})
+	CleanupTestData(t, pg, []string{"products", "product_matches"})
 }
 

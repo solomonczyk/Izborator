@@ -16,7 +16,7 @@ func TestProductsAdapter_GetProduct(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	log := logger.New("error")
@@ -84,7 +84,7 @@ func TestProductsAdapter_GetProduct(t *testing.T) {
 	})
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"products", "product_prices"})
+	CleanupTestData(t, pg, []string{"products", "product_prices"})
 }
 
 // TestProductsAdapter_SearchProducts тестирует поиск товаров
@@ -93,7 +93,7 @@ func TestProductsAdapter_SearchProducts(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	log := logger.New("error")
@@ -189,7 +189,7 @@ func TestProductsAdapter_SearchProducts(t *testing.T) {
 	})
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"products", "product_prices"})
+	CleanupTestData(t, pg, []string{"products", "product_prices"})
 }
 
 // TestProductsAdapter_GetProductPrices тестирует получение цен товара
@@ -198,7 +198,7 @@ func TestProductsAdapter_GetProductPrices(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	log := logger.New("error")
@@ -267,7 +267,7 @@ func TestProductsAdapter_GetProductPrices(t *testing.T) {
 	}
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"products", "product_prices"})
+	CleanupTestData(t, pg, []string{"products", "product_prices"})
 }
 
 // TestProductsAdapter_Browse тестирует каталог товаров
@@ -276,7 +276,7 @@ func TestProductsAdapter_Browse(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	log := logger.New("error")
@@ -352,6 +352,6 @@ func TestProductsAdapter_Browse(t *testing.T) {
 	}
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"products", "product_prices"})
+	CleanupTestData(t, pg, []string{"products", "product_prices"})
 }
 

@@ -14,7 +14,7 @@ func TestProcessorAdapter_SaveProduct(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	adapter := NewProcessorAdapter(pg, nil)
@@ -77,7 +77,7 @@ func TestProcessorAdapter_SaveProduct(t *testing.T) {
 	})
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"products", "product_prices"})
+	CleanupTestData(t, pg, []string{"products", "product_prices"})
 }
 
 // TestProcessorAdapter_SavePrice тестирует сохранение цены
@@ -86,7 +86,7 @@ func TestProcessorAdapter_SavePrice(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	adapter := NewProcessorAdapter(pg, nil)
@@ -159,6 +159,6 @@ func TestProcessorAdapter_SavePrice(t *testing.T) {
 	})
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"products", "product_prices"})
+	CleanupTestData(t, pg, []string{"products", "product_prices"})
 }
 

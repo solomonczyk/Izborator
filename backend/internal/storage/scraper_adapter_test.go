@@ -14,7 +14,7 @@ func TestScraperAdapter_SaveRawProduct(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	adapter := NewScraperAdapter(pg)
@@ -112,7 +112,7 @@ func TestScraperAdapter_SaveRawProduct(t *testing.T) {
 	})
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"raw_products"})
+	CleanupTestData(t, pg, []string{"raw_products"})
 }
 
 // TestScraperAdapter_GetUnprocessedRawProducts тестирует получение необработанных товаров
@@ -121,7 +121,7 @@ func TestScraperAdapter_GetUnprocessedRawProducts(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	adapter := NewScraperAdapter(pg)
@@ -187,7 +187,7 @@ func TestScraperAdapter_GetUnprocessedRawProducts(t *testing.T) {
 	}
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"raw_products"})
+	CleanupTestData(t, pg, []string{"raw_products"})
 }
 
 // TestScraperAdapter_MarkRawProductAsProcessed тестирует пометку товара как обработанного
@@ -196,7 +196,7 @@ func TestScraperAdapter_MarkRawProductAsProcessed(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
-	pg := setupTestDB(t)
+	pg := SetupTestDB(t)
 	defer pg.Close()
 
 	adapter := NewScraperAdapter(pg)
@@ -256,6 +256,6 @@ func TestScraperAdapter_MarkRawProductAsProcessed(t *testing.T) {
 	}
 
 	// Очистка
-	cleanupTestData(t, pg, []string{"raw_products"})
+	CleanupTestData(t, pg, []string{"raw_products"})
 }
 
