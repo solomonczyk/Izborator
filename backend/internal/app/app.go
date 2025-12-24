@@ -108,6 +108,11 @@ func (a *App) GetAutoconfigService() *autoconfig.Service {
 // ReindexAll переиндексирует все товары в Meilisearch
 // Использует те же методы, что и cmd/indexer
 func (a *App) ReindexAll() error {
+	return a.ReindexAllWithContext(context.Background())
+}
+
+// ReindexAllWithContext переиндексирует все товары в Meilisearch с контекстом
+func (a *App) ReindexAllWithContext(ctx context.Context) error {
 	if a.meili == nil {
 		return fmt.Errorf("Meilisearch is not available")
 	}
@@ -118,7 +123,6 @@ func (a *App) ReindexAll() error {
 
 	// Получаем все товары из PostgreSQL и индексируем их
 	// Используем тот же подход, что и в cmd/indexer
-	ctx := context.Background()
 	query := `
 		SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
 		FROM products

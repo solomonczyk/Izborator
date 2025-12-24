@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/solomonczyk/izborator/internal/config"
@@ -78,7 +79,9 @@ type Postgres struct {
 
 // NewPostgres создаёт новый клиент PostgreSQL (обёртка для обратной совместимости)
 func NewPostgres(cfg *config.DBConfig, log *logger.Logger) (*Postgres, error) {
-	ctx := context.Background()
+	// Используем контекст с таймаутом для инициализации
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	log.Debug("Creating PostgreSQL connection", map[string]interface{}{
 		"host":     cfg.Host,

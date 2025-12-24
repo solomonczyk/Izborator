@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -77,6 +78,9 @@ func main() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
+		// WaitGroup для отслеживания активных задач
+		var wg sync.WaitGroup
+
 		// Тикеры (Таймеры)
 		// Процессинг запускаем часто (каждые 30 сек), чтобы быстро подхватывать новые данные
 		processTicker := time.NewTicker(30 * time.Second)
@@ -91,22 +95,27 @@ func main() {
 		go func() {
 			// Сразу при старте сделаем один прогон всего
 			log.Info("Running initial startup tasks...", nil)
-			runCatalogDiscovery(ctx, application, log)      // Обнаружение новых товаров в каталогах
-			runMonitoring(ctx, application, log)            // Скрапинг списка
-			runProcessor(ctx, application, *batchSize, log) // Процессинг
-			runReindex(ctx, application, log)               // Индексация
+			wg.Add(4)
+			go func() { defer wg.Done(); runCatalogDiscovery(ctx, application, log) }()      // Обнаружение новых товаров в каталогах
+			go func() { defer wg.Done(); runMonitoring(ctx, application, log) }()            // Скрапинг списка
+			go func() { defer wg.Done(); runProcessor(ctx, application, *batchSize, log) }() // Процессинг
+			go func() { defer wg.Done(); runReindex(ctx, application, log) }()               // Индексация
 
 			for {
 				select {
 				case <-processTicker.C:
-					runProcessor(ctx, application, *batchSize, log)
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						runProcessor(ctx, application, *batchSize, log)
+					}()
 
 				case <-scrapeTicker.C:
 					log.Info("⏰ Scheduled scraping started", nil)
-					runCatalogDiscovery(ctx, application, log) // Обнаружение новых товаров
-					runMonitoring(ctx, application, log)       // Обновление цен
-					// После скрапинга логично обновить индекс
-					runReindex(ctx, application, log)
+					wg.Add(3)
+					go func() { defer wg.Done(); runCatalogDiscovery(ctx, application, log) }() // Обнаружение новых товаров
+					go func() { defer wg.Done(); runMonitoring(ctx, application, log) }()       // Обновление цен
+					go func() { defer wg.Done(); runReindex(ctx, application, log) }()          // Индексация
 
 				case <-ctx.Done():
 					return
@@ -129,12 +138,18 @@ func main() {
 		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer shutdownCancel()
 
-		// Ждем завершения с таймаутом
+		// Ждем завершения всех активных задач с таймаутом
+		done := make(chan struct{})
+		go func() {
+			wg.Wait()
+			close(done)
+		}()
+
 		select {
+		case <-done:
+			log.Info("✅ Graceful shutdown completed - all tasks finished", nil)
 		case <-shutdownCtx.Done():
-			log.Info("Graceful shutdown completed", nil)
-		case <-time.After(30 * time.Second):
-			log.Warn("Shutdown timeout reached, forcing exit", nil)
+			log.Warn("⚠️ Shutdown timeout reached, forcing exit", nil)
 		}
 
 		return
@@ -197,7 +212,11 @@ func runProcessor(ctx context.Context, app *app.App, batchSize int, log *logger.
 
 func runReindex(ctx context.Context, app *app.App, log *logger.Logger) {
 	log.Info("🔍 Reindex tick", nil)
-	if err := app.ReindexAll(); err != nil {
+	// Используем контекст с таймаутом для реиндексации
+	reindexCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	defer cancel()
+	
+	if err := app.ReindexAllWithContext(reindexCtx); err != nil {
 		log.Error("Reindex failed", map[string]interface{}{"error": err.Error()})
 	} else {
 		log.Info("✅ Reindex completed successfully", nil)

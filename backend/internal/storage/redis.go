@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 	"github.com/solomonczyk/izborator/internal/config"
@@ -23,8 +24,9 @@ func NewRedis(cfg *config.RedisConfig, log *logger.Logger) (*Redis, error) {
 		DB:       cfg.DB,
 	})
 
-	// Проверка подключения
-	ctx := context.Background()
+	// Проверка подключения с таймаутом
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	if err := client.Ping(ctx).Err(); err != nil {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
