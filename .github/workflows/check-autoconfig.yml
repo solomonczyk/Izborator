@@ -78,7 +78,22 @@ jobs:
             FROM potential_shops
             GROUP BY status
             ORDER BY status;
-            " || echo "⚠️  Не удалось получить данные"
+            " 2>/dev/null || echo "⚠️  Не удалось получить данные"
+            
+            echo ""
+            echo "🔍 Детали по классифицированным кандидатам:"
+            CLASSIFIED_COUNT=$(docker exec -i izborator_postgres psql -U postgres -d izborator -t -A -c "
+            SELECT COUNT(*) 
+            FROM potential_shops 
+            WHERE status = 'classified';
+            " 2>/dev/null | tr -d ' \n')
+            
+            if [ -n "$CLASSIFIED_COUNT" ] && [ "$CLASSIFIED_COUNT" -gt 0 ]; then
+              echo "✅ Найдено $CLASSIFIED_COUNT классифицированных кандидатов для AutoConfig"
+            else
+              echo "⚠️  Классифицированных кандидатов не найдено (0)"
+              echo "💡 Нужно запустить Classifier: docker-compose run --rm backend ./classifier -classify-all"
+            fi
             
             echo ""
             echo "✅ Проверка завершена!"
