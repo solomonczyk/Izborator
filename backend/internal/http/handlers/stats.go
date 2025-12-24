@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
@@ -36,11 +37,13 @@ func (h *StatsHandler) GetOverallStats(w http.ResponseWriter, r *http.Request) {
 	if daysStr != "" {
 		d, err := strconv.Atoi(daysStr)
 		if err != nil {
-			h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_days")
+			appErr := appErrors.NewValidationError("Invalid days parameter", err)
+			h.respondAppError(w, r, appErr)
 			return
 		}
 		if d < 1 || d > 365 {
-			h.respondError(w, r, http.StatusBadRequest, "api.errors.days_out_of_range")
+			appErr := appErrors.NewValidationError("Days must be between 1 and 365", nil)
+			h.respondAppError(w, r, appErr)
 			return
 		}
 		days = d
@@ -48,11 +51,8 @@ func (h *StatsHandler) GetOverallStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := h.service.GetOverallStats(days)
 	if err != nil {
-		h.logger.Error("GetOverallStats failed", map[string]interface{}{
-			"error": err.Error(),
-			"days":  days,
-		})
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.overall_stats_failed")
+		appErr := appErrors.NewInternalError("Failed to get overall stats", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -64,7 +64,8 @@ func (h *StatsHandler) GetOverallStats(w http.ResponseWriter, r *http.Request) {
 func (h *StatsHandler) GetShopStats(w http.ResponseWriter, r *http.Request) {
 	shopID := chi.URLParam(r, "shop_id")
 	if shopID == "" {
-		h.respondError(w, r, http.StatusBadRequest, "api.errors.shop_id_required")
+		appErr := appErrors.NewBadRequest("Shop ID is required", nil)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -73,11 +74,13 @@ func (h *StatsHandler) GetShopStats(w http.ResponseWriter, r *http.Request) {
 	if daysStr != "" {
 		d, err := strconv.Atoi(daysStr)
 		if err != nil {
-			h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_days")
+			appErr := appErrors.NewValidationError("Invalid days parameter", err)
+			h.respondAppError(w, r, appErr)
 			return
 		}
 		if d < 1 || d > 365 {
-			h.respondError(w, r, http.StatusBadRequest, "api.errors.days_out_of_range")
+			appErr := appErrors.NewValidationError("Days must be between 1 and 365", nil)
+			h.respondAppError(w, r, appErr)
 			return
 		}
 		days = d
@@ -85,43 +88,42 @@ func (h *StatsHandler) GetShopStats(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := h.service.GetShopStats(shopID, days)
 	if err != nil {
-		h.logger.Error("GetShopStats failed", map[string]interface{}{
-			"error":   err.Error(),
-			"shop_id": shopID,
-			"days":    days,
-		})
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.shop_stats_failed")
+		appErr := appErrors.NewInternalError("Failed to get shop stats", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
 	h.respondJSON(w, http.StatusOK, stats)
 }
 
-// GetRecentStats получает последние записи статистики
-// GET /api/v1/stats/recent?limit=20
+// GetRecentStats получает статистику за последние N дней
+// GET /api/v1/stats/recent?days=7
 func (h *StatsHandler) GetRecentStats(w http.ResponseWriter, r *http.Request) {
-	limitStr := r.URL.Query().Get("limit")
-	limit := 20 // По умолчанию 20 записей
-	if limitStr != "" {
-		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 100 {
-			limit = l
+	daysStr := r.URL.Query().Get("days")
+	days := 7 // По умолчанию 7 дней
+	if daysStr != "" {
+		d, err := strconv.Atoi(daysStr)
+		if err != nil {
+			appErr := appErrors.NewValidationError("Invalid days parameter", err)
+			h.respondAppError(w, r, appErr)
+			return
 		}
+		if d < 1 || d > 365 {
+			appErr := appErrors.NewValidationError("Days must be between 1 and 365", nil)
+			h.respondAppError(w, r, appErr)
+			return
+		}
+		days = d
 	}
 
-	stats, err := h.service.GetRecentStats(limit)
+	stats, err := h.service.GetRecentStats(days)
 	if err != nil {
-		h.logger.Error("GetRecentStats failed", map[string]interface{}{
-			"error": err.Error(),
-			"limit": limit,
-		})
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.recent_stats_failed")
+		appErr := appErrors.NewInternalError("Failed to get recent stats", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
-	h.respondJSON(w, http.StatusOK, map[string]interface{}{
-		"stats": stats,
-		"count": len(stats),
-	})
+	h.respondJSON(w, http.StatusOK, stats)
 }
 
 // respondJSON отправляет JSON ответ
@@ -135,17 +137,35 @@ func (h *StatsHandler) respondJSON(w http.ResponseWriter, status int, data inter
 	}
 }
 
-// respondError отправляет JSON ошибку
-func (h *StatsHandler) respondError(w http.ResponseWriter, r *http.Request, status int, key string) {
+// respondAppError отправляет JSON ошибку из AppError
+func (h *StatsHandler) respondAppError(w http.ResponseWriter, r *http.Request, err *appErrors.AppError) {
 	lang := httpMiddleware.GetLangFromContext(r.Context())
-	message := h.translator.T(lang, key)
-	if message == key || message == "" {
-		message = h.translator.T("en", key)
-		if message == "" {
-			message = key
-		}
+
+	// Пытаемся получить локализованное сообщение
+	messageKey := "api.errors." + err.Code
+	message := h.translator.T(lang, messageKey)
+	if message == messageKey || message == "" {
+		message = h.translator.T("en", messageKey)
 	}
-	h.respondJSON(w, status, map[string]string{
-		"error": message,
+	if message == "" {
+		message = err.Message
+	}
+
+	// Логируем оригинальную ошибку для отладки
+	if err.Err != nil {
+		h.logger.Error("App error occurred", map[string]interface{}{
+			"code":    err.Code,
+			"message": err.Message,
+			"error":   err.Err.Error(),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(err.HTTPStatus)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": map[string]string{
+			"code":    err.Code,
+			"message": message,
+		},
 	})
 }

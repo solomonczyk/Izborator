@@ -497,7 +497,7 @@ func (h *ProductsHandler) respondError(w http.ResponseWriter, r *http.Request, s
 // respondAppError отправляет JSON ошибку из AppError
 func (h *ProductsHandler) respondAppError(w http.ResponseWriter, r *http.Request, err *appErrors.AppError) {
 	lang := httpMiddleware.GetLangFromContext(r.Context())
-	
+
 	// Пытаемся получить локализованное сообщение
 	messageKey := "api.errors." + err.Code
 	message := h.translator.T(lang, messageKey)
@@ -507,7 +507,7 @@ func (h *ProductsHandler) respondAppError(w http.ResponseWriter, r *http.Request
 	if message == "" {
 		message = err.Message
 	}
-	
+
 	// Логируем оригинальную ошибку для отладки
 	if err.Err != nil {
 		h.logger.Error("App error occurred", map[string]interface{}{
@@ -516,7 +516,7 @@ func (h *ProductsHandler) respondAppError(w http.ResponseWriter, r *http.Request
 			"error":   err.Err.Error(),
 		})
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(err.HTTPStatus)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{

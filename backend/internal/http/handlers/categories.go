@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/solomonczyk/izborator/internal/categories"
+	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
@@ -31,10 +32,11 @@ func NewCategoriesHandler(service *categories.Service, log *logger.Logger, trans
 func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 	tree, err := h.service.GetTree()
 	if err != nil {
+		// Возвращаем пустой массив вместо ошибки, чтобы фронтенд не ломался
+		// Но логируем ошибку для отладки
 		h.logger.Error("GetTree failed", map[string]interface{}{
 			"error": err.Error(),
 		})
-		// Возвращаем пустой массив вместо ошибки, чтобы фронтенд не ломался
 		emptyArray := []CategoryNode{}
 		h.respondJSON(w, http.StatusOK, emptyArray)
 		return

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/solomonczyk/izborator/internal/cities"
+	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
@@ -31,10 +32,8 @@ func NewCitiesHandler(service *cities.Service, log *logger.Logger, translator *i
 func (h *CitiesHandler) GetAllActive(w http.ResponseWriter, r *http.Request) {
 	citiesList, err := h.service.GetAllActive()
 	if err != nil {
-		h.logger.Error("GetAllActive cities failed", map[string]interface{}{
-			"error": err.Error(),
-		})
-		h.respondError(w, r, http.StatusInternalServerError, "api.errors.cities_load_failed")
+		appErr := appErrors.NewInternalError("Failed to load cities", err)
+		h.respondAppError(w, r, appErr)
 		return
 	}
 
@@ -54,14 +53,14 @@ func (h *CitiesHandler) GetAllActive(w http.ResponseWriter, r *http.Request) {
 	h.respondJSON(w, http.StatusOK, result)
 }
 
-// CityResponse ответ с данными города
+// CityResponse структура ответа для города
 type CityResponse struct {
-	ID        string  `json:"id"`
-	Slug      string  `json:"slug"`
-	NameSr    string  `json:"name_sr"`
-	RegionSr  *string `json:"region_sr,omitempty"`
-	SortOrder int     `json:"sort_order"`
-	IsActive  bool    `json:"is_active"`
+	ID        string `json:"id"`
+	Slug      string `json:"slug"`
+	NameSr    string `json:"name_sr"`
+	RegionSr  string `json:"region_sr,omitempty"`
+	SortOrder int    `json:"sort_order"`
+	IsActive  bool   `json:"is_active"`
 }
 
 // respondJSON отправляет JSON ответ
@@ -75,18 +74,35 @@ func (h *CitiesHandler) respondJSON(w http.ResponseWriter, status int, data inte
 	}
 }
 
-// respondError отправляет JSON ошибку
-func (h *CitiesHandler) respondError(w http.ResponseWriter, r *http.Request, status int, key string) {
+// respondAppError отправляет JSON ошибку из AppError
+func (h *CitiesHandler) respondAppError(w http.ResponseWriter, r *http.Request, err *appErrors.AppError) {
 	lang := httpMiddleware.GetLangFromContext(r.Context())
-	message := h.translator.T(lang, key)
-	if message == key || message == "" {
-		// fallback на английский
-		message = h.translator.T("en", key)
-		if message == "" {
-			message = key
-		}
+
+	// Пытаемся получить локализованное сообщение
+	messageKey := "api.errors." + err.Code
+	message := h.translator.T(lang, messageKey)
+	if message == messageKey || message == "" {
+		message = h.translator.T("en", messageKey)
 	}
-	h.respondJSON(w, status, map[string]string{
-		"error": message,
+	if message == "" {
+		message = err.Message
+	}
+
+	// Логируем оригинальную ошибку для отладки
+	if err.Err != nil {
+		h.logger.Error("App error occurred", map[string]interface{}{
+			"code":    err.Code,
+			"message": err.Message,
+			"error":   err.Err.Error(),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(err.HTTPStatus)
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": map[string]string{
+			"code":    err.Code,
+			"message": message,
+		},
 	})
 }
