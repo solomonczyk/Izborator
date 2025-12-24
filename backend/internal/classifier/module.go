@@ -14,21 +14,21 @@ type ClassificationScore struct {
 
 // ClassificationResult результат классификации домена
 type ClassificationResult struct {
-	IsShop         bool              // Является ли сайт магазином
-	Score           ClassificationScore
-	DetectedPlatform string           // Обнаруженная платформа (shopify, woocommerce, etc.)
-	Reasons         []string          // Причины решения
+	IsShop           bool // Является ли сайт магазином
+	Score            ClassificationScore
+	DetectedPlatform string   // Обнаруженная платформа (shopify, woocommerce, etc.)
+	Reasons          []string // Причины решения
 }
 
 // PotentialShop кандидат на магазин
 type PotentialShop struct {
-	ID             string
-	Domain         string
-	Source         string
-	Status         string
+	ID              string
+	Domain          string
+	Source          string
+	Status          string
 	ConfidenceScore float64
-	DiscoveredAt   string
-	Metadata       map[string]interface{}
+	DiscoveredAt    string
+	Metadata        map[string]interface{}
 }
 
 // Storage интерфейс для работы с хранилищем
@@ -59,4 +59,3 @@ func New(storage Storage, log *logger.Logger) *Service {
 		logger:  log,
 	}
 }
-

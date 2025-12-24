@@ -9,5 +9,3 @@ type City struct {
 	SortOrder int
 	IsActive  bool
 }
-
-

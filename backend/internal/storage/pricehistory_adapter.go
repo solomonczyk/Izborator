@@ -175,4 +175,3 @@ func (a *PriceHistoryAdapter) CleanupOldData(before time.Time) error {
 	// TODO: реализовать очистку старых данных из отдельной таблицы истории
 	return nil
 }
-

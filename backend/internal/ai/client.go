@@ -80,4 +80,3 @@ HTML Snippet:
 
 	return result, nil
 }
-

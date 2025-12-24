@@ -202,4 +202,3 @@ func (c *RedisConfig) Address() string {
 func (c *MeilisearchConfig) Address() string {
 	return fmt.Sprintf("http://%s:%d", c.Host, c.Port)
 }
-

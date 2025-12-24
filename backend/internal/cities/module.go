@@ -8,10 +8,10 @@ import (
 type Storage interface {
 	// GetByID получает город по ID
 	GetByID(id string) (*City, error)
-	
+
 	// GetBySlug получает город по slug
 	GetBySlug(slug string) (*City, error)
-	
+
 	// GetAllActive получает все активные города
 	GetAllActive() ([]*City, error)
 }
@@ -44,5 +44,3 @@ func (s *Service) GetBySlug(slug string) (*City, error) {
 func (s *Service) GetAllActive() ([]*City, error) {
 	return s.storage.GetAllActive()
 }
-
-

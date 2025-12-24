@@ -285,4 +285,3 @@ func (a *CategoriesAdapter) GetTree() ([]*categories.Category, error) {
 
 	return result, nil
 }
-

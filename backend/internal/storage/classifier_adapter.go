@@ -194,7 +194,7 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 	} else {
 		metadataJSON = []byte("{}")
 	}
-	
+
 	// Выполняем запрос
 	// $1 = shop.Domain (string) - используется в WHERE
 	// $2 = shop.Status (string)
@@ -206,11 +206,11 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 		shop.ConfidenceScore,
 		metadataJSON,
 	)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to update potential_shop (domain=%s, status=%s): %w", shop.Domain, shop.Status, err)
 	}
-	
+
 	rowsAffected := result.RowsAffected()
 	if rowsAffected == 0 {
 		// Проверяем, существует ли запись с таким domain
@@ -228,4 +228,3 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 
 	return nil
 }
-

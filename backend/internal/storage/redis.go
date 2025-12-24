@@ -46,4 +46,3 @@ func (r *Redis) Close() error {
 func (r *Redis) Client() *redis.Client {
 	return r.client
 }
-

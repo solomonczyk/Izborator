@@ -7,5 +7,3 @@ type ProductType struct {
 	NameSr   string
 	IsActive bool
 }
-
-

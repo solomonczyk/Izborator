@@ -13,12 +13,12 @@ import (
 
 const (
 	// Пороги для классификации
-	thresholdShop      = 0.8  // Если TotalScore > 0.8, это магазин
-	thresholdReview   = 0.5  // Если TotalScore > 0.5, требуется ручная проверка
+	thresholdShop   = 0.8 // Если TotalScore > 0.8, это магазин
+	thresholdReview = 0.5 // Если TotalScore > 0.5, требуется ручная проверка
 
 	// Веса для подсчета TotalScore
 	weightKeywords  = 0.35
-	weightPlatform  = 0.35  // Увеличиваем вес платформы
+	weightPlatform  = 0.35 // Увеличиваем вес платформы
 	weightStructure = 0.30
 )
 
@@ -39,11 +39,11 @@ var shopKeywords = []string{
 var ecommercePlatforms = map[string][]string{
 	"shopify":     {"shopify", "cdn.shopify.com", "myshopify.com"},
 	"woocommerce": {"woocommerce", "wp-content/plugins/woocommerce", "wc-"},
-	"magento":    {"magento", "mage/", "static/version", "magento/"},
-	"opencart":   {"opencart", "index.php?route=", "opencart"},
-	"prestashop": {"prestashop", "prestashop.com"},
-	"next.js":    {"__next", "next.js", "_next/static", "next/"},
-	"react":      {"react", "react-dom", "__react"},
+	"magento":     {"magento", "mage/", "static/version", "magento/"},
+	"opencart":    {"opencart", "index.php?route=", "opencart"},
+	"prestashop":  {"prestashop", "prestashop.com"},
+	"next.js":     {"__next", "next.js", "_next/static", "next/"},
+	"react":       {"react", "react-dom", "__react"},
 }
 
 // Classify анализирует домен и определяет, является ли он магазином
@@ -66,7 +66,7 @@ func (s *Service) Classify(ctx context.Context, domain string) (*ClassificationR
 			"error":  err.Error(),
 		})
 		return &ClassificationResult{
-			IsShop: false,
+			IsShop:  false,
 			Reasons: []string{fmt.Sprintf("Failed to fetch page: %v", err)},
 		}, nil
 	}
@@ -100,15 +100,15 @@ func (s *Service) Classify(ctx context.Context, domain string) (*ClassificationR
 	reasons := s.generateReasons(score, detectedPlatform, isShop)
 
 	result := &ClassificationResult{
-		IsShop:          isShop,
-		Score:           score,
+		IsShop:           isShop,
+		Score:            score,
 		DetectedPlatform: detectedPlatform,
-		Reasons:         reasons,
+		Reasons:          reasons,
 	}
 
 	s.logger.Info("Classification completed", map[string]interface{}{
-		"domain":           domain,
-		"is_shop":          isShop,
+		"domain":            domain,
+		"is_shop":           isShop,
 		"total_score":       totalScore,
 		"detected_platform": detectedPlatform,
 	})
@@ -277,7 +277,7 @@ func (s *Service) analyzeStructure(htmlLower, html string) float64 {
 	}
 
 	// Проверка наличия структурированных данных (schema.org)
-	if strings.Contains(htmlLower, "schema.org/product") || 
+	if strings.Contains(htmlLower, "schema.org/product") ||
 		strings.Contains(htmlLower, "itemtype=\"http://schema.org/product\"") ||
 		strings.Contains(htmlLower, "itemtype=\"https://schema.org/product\"") {
 		score += 0.2
@@ -335,4 +335,3 @@ func (s *Service) generateReasons(score ClassificationScore, platform string, is
 
 	return reasons
 }
-

@@ -17,4 +17,3 @@ type Candidate struct {
 type ShopConfig struct {
 	Selectors map[string]string `json:"selectors"`
 }
-

@@ -8,16 +8,16 @@ import (
 type Storage interface {
 	// GetByID получает категорию по ID
 	GetByID(id string) (*Category, error)
-	
+
 	// GetBySlug получает категорию по slug
 	GetBySlug(slug string) (*Category, error)
-	
+
 	// GetByParentID получает все подкатегории родительской категории
 	GetByParentID(parentID string) ([]*Category, error)
-	
+
 	// GetAllActive получает все активные категории
 	GetAllActive() ([]*Category, error)
-	
+
 	// GetTree получает дерево категорий (все корневые + их дети)
 	GetTree() ([]*Category, error)
 }
@@ -60,4 +60,3 @@ func (s *Service) GetAllActive() ([]*Category, error) {
 func (s *Service) GetTree() ([]*Category, error) {
 	return s.storage.GetTree()
 }
-

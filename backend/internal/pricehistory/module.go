@@ -10,13 +10,13 @@ import (
 type Storage interface {
 	// SavePrice сохраняет точку цены
 	SavePrice(point *PricePoint) error
-	
+
 	// GetHistory получает историю цен за период
 	GetHistory(productID string, from, to time.Time) ([]*PricePoint, error)
-	
+
 	// GetPriceChart получает данные для графика цен
 	GetPriceChart(productID string, period string, shopIDs []string) (*PriceChart, error)
-	
+
 	// CleanupOldData удаляет старые данные
 	CleanupOldData(before time.Time) error
 }
@@ -34,4 +34,3 @@ func New(storage Storage, log *logger.Logger) *Service {
 		logger:  log,
 	}
 }
-

@@ -8,16 +8,16 @@ import (
 type Storage interface {
 	// SaveStat сохраняет статистику парсинга
 	SaveStat(stat *ScrapingStat) error
-	
+
 	// GetShopStats получает статистику по магазину
 	GetShopStats(shopID string, days int) (*ShopStats, error)
-	
+
 	// GetOverallStats получает общую статистику
 	GetOverallStats(days int) (*OverallStats, error)
-	
+
 	// GetRecentStats получает последние N записей статистики
 	GetRecentStats(limit int) ([]*ScrapingStat, error)
-	
+
 	// UpdateShopLastScraped обновляет last_scraped_at для магазина
 	UpdateShopLastScraped(shopID string) error
 }
@@ -45,7 +45,7 @@ func (s *Service) RecordStat(stat *ScrapingStat) error {
 		})
 		return err
 	}
-	
+
 	// Обновляем last_scraped_at для магазина
 	if stat.Status == "success" || stat.Status == "partial" {
 		if err := s.storage.UpdateShopLastScraped(stat.ShopID); err != nil {
@@ -55,7 +55,7 @@ func (s *Service) RecordStat(stat *ScrapingStat) error {
 			})
 		}
 	}
-	
+
 	return nil
 }
 
@@ -73,4 +73,3 @@ func (s *Service) GetOverallStats(days int) (*OverallStats, error) {
 func (s *Service) GetRecentStats(limit int) ([]*ScrapingStat, error) {
 	return s.storage.GetRecentStats(limit)
 }
-

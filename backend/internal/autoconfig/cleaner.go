@@ -48,4 +48,3 @@ func truncateHTML(html string) string {
 	}
 	return html
 }
-

@@ -8,13 +8,13 @@ import (
 type Storage interface {
 	// FindSimilarProducts ищет похожие товары
 	FindSimilarProducts(name, brand string, limit int) ([]*Product, error)
-	
+
 	// GetProductByID получает товар по ID
 	GetProductByID(id string) (*Product, error)
-	
+
 	// SaveMatch сохраняет результат сопоставления
 	SaveMatch(match *ProductMatch) error
-	
+
 	// GetMatches получает все сопоставления для товара
 	GetMatches(productID string) ([]*ProductMatch, error)
 }
@@ -41,4 +41,3 @@ func New(storage Storage, log *logger.Logger) *Service {
 		logger:  log,
 	}
 }
-

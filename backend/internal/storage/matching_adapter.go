@@ -33,7 +33,7 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]
 	// Нормализуем входные данные для поиска
 	normalizedName := strings.ToLower(strings.TrimSpace(name))
 	normalizedBrand := strings.ToLower(strings.TrimSpace(brand))
-	
+
 	// Поиск по названию и бренду
 	if normalizedBrand != "" {
 		query = `
@@ -71,26 +71,26 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]
 				keyWords = append(keyWords, word)
 			}
 		}
-		
+
 		// Если есть ключевые слова, ищем товары, содержащие хотя бы 2 из них
 		if len(keyWords) >= 2 {
 			// Строим условие: товар должен содержать несколько ключевых слов
 			conditions := make([]string, 0)
 			queryArgs := make([]interface{}, 0)
 			argIndex := 1
-			
+
 			// Точное совпадение (приоритет)
 			conditions = append(conditions, fmt.Sprintf("LOWER(TRIM(name)) = $%d", argIndex))
 			queryArgs = append(queryArgs, normalizedName)
 			argIndex++
-			
+
 			// Поиск по ключевым словам (хотя бы 2 совпадения)
 			for i := 0; i < len(keyWords) && i < 5; i++ { // Берем до 5 ключевых слов
 				conditions = append(conditions, fmt.Sprintf("LOWER(TRIM(name)) LIKE $%d", argIndex))
 				queryArgs = append(queryArgs, "%"+keyWords[i]+"%")
 				argIndex++
 			}
-			
+
 			query = fmt.Sprintf(`
 				SELECT id, name, brand, specs
 				FROM products

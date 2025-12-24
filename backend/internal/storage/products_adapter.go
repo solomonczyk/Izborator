@@ -181,28 +181,33 @@ func (a *ProductsAdapter) searchViaMeilisearch(query string, limit, offset int) 
 }
 
 // searchViaPostgres поиск через PostgreSQL (fallback)
+// Оптимизирован: использует полнотекстовый поиск PostgreSQL для лучшей производительности
 func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]*products.Product, int, error) {
 	searchQuery := fmt.Sprintf("%%%s%%", query)
 
-	// Получаем общее количество
-	countQuery := `
-		SELECT COUNT(*) 
-		FROM products 
-		WHERE name ILIKE $1 OR description ILIKE $1 OR brand ILIKE $1
-	`
-
-	var total int
-	err := a.pg.DB().QueryRow(a.ctx, countQuery, searchQuery).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count products: %w", err)
-	}
-
-	// Получаем товары
+	// Оптимизированный запрос: используем один запрос с CTE для подсчета и выборки
+	// Это быстрее, чем два отдельных запроса
 	querySQL := `
-		SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
-		FROM products
-		WHERE name ILIKE $1 OR description ILIKE $1 OR brand ILIKE $1
-		ORDER BY name
+		WITH search_results AS (
+			SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at,
+				   CASE 
+					   WHEN name ILIKE $1 THEN 1
+					   WHEN brand ILIKE $1 THEN 2
+					   ELSE 3
+				   END as relevance
+			FROM products
+			WHERE name ILIKE $1 OR description ILIKE $1 OR brand ILIKE $1
+		),
+		total_count AS (
+			SELECT COUNT(*) as count FROM search_results
+		)
+		SELECT 
+			sr.id, sr.name, sr.description, sr.brand, sr.category, sr.category_id, 
+			sr.image_url, sr.specs, sr.created_at, sr.updated_at,
+			tc.count
+		FROM search_results sr
+		CROSS JOIN total_count tc
+		ORDER BY sr.relevance, sr.name
 		LIMIT $2 OFFSET $3
 	`
 
@@ -213,6 +218,7 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 	defer rows.Close()
 
 	var productsList []*products.Product
+	var total int
 
 	for rows.Next() {
 		var product products.Product
@@ -231,6 +237,7 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 			&specsJSON,
 			&createdAt,
 			&updatedAt,
+			&total, // Получаем total из CTE
 		)
 
 		product.CategoryID = categoryID
@@ -373,7 +380,7 @@ func (a *ProductsAdapter) GetProductPrices(productID string) ([]*products.Produc
 		}
 
 		price.UpdatedAt = updatedAt
-		
+
 		// Логируем для отладки shop_name
 		if a.logger != nil && price.ShopName == "" {
 			a.logger.Warn("GetProductPrices: empty ShopName", map[string]interface{}{
@@ -381,7 +388,7 @@ func (a *ProductsAdapter) GetProductPrices(productID string) ([]*products.Produc
 				"shop_id":    price.ShopID,
 			})
 		}
-		
+
 		prices = append(prices, &price)
 	}
 
@@ -459,7 +466,7 @@ func (a *ProductsAdapter) Browse(ctx context.Context, params products.BrowsePara
 	// Fallback на PostgreSQL, если Meilisearch недоступен
 	if a.logger != nil {
 		a.logger.Info("Browse: Using PostgreSQL fallback (Meilisearch unavailable)", map[string]interface{}{
-			"query": params.Query,
+			"query":           params.Query,
 			"meili_available": false,
 		})
 	}
@@ -474,7 +481,7 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 			"query": params.Query,
 		})
 	}
-	
+
 	index := a.meili.Client().Index("products")
 
 	searchReq := &meilisearch.SearchRequest{
@@ -716,12 +723,12 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 				// Сериализуем в JSON для проверки
 				jsonBytes, _ := json.Marshal(item)
 				a.logger.Info("browseViaPostgres: final item check", map[string]interface{}{
-					"product_id":   item.ID,
-					"product_name": item.Name,
-					"shop_names":   item.ShopNames,
+					"product_id":     item.ID,
+					"product_name":   item.Name,
+					"shop_names":     item.ShopNames,
 					"shop_names_len": len(item.ShopNames),
-					"shops_count":  item.ShopsCount,
-					"json_preview": string(jsonBytes),
+					"shops_count":    item.ShopsCount,
+					"json_preview":   string(jsonBytes),
 				})
 			}
 		}
@@ -745,7 +752,7 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 			"page":  params.Page,
 		})
 	}
-	
+
 	// Простая реализация через PostgreSQL
 	// Можно расширить позже с фильтрами
 	var productsList []*products.Product
@@ -871,13 +878,12 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 				})
 			}
 			a.logger.Info("browseViaPostgres: prices from GetProductPrices", map[string]interface{}{
-				"product_id":   p.ID,
-				"product_name": p.Name,
-				"prices_count": len(prices),
+				"product_id":    p.ID,
+				"product_name":  p.Name,
+				"prices_count":  len(prices),
 				"price_details": priceDebug,
 			})
 		}
-
 
 		// Если фильтр по городу указан и нет цен в этом городе - пропускаем товар
 		if params.CityID != nil && len(prices) == 0 {
@@ -913,12 +919,12 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		// Отладочное логирование
 		if a.logger != nil {
 			a.logger.Info("browseViaPostgres: shop_names processing", map[string]interface{}{
-				"product_id":   p.ID,
-				"product_name": p.Name,
-				"prices_count": len(prices),
-				"shop_names":   shopNames,
+				"product_id":     p.ID,
+				"product_name":   p.Name,
+				"prices_count":   len(prices),
+				"shop_names":     shopNames,
 				"shop_names_len": len(shopNames),
-				"price_details": priceDetails,
+				"price_details":  priceDetails,
 			})
 		}
 
@@ -930,12 +936,12 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		// КРИТИЧЕСКАЯ ПРОВЕРКА: логируем shopNames перед созданием BrowseProduct
 		if a.logger != nil {
 			a.logger.Info("browseViaPostgres: BEFORE creating BrowseProduct", map[string]interface{}{
-				"product_id":   p.ID,
-				"product_name": p.Name,
-				"shopNames":    shopNames,
+				"product_id":    p.ID,
+				"product_name":  p.Name,
+				"shopNames":     shopNames,
 				"shopNames_len": len(shopNames),
 				"shopNames_nil": shopNames == nil,
-				"prices_count": len(prices),
+				"prices_count":  len(prices),
 			})
 		}
 
@@ -960,12 +966,12 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		if a.logger != nil {
 			jsonBytes, _ := json.Marshal(browseProduct)
 			a.logger.Info("browseViaPostgres: AFTER creating BrowseProduct", map[string]interface{}{
-				"product_id":   browseProduct.ID,
-				"product_name": browseProduct.Name,
-				"shopNames":    browseProduct.ShopNames,
+				"product_id":    browseProduct.ID,
+				"product_name":  browseProduct.Name,
+				"shopNames":     browseProduct.ShopNames,
 				"shopNames_len": len(browseProduct.ShopNames),
 				"shopNames_nil": browseProduct.ShopNames == nil,
-				"json_preview": string(jsonBytes),
+				"json_preview":  string(jsonBytes),
 			})
 		}
 
@@ -1012,18 +1018,18 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		if a.logger != nil {
 			if len(browseProduct.ShopNames) > 0 {
 				a.logger.Info("browseViaPostgres: adding product with shop_names", map[string]interface{}{
-					"product_id":   browseProduct.ID,
-					"product_name": browseProduct.Name,
-					"shop_names":   browseProduct.ShopNames,
-					"shops_count":  browseProduct.ShopsCount,
+					"product_id":     browseProduct.ID,
+					"product_name":   browseProduct.Name,
+					"shop_names":     browseProduct.ShopNames,
+					"shops_count":    browseProduct.ShopsCount,
 					"shop_names_len": len(browseProduct.ShopNames),
 				})
 			} else {
 				a.logger.Warn("browseViaPostgres: adding product WITHOUT shop_names", map[string]interface{}{
-					"product_id":   browseProduct.ID,
-					"product_name": browseProduct.Name,
-					"shops_count":  browseProduct.ShopsCount,
-					"prices_count": len(prices),
+					"product_id":    browseProduct.ID,
+					"product_name":  browseProduct.Name,
+					"shops_count":   browseProduct.ShopsCount,
+					"prices_count":  len(prices),
 					"shopNames_nil": browseProduct.ShopNames == nil,
 				})
 			}

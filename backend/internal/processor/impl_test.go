@@ -1,14 +1,56 @@
 package processor
 
 import (
+	"context"
 	"testing"
 
+	"github.com/solomonczyk/izborator/internal/products"
 	"github.com/solomonczyk/izborator/internal/scraper"
 )
 
-// TestNormalizeBrand тестирует нормализацию бренда
+// MockStorage мок для тестирования
+type mockRawStorage struct {
+	rawProducts []*scraper.RawProduct
+}
+
+func (m *mockRawStorage) GetUnprocessedRawProducts(ctx context.Context, limit int) ([]*scraper.RawProduct, error) {
+	if limit > len(m.rawProducts) {
+		limit = len(m.rawProducts)
+	}
+	return m.rawProducts[:limit], nil
+}
+
+func (m *mockRawStorage) MarkAsProcessed(ctx context.Context, shopID, externalID string) error {
+	return nil
+}
+
+type mockProcessedStorage struct {
+	products []*products.Product
+}
+
+func (m *mockProcessedStorage) SaveProduct(product *products.Product) error {
+	m.products = append(m.products, product)
+	return nil
+}
+
+func (m *mockProcessedStorage) GetProduct(id string) (*products.Product, error) {
+	for _, p := range m.products {
+		if p.ID == id {
+			return p, nil
+		}
+	}
+	return nil, products.ErrProductNotFound
+}
+
+type mockMatching struct {
+	similarProducts []*products.Product
+}
+
+func (m *mockMatching) FindSimilar(ctx context.Context, name, brand string, limit int) ([]*products.Product, error) {
+	return m.similarProducts, nil
+}
+
 func TestNormalizeBrand(t *testing.T) {
-	// Создаём минимальный сервис для теста
 	service := &Service{}
 
 	tests := []struct {
@@ -16,41 +58,14 @@ func TestNormalizeBrand(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{
-			name:     "normal brand",
-			input:    "apple",
-			expected: "Apple",
-		},
-		{
-			name:     "uppercase brand",
-			input:    "APPLE",
-			expected: "Apple",
-		},
-		{
-			name:     "mixed case brand",
-			input:    "ApPlE",
-			expected: "Apple",
-		},
-		{
-			name:     "brand with spaces",
-			input:    "  apple  ",
-			expected: "Apple",
-		},
-		{
-			name:     "empty string",
-			input:    "",
-			expected: "",
-		},
-		{
-			name:     "only spaces",
-			input:    "   ",
-			expected: "",
-		},
-		{
-			name:     "single character",
-			input:    "a",
-			expected: "A",
-		},
+		{"normal brand", "apple", "Apple"},
+		{"uppercase brand", "APPLE", "Apple"},
+		{"mixed case brand", "ApPlE", "Apple"},
+		{"brand with spaces", "  apple  ", "Apple"},
+		{"empty string", "", ""},
+		{"only spaces", "   ", ""},
+		{"single character", "a", "A"},
+		{"two characters", "ab", "Ab"},
 	}
 
 	for _, tt := range tests {
@@ -63,11 +78,9 @@ func TestNormalizeBrand(t *testing.T) {
 	}
 }
 
-// TestNormalizeRawProduct тестирует нормализацию сырого товара
 func TestNormalizeRawProduct(t *testing.T) {
 	service := &Service{}
 
-	// Тест с минимальными данными
 	raw := &scraper.RawProduct{
 		Name:     "  iPhone 15 Pro Max  ",
 		Brand:    "  apple  ",
@@ -97,3 +110,69 @@ func TestNormalizeRawProduct(t *testing.T) {
 	}
 }
 
+func TestProcessRawProducts_NoMatches(t *testing.T) {
+	rawStorage := &mockRawStorage{
+		rawProducts: []*scraper.RawProduct{
+			{
+				Name:     "Test Product",
+				Brand:    "Test Brand",
+				Category: "Test Category",
+				Price:    100.0,
+				Currency: "RSD",
+			},
+		},
+	}
+	processedStorage := &mockProcessedStorage{}
+	matching := &mockMatching{similarProducts: []*products.Product{}}
+
+	service := New(rawStorage, processedStorage, matching, nil)
+
+	ctx := context.Background()
+	count, err := service.ProcessRawProducts(ctx, 10)
+
+	if err != nil {
+		t.Fatalf("ProcessRawProducts failed: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("Expected 1 product processed, got %d", count)
+	}
+
+	if len(processedStorage.products) != 1 {
+		t.Errorf("Expected 1 product saved, got %d", len(processedStorage.products))
+	}
+}
+
+func TestProcessRawProducts_WithMatches(t *testing.T) {
+	rawStorage := &mockRawStorage{
+		rawProducts: []*scraper.RawProduct{
+			{
+				Name:     "iPhone 15",
+				Brand:    "Apple",
+				Category: "Mobilni telefoni",
+				Price:    1000.0,
+				Currency: "RSD",
+			},
+		},
+	}
+	processedStorage := &mockProcessedStorage{}
+	existingProduct := &products.Product{
+		ID:    "existing-id",
+		Name:  "iPhone 15",
+		Brand: "Apple",
+	}
+	matching := &mockMatching{similarProducts: []*products.Product{existingProduct}}
+
+	service := New(rawStorage, processedStorage, matching, nil)
+
+	ctx := context.Background()
+	count, err := service.ProcessRawProducts(ctx, 10)
+
+	if err != nil {
+		t.Fatalf("ProcessRawProducts failed: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("Expected 1 product processed, got %d", count)
+	}
+}

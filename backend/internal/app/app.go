@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/solomonczyk/izborator/internal/ai"
-	"github.com/solomonczyk/izborator/internal/autoconfig"
 	"github.com/solomonczyk/izborator/internal/attributes"
+	"github.com/solomonczyk/izborator/internal/autoconfig"
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
 	"github.com/solomonczyk/izborator/internal/classifier"
@@ -17,8 +17,8 @@ import (
 	"github.com/solomonczyk/izborator/internal/matching"
 	"github.com/solomonczyk/izborator/internal/pricehistory"
 	"github.com/solomonczyk/izborator/internal/processor"
-	"github.com/solomonczyk/izborator/internal/producttypes"
 	"github.com/solomonczyk/izborator/internal/products"
+	"github.com/solomonczyk/izborator/internal/producttypes"
 	"github.com/solomonczyk/izborator/internal/scraper"
 	"github.com/solomonczyk/izborator/internal/scrapingstats"
 	"github.com/solomonczyk/izborator/internal/storage"
@@ -115,7 +115,7 @@ func (a *App) ReindexAll() error {
 	// Используем processor adapter для реиндексации
 	// Он уже имеет доступ к Meilisearch и Postgres
 	processorAdapter := storage.NewProcessorAdapter(a.pg, a.meili)
-	
+
 	// Получаем все товары из PostgreSQL и индексируем их
 	// Используем тот же подход, что и в cmd/indexer
 	ctx := context.Background()
@@ -137,7 +137,7 @@ func (a *App) ReindexAll() error {
 		var specsJSON []byte
 		var description, brand, category, imageURL *string
 		var categoryID *string
-		
+
 		if err := rows.Scan(
 			&p.ID,
 			&p.Name,
@@ -166,7 +166,7 @@ func (a *App) ReindexAll() error {
 			p.ImageURL = *imageURL
 		}
 		p.CategoryID = categoryID
-		
+
 		if len(specsJSON) > 0 {
 			if err := json.Unmarshal(specsJSON, &p.Specs); err != nil {
 				a.logger.Warn("Failed to unmarshal specs", map[string]interface{}{"error": err.Error()})

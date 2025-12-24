@@ -8,13 +8,13 @@ import (
 type Storage interface {
 	// GetByID получает тип товара по ID
 	GetByID(id string) (*ProductType, error)
-	
+
 	// GetByCode получает тип товара по коду
 	GetByCode(code string) (*ProductType, error)
-	
+
 	// GetAllActive получает все активные типы товаров
 	GetAllActive() ([]*ProductType, error)
-	
+
 	// GetByCategoryID получает типы товаров для категории
 	GetByCategoryID(categoryID string) ([]*ProductType, error)
 }
@@ -52,5 +52,3 @@ func (s *Service) GetAllActive() ([]*ProductType, error) {
 func (s *Service) GetByCategoryID(categoryID string) ([]*ProductType, error) {
 	return s.storage.GetByCategoryID(categoryID)
 }
-
-

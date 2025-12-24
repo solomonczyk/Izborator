@@ -12,4 +12,3 @@ type Category struct {
 	IsActive  bool
 	SortOrder int
 }
-

@@ -47,4 +47,3 @@ func (m *Meilisearch) Close() error {
 	// Meilisearch клиент не требует явного закрытия
 	return nil
 }
-

@@ -156,5 +156,3 @@ func (a *AttributesAdapter) GetByProductTypeID(productTypeID string) ([]*attribu
 
 	return result, nil
 }
-
-

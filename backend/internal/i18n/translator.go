@@ -73,7 +73,7 @@ func (t *Translator) T(lang, key string) string {
 // normalizeLang нормализует код языка (например, "sr-RS" -> "sr", "en-US" -> "en")
 func normalizeLang(lang string) string {
 	lang = strings.ToLower(strings.TrimSpace(lang))
-	
+
 	// Убираем регион (например, "sr-RS" -> "sr")
 	if idx := strings.Index(lang, "-"); idx > 0 {
 		lang = lang[:idx]
@@ -100,4 +100,3 @@ func normalizeLang(lang string) string {
 func (t *Translator) GetSupportedLanguages() []string {
 	return []string{"en", "sr", "ru", "hu", "zh"}
 }
-

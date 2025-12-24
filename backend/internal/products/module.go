@@ -2,27 +2,27 @@ package products
 
 import (
 	"context"
-	"time"
 	"github.com/solomonczyk/izborator/internal/logger"
+	"time"
 )
 
 // Storage интерфейс для работы с хранилищем товаров
 type Storage interface {
 	// GetProduct получает товар по ID
 	GetProduct(id string) (*Product, error)
-	
+
 	// SearchProducts ищет товары по запросу
 	SearchProducts(query string, limit, offset int) ([]*Product, int, error)
-	
+
 	// Browse возвращает каталог товаров с фильтрами
 	Browse(ctx context.Context, params BrowseParams) (*BrowseResult, error)
-	
+
 	// SaveProduct сохраняет товар
 	SaveProduct(product *Product) error
-	
+
 	// GetProductPrices получает цены товара из разных магазинов
 	GetProductPrices(productID string) ([]*ProductPrice, error)
-	
+
 	// SaveProductPrice сохраняет цену товара
 	SaveProductPrice(price *ProductPrice) error
 
@@ -55,4 +55,3 @@ func New(storage Storage, log *logger.Logger) *Service {
 func (s *Service) GetURLsForRescrape(ctx context.Context, olderThan time.Duration, limit int) ([]RescrapeItem, error) {
 	return s.storage.GetURLsForRescrape(ctx, olderThan, limit)
 }
-

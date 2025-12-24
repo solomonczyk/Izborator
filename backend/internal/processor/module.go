@@ -27,10 +27,10 @@ type Matching interface {
 
 // Service сервис для обработки сырых данных
 type Service struct {
-	rawStorage      RawStorage
+	rawStorage       RawStorage
 	processedStorage ProcessedStorage
-	matching        Matching
-	logger          *logger.Logger
+	matching         Matching
+	logger           *logger.Logger
 }
 
 // New создаёт новый сервис обработки
@@ -43,8 +43,7 @@ func New(
 	return &Service{
 		rawStorage:       rawStorage,
 		processedStorage: processedStorage,
-		matching:        matching,
-		logger:          log,
+		matching:         matching,
+		logger:           log,
 	}
 }
-

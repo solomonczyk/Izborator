@@ -176,4 +176,3 @@ func (a *autoconfigAdapter) MarkAsFailed(id string, reason string) error {
 
 	return nil
 }
-

@@ -10,11 +10,11 @@ import (
 
 // mockStorage мок для Storage интерфейса
 type mockStorage struct {
-	searchProductsFunc    func(query string, limit, offset int) ([]*Product, int, error)
-	getProductByIDFunc    func(id string) (*Product, error)
-	browseProductsFunc    func(params BrowseParams) (*BrowseResult, error)
-	saveProductFunc       func(product *Product) error
-	savePriceFunc         func(productID string, price float64, currency string) error //nolint:unused
+	searchProductsFunc func(query string, limit, offset int) ([]*Product, int, error)
+	getProductByIDFunc func(id string) (*Product, error)
+	browseProductsFunc func(params BrowseParams) (*BrowseResult, error)
+	saveProductFunc    func(product *Product) error
+	savePriceFunc      func(productID string, price float64, currency string) error //nolint:unused
 }
 
 func (m *mockStorage) SearchProducts(query string, limit, offset int) ([]*Product, int, error) {
@@ -359,4 +359,3 @@ func TestBrowseDefaultParams(t *testing.T) {
 		t.Fatal("expected non-nil result")
 	}
 }
-

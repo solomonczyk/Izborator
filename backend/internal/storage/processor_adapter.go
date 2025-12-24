@@ -152,7 +152,7 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 		JOIN shops s ON pp.shop_id = s.id
 		WHERE pp.product_id = $1
 	`
-	
+
 	rows, err := a.pg.DB().Query(a.ctx, query, product.ID)
 	if err != nil {
 		// Не прерываем индексацию, просто будет без имен
@@ -203,4 +203,3 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 
 	return nil
 }
-

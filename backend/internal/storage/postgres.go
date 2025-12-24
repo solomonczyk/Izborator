@@ -20,7 +20,7 @@ type Repository struct {
 // New создает пул соединений с PostgreSQL
 func New(ctx context.Context, cfg *config.DBConfig, log *logger.Logger) (*Repository, error) {
 	connString := cfg.DSN()
-	
+
 	// Конфигурация пула
 	poolConfig, err := pgxpool.ParseConfig(connString)
 	if err != nil {
@@ -79,13 +79,13 @@ type Postgres struct {
 // NewPostgres создаёт новый клиент PostgreSQL (обёртка для обратной совместимости)
 func NewPostgres(cfg *config.DBConfig, log *logger.Logger) (*Postgres, error) {
 	ctx := context.Background()
-	
+
 	log.Debug("Creating PostgreSQL connection", map[string]interface{}{
 		"host":     cfg.Host,
 		"port":     cfg.Port,
 		"database": cfg.Database,
 	})
-	
+
 	repo, err := New(ctx, cfg, log)
 	if err != nil {
 		log.Error("Failed to create PostgreSQL connection", map[string]interface{}{

@@ -89,7 +89,7 @@ func (s *Service) GetByID(id string) (*Product, error) {
 	product, err := s.storage.GetProduct(id)
 	if err != nil {
 		s.logger.Error("Failed to get product", map[string]interface{}{
-			"error":    err,
+			"error":      err,
 			"product_id": id,
 		})
 		return nil, ErrProductNotFound
@@ -107,7 +107,7 @@ func (s *Service) GetPrices(productID string) ([]*ProductPrice, error) {
 	prices, err := s.storage.GetProductPrices(productID)
 	if err != nil {
 		s.logger.Error("Failed to get product prices", map[string]interface{}{
-			"error":     err,
+			"error":      err,
 			"product_id": productID,
 		})
 		return nil, fmt.Errorf("failed to get prices: %w", err)
@@ -124,7 +124,7 @@ func (s *Service) SaveProduct(product *Product) error {
 
 	if err := s.storage.SaveProduct(product); err != nil {
 		s.logger.Error("Failed to save product", map[string]interface{}{
-			"error": err,
+			"error":      err,
 			"product_id": product.ID,
 		})
 		return fmt.Errorf("failed to save product: %w", err)
@@ -141,7 +141,7 @@ func (s *Service) SavePrice(price *ProductPrice) error {
 
 	if err := s.storage.SaveProductPrice(price); err != nil {
 		s.logger.Error("Failed to save product price", map[string]interface{}{
-			"error":     err,
+			"error":      err,
 			"product_id": price.ProductID,
 			"shop_id":    price.ShopID,
 		})

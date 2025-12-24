@@ -351,4 +351,3 @@ func (s *Service) ParseProductWithBrowser(ctx context.Context, url string, shopC
 
 	return &product, nil
 }
-

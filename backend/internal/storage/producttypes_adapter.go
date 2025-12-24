@@ -149,5 +149,3 @@ func (a *ProductTypesAdapter) GetByCategoryID(categoryID string) ([]*producttype
 
 	return result, nil
 }
-
-

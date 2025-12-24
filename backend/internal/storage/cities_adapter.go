@@ -117,5 +117,3 @@ func (a *CitiesAdapter) GetAllActive() ([]*cities.City, error) {
 
 	return result, nil
 }
-
-

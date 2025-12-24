@@ -8,13 +8,13 @@ import (
 type Storage interface {
 	// GetByID получает атрибут по ID
 	GetByID(id string) (*Attribute, error)
-	
+
 	// GetByCode получает атрибут по коду
 	GetByCode(code string) (*Attribute, error)
-	
+
 	// GetAllActive получает все активные атрибуты
 	GetAllActive() ([]*Attribute, error)
-	
+
 	// GetByProductTypeID получает атрибуты для типа товара
 	GetByProductTypeID(productTypeID string) ([]*ProductTypeAttribute, error)
 }
@@ -52,5 +52,3 @@ func (s *Service) GetAllActive() ([]*Attribute, error) {
 func (s *Service) GetByProductTypeID(productTypeID string) ([]*ProductTypeAttribute, error) {
 	return s.storage.GetByProductTypeID(productTypeID)
 }
-
-

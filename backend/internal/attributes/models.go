@@ -2,11 +2,11 @@ package attributes
 
 // Attribute атрибут товара (RAM, Storage, Color, Size...)
 type Attribute struct {
-	ID          string
-	Code        string
-	NameSr      string
-	DataType    string // "int", "float", "string", "bool", "enum"
-	UnitSr      *string
+	ID           string
+	Code         string
+	NameSr       string
+	DataType     string // "int", "float", "string", "bool", "enum"
+	UnitSr       *string
 	IsFilterable bool
 	IsSortable   bool
 }
@@ -18,5 +18,3 @@ type ProductTypeAttribute struct {
 	IsRequired    bool
 	SortOrder     int
 }
-
-

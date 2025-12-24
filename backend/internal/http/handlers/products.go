@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
+	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/http/validation"
 	"github.com/solomonczyk/izborator/internal/i18n"

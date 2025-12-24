@@ -20,11 +20,10 @@ type PriceHistory struct {
 
 // PriceChart данные для графика цен
 type PriceChart struct {
-	ProductID string                 `json:"product_id"`
-	Shops     map[string][]*PricePoint `json:"shops"` // shop_id -> points
-	ShopNames map[string]string      `json:"shop_names"` // shop_id -> shop_name
-	Period    string                 `json:"period"`
-	From      time.Time               `json:"from"`
-	To        time.Time               `json:"to"`
+	ProductID string                   `json:"product_id"`
+	Shops     map[string][]*PricePoint `json:"shops"`      // shop_id -> points
+	ShopNames map[string]string        `json:"shop_names"` // shop_id -> shop_name
+	Period    string                   `json:"period"`
+	From      time.Time                `json:"from"`
+	To        time.Time                `json:"to"`
 }
-

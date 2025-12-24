@@ -27,7 +27,7 @@ func (s *Service) SavePrice(productID, shopID string, price float64, currency st
 
 	if err := s.storage.SavePrice(point); err != nil {
 		s.logger.Error("Failed to save price", map[string]interface{}{
-			"error":     err,
+			"error":      err,
 			"product_id": productID,
 			"shop_id":    shopID,
 		})
@@ -50,7 +50,7 @@ func (s *Service) GetHistory(productID string, from, to time.Time) (*PriceHistor
 	points, err := s.storage.GetHistory(productID, from, to)
 	if err != nil {
 		s.logger.Error("Failed to get price history", map[string]interface{}{
-			"error":     err,
+			"error":      err,
 			"product_id": productID,
 		})
 		return nil, fmt.Errorf("failed to get history: %w", err)
@@ -83,7 +83,7 @@ func (s *Service) GetPriceChart(productID string, period string, shopIDs []strin
 	chart, err := s.storage.GetPriceChart(productID, period, shopIDs)
 	if err != nil {
 		s.logger.Error("Failed to get price chart", map[string]interface{}{
-			"error":     err,
+			"error":      err,
 			"product_id": productID,
 			"period":     period,
 		})
@@ -96,7 +96,7 @@ func (s *Service) GetPriceChart(productID string, period string, shopIDs []strin
 // calculatePeriod определяет период на основе временного диапазона
 func calculatePeriod(from, to time.Time) string {
 	duration := to.Sub(from)
-	
+
 	if duration <= 24*time.Hour {
 		return "day"
 	} else if duration <= 7*24*time.Hour {

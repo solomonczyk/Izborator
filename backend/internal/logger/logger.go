@@ -72,4 +72,3 @@ func (l *Logger) With(fields map[string]interface{}) *Logger {
 	logger := l.logger.With().Fields(fields).Logger()
 	return &Logger{logger: logger}
 }
-

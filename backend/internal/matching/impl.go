@@ -32,7 +32,7 @@ func (s *Service) MatchProduct(req *MatchRequest) (*MatchResult, error) {
 	matches := make([]*ProductMatch, 0, len(similar))
 	for _, product := range similar {
 		similarity := s.calculateSimilarity(req, product)
-		
+
 		if similarity > 0.5 { // Порог схожести
 			matches = append(matches, &ProductMatch{
 				ProductID:  req.ProductID,
@@ -53,7 +53,7 @@ func (s *Service) normalizeName(name string) string {
 	// Приводим к нижнему регистру и убираем лишние пробелы
 	name = strings.ToLower(name)
 	name = strings.TrimSpace(name)
-	
+
 	// Удаляем спецсимволы, оставляем только буквы, цифры и пробелы
 	var normalized strings.Builder
 	for _, r := range name {
@@ -62,10 +62,10 @@ func (s *Service) normalizeName(name string) string {
 		}
 	}
 	name = normalized.String()
-	
+
 	// Нормализуем пробелы (множественные пробелы -> один)
 	words := strings.Fields(name)
-	
+
 	// Удаляем несущественные слова (цвета, описания) и нормализуем память
 	filteredWords := make([]string, 0, len(words))
 	for _, word := range words {
@@ -93,7 +93,7 @@ func (s *Service) normalizeName(name string) string {
 			filteredWords = append(filteredWords, word)
 		}
 	}
-	
+
 	name = strings.Join(filteredWords, " ")
 	return strings.TrimSpace(name)
 }
@@ -111,7 +111,7 @@ func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float
 	// Нормализуем названия и бренды для сравнения
 	reqName := s.normalizeName(req.Name)
 	prodName := s.normalizeName(product.Name)
-	
+
 	// Точное совпадение названий = 100% similarity
 	if reqName == prodName {
 		// Проверяем бренды для дополнительной уверенности
@@ -127,7 +127,7 @@ func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float
 		// Названия совпадают, бренды не указаны или один пустой
 		return 0.95
 	}
-	
+
 	// Частичное совпадение названий
 	similarity := 0.0
 	if strings.Contains(reqName, prodName) || strings.Contains(prodName, reqName) {
@@ -136,14 +136,14 @@ func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float
 		// Проверка на общие слова с улучшенным алгоритмом
 		reqWords := strings.Fields(reqName)
 		prodWords := strings.Fields(prodName)
-		
+
 		if len(reqWords) == 0 || len(prodWords) == 0 {
 			return 0.0
 		}
-		
+
 		commonWords := 0
 		importantWords := 0 // Ключевые слова (бренд, модель)
-		
+
 		for _, reqWord := range reqWords {
 			if len(reqWord) <= 2 {
 				continue // Игнорируем короткие слова
@@ -159,24 +159,24 @@ func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float
 				}
 			}
 		}
-		
+
 		if commonWords > 0 {
 			// Jaccard similarity с бонусом за ключевые слова
 			totalWords := len(reqWords) + len(prodWords) - commonWords
 			baseSimilarity := float64(commonWords) / float64(totalWords)
-			
+
 			// Бонус за совпадение ключевых слов (бренд, модель)
 			importantBonus := float64(importantWords) * 0.15
-			
+
 			similarity = (baseSimilarity * 0.8) + importantBonus
-			
+
 			// Если совпало много слов - это точно один товар
 			if commonWords >= 4 {
 				similarity = 0.85
 			}
 		}
 	}
-	
+
 	// Бонус за совпадение брендов
 	if req.Brand != "" && product.Brand != "" {
 		reqBrand := s.normalizeBrand(req.Brand)
@@ -185,11 +185,11 @@ func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float
 			similarity += 0.2
 		}
 	}
-	
+
 	if similarity > 1.0 {
 		similarity = 1.0
 	}
-	
+
 	return similarity
 }
 

@@ -228,4 +228,3 @@ func (a *ScrapingStatsAdapter) UpdateShopLastScraped(shopID string) error {
 
 	return nil
 }
-
