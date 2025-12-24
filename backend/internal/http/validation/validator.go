@@ -10,7 +10,7 @@ import (
 )
 
 
-// ValidateUUID проверяет, что строка является валидным UUID
+// ValidateUUID ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃ‘â€š, Ã‘â€¡Ã‘â€šÃÂ¾ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ¾ÃÂºÃÂ° Ã‘ÂÃÂ²ÃÂ»Ã‘ÂÃÂµÃ‘â€šÃ‘ÂÃ‘Â ÃÂ²ÃÂ°ÃÂ»ÃÂ¸ÃÂ´ÃÂ½Ã‘â€¹ÃÂ¼ UUID
 func ValidateUUID(id string) error {
 	if id == "" {
 		return fmt.Errorf("UUID cannot be empty")
@@ -21,7 +21,7 @@ func ValidateUUID(id string) error {
 	return nil
 }
 
-// ValidateURL проверяет, что строка является валидным URL
+// ValidateURL ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃ‘â€š, Ã‘â€¡Ã‘â€šÃÂ¾ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ¾ÃÂºÃÂ° Ã‘ÂÃÂ²ÃÂ»Ã‘ÂÃÂµÃ‘â€šÃ‘ÂÃ‘Â ÃÂ²ÃÂ°ÃÂ»ÃÂ¸ÃÂ´ÃÂ½Ã‘â€¹ÃÂ¼ URL
 func ValidateURL(urlStr string) error {
 	if urlStr == "" {
 		return fmt.Errorf("URL cannot be empty")
@@ -39,7 +39,7 @@ func ValidateURL(urlStr string) error {
 	return nil
 }
 
-// ValidatePagination проверяет параметры пагинации
+// ValidatePagination ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃ‘â€š ÃÂ¿ÃÂ°Ã‘â‚¬ÃÂ°ÃÂ¼ÃÂµÃ‘â€šÃ‘â‚¬Ã‘â€¹ ÃÂ¿ÃÂ°ÃÂ³ÃÂ¸ÃÂ½ÃÂ°Ã‘â€ ÃÂ¸ÃÂ¸
 func ValidatePagination(page, perPage int) error {
 	if page < 1 {
 		return fmt.Errorf("page must be at least 1, got %d", page)
@@ -53,18 +53,18 @@ func ValidatePagination(page, perPage int) error {
 	return nil
 }
 
-// ValidatePrice проверяет, что цена валидна
+// ValidatePrice ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃ‘â€š, Ã‘â€¡Ã‘â€šÃÂ¾ Ã‘â€ ÃÂµÃÂ½ÃÂ° ÃÂ²ÃÂ°ÃÂ»ÃÂ¸ÃÂ´ÃÂ½ÃÂ°
 func ValidatePrice(price float64) error {
 	if price < 0 {
 		return fmt.Errorf("price cannot be negative, got %.2f", price)
 	}
-	if price > 1000000000 { // 1 миллиард
+	if price > 1000000000 { // 1 ÃÂ¼ÃÂ¸ÃÂ»ÃÂ»ÃÂ¸ÃÂ°Ã‘â‚¬ÃÂ´
 		return fmt.Errorf("price seems unreasonably high: %.2f", price)
 	}
 	return nil
 }
 
-// ParseIntParam парсит целочисленный параметр из query string
+// ParseIntParam ÃÂ¿ÃÂ°Ã‘â‚¬Ã‘ÂÃÂ¸Ã‘â€š Ã‘â€ ÃÂµÃÂ»ÃÂ¾Ã‘â€¡ÃÂ¸Ã‘ÂÃÂ»ÃÂµÃÂ½ÃÂ½Ã‘â€¹ÃÂ¹ ÃÂ¿ÃÂ°Ã‘â‚¬ÃÂ°ÃÂ¼ÃÂµÃ‘â€šÃ‘â‚¬ ÃÂ¸ÃÂ· query string
 func ParseIntParam(query url.Values, key string, defaultValue int) (int, error) {
 	valueStr := query.Get(key)
 	if valueStr == "" {
@@ -77,7 +77,7 @@ func ParseIntParam(query url.Values, key string, defaultValue int) (int, error) 
 	return value, nil
 }
 
-// ParseIntParamWithBounds парсит целочисленный параметр с проверкой границ
+// ParseIntParamWithBounds ÃÂ¿ÃÂ°Ã‘â‚¬Ã‘ÂÃÂ¸Ã‘â€š Ã‘â€ ÃÂµÃÂ»ÃÂ¾Ã‘â€¡ÃÂ¸Ã‘ÂÃÂ»ÃÂµÃÂ½ÃÂ½Ã‘â€¹ÃÂ¹ ÃÂ¿ÃÂ°Ã‘â‚¬ÃÂ°ÃÂ¼ÃÂµÃ‘â€šÃ‘â‚¬ Ã‘Â ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬ÃÂºÃÂ¾ÃÂ¹ ÃÂ³Ã‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€ 
 func ParseIntParamWithBounds(query url.Values, key string, defaultValue, min, max int) (int, error) {
 	value, err := ParseIntParam(query, key, defaultValue)
 	if err != nil {
@@ -92,16 +92,16 @@ func ParseIntParamWithBounds(query url.Values, key string, defaultValue, min, ma
 	return value, nil
 }
 
-// SanitizeString очищает строку от потенциально опасных символов
+// SanitizeString ÃÂ¾Ã‘â€¡ÃÂ¸Ã‘â€°ÃÂ°ÃÂµÃ‘â€š Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ¾ÃÂºÃ‘Æ’ ÃÂ¾Ã‘â€š ÃÂ¿ÃÂ¾Ã‘â€šÃÂµÃÂ½Ã‘â€ ÃÂ¸ÃÂ°ÃÂ»Ã‘Å’ÃÂ½ÃÂ¾ ÃÂ¾ÃÂ¿ÃÂ°Ã‘ÂÃÂ½Ã‘â€¹Ã‘â€¦ Ã‘ÂÃÂ¸ÃÂ¼ÃÂ²ÃÂ¾ÃÂ»ÃÂ¾ÃÂ²
 func SanitizeString(s string) string {
-	// Удаляем управляющие символы
+	// ÃÂ£ÃÂ´ÃÂ°ÃÂ»Ã‘ÂÃÂµÃÂ¼ Ã‘Æ’ÃÂ¿Ã‘â‚¬ÃÂ°ÃÂ²ÃÂ»Ã‘ÂÃ‘Å½Ã‘â€°ÃÂ¸ÃÂµ Ã‘ÂÃÂ¸ÃÂ¼ÃÂ²ÃÂ¾ÃÂ»Ã‘â€¹
 	s = strings.ReplaceAll(s, "\x00", "")
 	s = strings.ReplaceAll(s, "\r", "")
 	s = strings.TrimSpace(s)
 	return s
 }
 
-// ValidateSearchQuery проверяет поисковый запрос
+// ValidateSearchQuery ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃ‘â€š ÃÂ¿ÃÂ¾ÃÂ¸Ã‘ÂÃÂºÃÂ¾ÃÂ²Ã‘â€¹ÃÂ¹ ÃÂ·ÃÂ°ÃÂ¿Ã‘â‚¬ÃÂ¾Ã‘Â
 func ValidateSearchQuery(query string) error {
 	query = strings.TrimSpace(query)
 	if query == "" {

@@ -13,14 +13,14 @@ import (
 	"github.com/solomonczyk/izborator/internal/logger"
 )
 
-// Service сервис для автоматической генерации конфигов
+// Service Ã‘ÂÃÂµÃ‘â‚¬ÃÂ²ÃÂ¸Ã‘Â ÃÂ´ÃÂ»Ã‘Â ÃÂ°ÃÂ²Ã‘â€šÃÂ¾ÃÂ¼ÃÂ°Ã‘â€šÃÂ¸Ã‘â€¡ÃÂµÃ‘ÂÃÂºÃÂ¾ÃÂ¹ ÃÂ³ÃÂµÃÂ½ÃÂµÃ‘â‚¬ÃÂ°Ã‘â€ ÃÂ¸ÃÂ¸ ÃÂºÃÂ¾ÃÂ½Ã‘â€žÃÂ¸ÃÂ³ÃÂ¾ÃÂ²
 type Service struct {
 	storage Storage
 	ai      *ai.Client
 	log     *logger.Logger
 }
 
-// NewService создает новый сервис AutoConfig
+// NewService Ã‘ÂÃÂ¾ÃÂ·ÃÂ´ÃÂ°ÃÂµÃ‘â€š ÃÂ½ÃÂ¾ÃÂ²Ã‘â€¹ÃÂ¹ Ã‘ÂÃÂµÃ‘â‚¬ÃÂ²ÃÂ¸Ã‘Â AutoConfig
 func NewService(storage Storage, ai *ai.Client, log *logger.Logger) *Service {
 	return &Service{
 		storage: storage,
@@ -29,7 +29,7 @@ func NewService(storage Storage, ai *ai.Client, log *logger.Logger) *Service {
 	}
 }
 
-// ProcessNextCandidate берет одного кандидата и пытается создать конфиг
+// ProcessNextCandidate ÃÂ±ÃÂµÃ‘â‚¬ÃÂµÃ‘â€š ÃÂ¾ÃÂ´ÃÂ½ÃÂ¾ÃÂ³ÃÂ¾ ÃÂºÃÂ°ÃÂ½ÃÂ´ÃÂ¸ÃÂ´ÃÂ°Ã‘â€šÃÂ° ÃÂ¸ ÃÂ¿Ã‘â€¹Ã‘â€šÃÂ°ÃÂµÃ‘â€šÃ‘ÂÃ‘Â Ã‘ÂÃÂ¾ÃÂ·ÃÂ´ÃÂ°Ã‘â€šÃ‘Å’ ÃÂºÃÂ¾ÃÂ½Ã‘â€žÃÂ¸ÃÂ³
 func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 	if s.ai == nil {
 		return fmt.Errorf("AI client is not available")
@@ -44,12 +44,12 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 	}
 	candidate := candidates[0]
 
-	s.log.Info("🤖 Auto-configuring shop", map[string]interface{}{
+	s.log.Info("Ã°Å¸Â¤â€“ Auto-configuring shop", map[string]interface{}{
 		"domain": candidate.Domain,
 		"id":     candidate.ID,
 	})
 
-	// 1. Scout: Ищем страницу товара
+	// 1. Scout: ÃËœÃ‘â€°ÃÂµÃÂ¼ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€ Ã‘Æ’ Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ÃÂ°
 	productURL, err := s.findProductPage(candidate.Domain)
 	if err != nil {
 		s.log.Error("Scout failed", map[string]interface{}{
@@ -63,7 +63,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 		"url": productURL,
 	})
 
-	// 2. Fetch & Clean: Скачиваем HTML
+	// 2. Fetch & Clean: ÃÂ¡ÃÂºÃÂ°Ã‘â€¡ÃÂ¸ÃÂ²ÃÂ°ÃÂµÃÂ¼ HTML
 	html, err := s.fetchHTML(productURL)
 	if err != nil {
 		s.log.Error("Failed to fetch HTML", map[string]interface{}{
@@ -79,10 +79,10 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 		s.log.Warn("HTML cleaning failed, using raw HTML", map[string]interface{}{
 			"error": err.Error(),
 		})
-		cleanHTML = html // Используем сырой HTML, если очистка не удалась
+		cleanHTML = html // ÃËœÃ‘ÂÃÂ¿ÃÂ¾ÃÂ»Ã‘Å’ÃÂ·Ã‘Æ’ÃÂµÃÂ¼ Ã‘ÂÃ‘â€¹Ã‘â‚¬ÃÂ¾ÃÂ¹ HTML, ÃÂµÃ‘ÂÃÂ»ÃÂ¸ ÃÂ¾Ã‘â€¡ÃÂ¸Ã‘ÂÃ‘â€šÃÂºÃÂ° ÃÂ½ÃÂµ Ã‘Æ’ÃÂ´ÃÂ°ÃÂ»ÃÂ°Ã‘ÂÃ‘Å’
 	}
 
-	// 3. Brain: Спрашиваем AI
+	// 3. Brain: ÃÂ¡ÃÂ¿Ã‘â‚¬ÃÂ°Ã‘Ë†ÃÂ¸ÃÂ²ÃÂ°ÃÂµÃÂ¼ AI
 	s.log.Info("Asking AI for selectors", map[string]interface{}{
 		"html_length": len(cleanHTML),
 	})
@@ -106,7 +106,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 		return fmt.Errorf("invalid JSON: %w", err)
 	}
 
-	// Проверяем, что есть хотя бы name и price
+	// ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃÂ¼, Ã‘â€¡Ã‘â€šÃÂ¾ ÃÂµÃ‘ÂÃ‘â€šÃ‘Å’ Ã‘â€¦ÃÂ¾Ã‘â€šÃ‘Â ÃÂ±Ã‘â€¹ name ÃÂ¸ price
 	if selectors["name"] == "" || selectors["price"] == "" {
 		s.log.Warn("Missing required selectors", map[string]interface{}{
 			"selectors": selectors,
@@ -115,7 +115,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 		return fmt.Errorf("missing required selectors (name or price)")
 	}
 
-	// 5. Validate: Проверяем, работают ли селекторы
+	// 5. Validate: ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃÂ¼, Ã‘â‚¬ÃÂ°ÃÂ±ÃÂ¾Ã‘â€šÃÂ°Ã‘Å½Ã‘â€š ÃÂ»ÃÂ¸ Ã‘ÂÃÂµÃÂ»ÃÂµÃÂºÃ‘â€šÃÂ¾Ã‘â‚¬Ã‘â€¹
 	if err := s.validateSelectors(productURL, selectors); err != nil {
 		s.log.Warn("Validation failed", map[string]interface{}{
 			"error":     err.Error(),
@@ -125,8 +125,8 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 		return fmt.Errorf("validation failed: %w", err)
 	}
 
-	// 6. Success: Сохраняем!
-	s.log.Info("✨ SUCCESS! Config generated", map[string]interface{}{
+	// 6. Success: ÃÂ¡ÃÂ¾Ã‘â€¦Ã‘â‚¬ÃÂ°ÃÂ½Ã‘ÂÃÂµÃÂ¼!
+	s.log.Info("Ã¢Å“Â¨ SUCCESS! Config generated", map[string]interface{}{
 		"selectors": selectors,
 		"domain":    candidate.Domain,
 	})
@@ -135,7 +135,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 
 // --- Helpers ---
 
-// findProductPage ищет ссылку на товар с главной страницы
+// findProductPage ÃÂ¸Ã‘â€°ÃÂµÃ‘â€š Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃ‘Æ’ ÃÂ½ÃÂ° Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ Ã‘Â ÃÂ³ÃÂ»ÃÂ°ÃÂ²ÃÂ½ÃÂ¾ÃÂ¹ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€ Ã‘â€¹
 func (s *Service) findProductPage(domain string) (string, error) {
 	baseURL := domain
 	if !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
@@ -158,35 +158,35 @@ func (s *Service) findProductPage(domain string) (string, error) {
 		link := e.Attr("href")
 		link = e.Request.AbsoluteURL(link)
 
-		// Игнорируем внешние ссылки
+		// ÃËœÃÂ³ÃÂ½ÃÂ¾Ã‘â‚¬ÃÂ¸Ã‘â‚¬Ã‘Æ’ÃÂµÃÂ¼ ÃÂ²ÃÂ½ÃÂµÃ‘Ë†ÃÂ½ÃÂ¸ÃÂµ Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃÂ¸
 		if !strings.Contains(link, domain) {
 			return
 		}
 
-		// Эвристика: ссылка на товар обычно длинная и содержит ключевые слова
+		// ÃÂ­ÃÂ²Ã‘â‚¬ÃÂ¸Ã‘ÂÃ‘â€šÃÂ¸ÃÂºÃÂ°: Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃÂ° ÃÂ½ÃÂ° Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ ÃÂ¾ÃÂ±Ã‘â€¹Ã‘â€¡ÃÂ½ÃÂ¾ ÃÂ´ÃÂ»ÃÂ¸ÃÂ½ÃÂ½ÃÂ°Ã‘Â ÃÂ¸ Ã‘ÂÃÂ¾ÃÂ´ÃÂµÃ‘â‚¬ÃÂ¶ÃÂ¸Ã‘â€š ÃÂºÃÂ»Ã‘Å½Ã‘â€¡ÃÂµÃÂ²Ã‘â€¹ÃÂµ Ã‘ÂÃÂ»ÃÂ¾ÃÂ²ÃÂ°
 		score := 0
 		linkLower := strings.ToLower(link)
 
-		// Игнорируем страницы коллекций/категорий (не товары)
+		// ÃËœÃÂ³ÃÂ½ÃÂ¾Ã‘â‚¬ÃÂ¸Ã‘â‚¬Ã‘Æ’ÃÂµÃÂ¼ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€ Ã‘â€¹ ÃÂºÃÂ¾ÃÂ»ÃÂ»ÃÂµÃÂºÃ‘â€ ÃÂ¸ÃÂ¹/ÃÂºÃÂ°Ã‘â€šÃÂµÃÂ³ÃÂ¾Ã‘â‚¬ÃÂ¸ÃÂ¹ (ÃÂ½ÃÂµ Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬Ã‘â€¹)
 		if strings.Contains(linkLower, "/collections/") || strings.Contains(linkLower, "/collection/") ||
 			strings.Contains(linkLower, "/category/") || strings.Contains(linkLower, "/kategorija/") ||
 			strings.Contains(linkLower, "/kategorije/") || strings.Contains(linkLower, "/categories/") {
 			return
 		}
 
-		// Ключевые слова для страниц товаров
+		// ÃÅ¡ÃÂ»Ã‘Å½Ã‘â€¡ÃÂµÃÂ²Ã‘â€¹ÃÂµ Ã‘ÂÃÂ»ÃÂ¾ÃÂ²ÃÂ° ÃÂ´ÃÂ»Ã‘Â Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€  Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ÃÂ¾ÃÂ²
 		if strings.Contains(linkLower, "/proizvod/") || strings.Contains(linkLower, "/p/") ||
 			strings.Contains(linkLower, "/product/") || strings.Contains(linkLower, "/artikal/") ||
 			strings.Contains(linkLower, "/products/") || strings.Contains(linkLower, "/proizvodi/") {
 			score += 50
 		}
 
-		// Длинная ссылка (обычно товары имеют длинные URL)
+		// Ãâ€ÃÂ»ÃÂ¸ÃÂ½ÃÂ½ÃÂ°Ã‘Â Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃÂ° (ÃÂ¾ÃÂ±Ã‘â€¹Ã‘â€¡ÃÂ½ÃÂ¾ Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬Ã‘â€¹ ÃÂ¸ÃÂ¼ÃÂµÃ‘Å½Ã‘â€š ÃÂ´ÃÂ»ÃÂ¸ÃÂ½ÃÂ½Ã‘â€¹ÃÂµ URL)
 		if len(link) > len(baseURL)+20 {
 			score += 10
 		}
 
-		// Игнорируем мусор
+		// ÃËœÃÂ³ÃÂ½ÃÂ¾Ã‘â‚¬ÃÂ¸Ã‘â‚¬Ã‘Æ’ÃÂµÃÂ¼ ÃÂ¼Ã‘Æ’Ã‘ÂÃÂ¾Ã‘â‚¬
 		if strings.Contains(linkLower, "login") || strings.Contains(linkLower, "cart") ||
 			strings.Contains(linkLower, "facebook") || strings.Contains(linkLower, "twitter") ||
 			strings.Contains(linkLower, "instagram") || strings.Contains(linkLower, "contact") ||
@@ -194,7 +194,7 @@ func (s *Service) findProductPage(domain string) (string, error) {
 			score = -100
 		}
 
-		// Игнорируем якоря и пустые ссылки
+		// ÃËœÃÂ³ÃÂ½ÃÂ¾Ã‘â‚¬ÃÂ¸Ã‘â‚¬Ã‘Æ’ÃÂµÃÂ¼ Ã‘ÂÃÂºÃÂ¾Ã‘â‚¬Ã‘Â ÃÂ¸ ÃÂ¿Ã‘Æ’Ã‘ÂÃ‘â€šÃ‘â€¹ÃÂµ Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃÂ¸
 		if strings.HasPrefix(link, "#") || link == "" || link == baseURL || link == baseURL+"/" {
 			return
 		}
@@ -224,7 +224,7 @@ func (s *Service) findProductPage(domain string) (string, error) {
 	return bestLink, nil
 }
 
-// fetchHTML скачивает HTML страницы
+// fetchHTML Ã‘ÂÃÂºÃÂ°Ã‘â€¡ÃÂ¸ÃÂ²ÃÂ°ÃÂµÃ‘â€š HTML Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€ Ã‘â€¹
 func (s *Service) fetchHTML(url string) (string, error) {
 	var html string
 	var fetchErr error
@@ -259,7 +259,7 @@ func (s *Service) fetchHTML(url string) (string, error) {
 	return html, nil
 }
 
-// validateSelectors проверяет, что селекторы работают и извлекают данные
+// validateSelectors ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃ‘â€š, Ã‘â€¡Ã‘â€šÃÂ¾ Ã‘ÂÃÂµÃÂ»ÃÂµÃÂºÃ‘â€šÃÂ¾Ã‘â‚¬Ã‘â€¹ Ã‘â‚¬ÃÂ°ÃÂ±ÃÂ¾Ã‘â€šÃÂ°Ã‘Å½Ã‘â€š ÃÂ¸ ÃÂ¸ÃÂ·ÃÂ²ÃÂ»ÃÂµÃÂºÃÂ°Ã‘Å½Ã‘â€š ÃÂ´ÃÂ°ÃÂ½ÃÂ½Ã‘â€¹ÃÂµ
 func (s *Service) validateSelectors(url string, selectors map[string]string) error {
 	var name, price string
 	var validationErr error
@@ -295,7 +295,7 @@ func (s *Service) validateSelectors(url string, selectors map[string]string) err
 		return fmt.Errorf("error during validation: %w", validationErr)
 	}
 
-	// Проверяем, что данные извлечены
+	// ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃÂ¼, Ã‘â€¡Ã‘â€šÃÂ¾ ÃÂ´ÃÂ°ÃÂ½ÃÂ½Ã‘â€¹ÃÂµ ÃÂ¸ÃÂ·ÃÂ²ÃÂ»ÃÂµÃ‘â€¡ÃÂµÃÂ½Ã‘â€¹
 	if name == "" {
 		return fmt.Errorf("name selector '%s' did not extract data", nameSel)
 	}
@@ -303,7 +303,7 @@ func (s *Service) validateSelectors(url string, selectors map[string]string) err
 		return fmt.Errorf("price selector '%s' did not extract data", priceSel)
 	}
 
-	// Проверяем, что цена содержит числа
+	// ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃÂ¼, Ã‘â€¡Ã‘â€šÃÂ¾ Ã‘â€ ÃÂµÃÂ½ÃÂ° Ã‘ÂÃÂ¾ÃÂ´ÃÂµÃ‘â‚¬ÃÂ¶ÃÂ¸Ã‘â€š Ã‘â€¡ÃÂ¸Ã‘ÂÃÂ»ÃÂ°
 	if !strings.ContainsAny(price, "0123456789") {
 		return fmt.Errorf("price selector extracted non-numeric value: '%s'", price)
 	}
