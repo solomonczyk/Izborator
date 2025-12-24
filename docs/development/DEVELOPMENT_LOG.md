@@ -4940,3 +4940,8 @@ bash run-harvest.sh
 
 **CI/CD (2025-12-24):**
 - Committed cleanPrice parsing fix (`10bb1a9`).
+
+
+**CI/CD (2025-12-24):**
+- Tried local reproduction: `go test -race` failed on Windows because `-race` requires cgo.
+- Tried `go test ./...` locally; command timed out (likely waiting on integration DB).
