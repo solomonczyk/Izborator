@@ -26,17 +26,18 @@ jobs:
       - name: Check classified candidates
         id: check-candidates
         run: |
-          CLASSIFIED_COUNT=$(ssh -q -o LogLevel=ERROR root@${{ secrets.SERVER_HOST }} << 'EOF'
+          # Получаем значение через SSH, фильтруя только числовые строки
+          CLASSIFIED_COUNT=$(ssh -q -o LogLevel=ERROR -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${{ secrets.SERVER_HOST }} << 'EOF' 2>/dev/null | grep -E '^[0-9]+$' | head -1
             docker exec -i izborator_postgres psql -U postgres -d izborator -t -A -c "
             SELECT COUNT(*) 
             FROM potential_shops 
             WHERE status = 'classified';
-            " 2>/dev/null | tr -d ' \n'
+            " 2>/dev/null
           EOF
           )
           # Валидация: проверяем, что значение - это число
-          if ! [[ "$CLASSIFIED_COUNT" =~ ^[0-9]+$ ]]; then
-            echo "⚠️  Invalid count value: '$CLASSIFIED_COUNT', defaulting to 0"
+          if [ -z "$CLASSIFIED_COUNT" ] || ! [[ "$CLASSIFIED_COUNT" =~ ^[0-9]+$ ]]; then
+            echo "⚠️  Invalid or empty count value, defaulting to 0"
             CLASSIFIED_COUNT=0
           fi
           echo "count=$CLASSIFIED_COUNT" >> $GITHUB_OUTPUT
