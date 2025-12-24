@@ -184,6 +184,66 @@ func TestCalculateSimilarity(t *testing.T) {
 			},
 			expected: 0.0, // Нет совпадения
 		},
+		{
+			name: "match with different colors",
+			req: &MatchRequest{
+				Name:  "iPhone 15 Pro Max Black",
+				Brand: "Apple",
+			},
+			product: &Product{
+				Name:  "iPhone 15 Pro Max White",
+				Brand: "Apple",
+			},
+			expected: 1.0, // Цвета фильтруются, должно быть полное совпадение
+		},
+		{
+			name: "match with memory normalization",
+			req: &MatchRequest{
+				Name:  "iPhone 15 12/512GB",
+				Brand: "Apple",
+			},
+			product: &Product{
+				Name:  "iPhone 15 512GB",
+				Brand: "Apple",
+			},
+			expected: 1.0, // Память нормализуется, должно совпадать
+		},
+		{
+			name: "match with dash normalization",
+			req: &MatchRequest{
+				Name:  "iPhone-15-Pro-Max",
+				Brand: "Apple",
+			},
+			product: &Product{
+				Name:  "iPhone 15 Pro Max",
+				Brand: "Apple",
+			},
+			expected: 1.0, // Тире нормализуются, должно совпадать
+		},
+		{
+			name: "match with brand alias",
+			req: &MatchRequest{
+				Name:  "Galaxy S24",
+				Brand: "SAMSUNG",
+			},
+			product: &Product{
+				Name:  "Galaxy S24",
+				Brand: "Samsung",
+			},
+			expected: 1.0, // Бренды нормализуются, должно совпадать
+		},
+		{
+			name: "common words match",
+			req: &MatchRequest{
+				Name:  "Samsung Galaxy S24 Ultra",
+				Brand: "Samsung",
+			},
+			product: &Product{
+				Name:  "Samsung Galaxy S24",
+				Brand: "Samsung",
+			},
+			expected: 0.85, // Много общих слов + совпадение бренда
+		},
 	}
 
 	for _, tt := range tests {

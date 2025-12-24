@@ -2,6 +2,7 @@ package processor
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/solomonczyk/izborator/internal/matching"
@@ -44,9 +45,13 @@ func (m *mockProcessedStorage) IndexProduct(product *products.Product) error {
 
 type mockMatching struct {
 	matchResult *matching.MatchResult
+	matchError  error
 }
 
 func (m *mockMatching) MatchProduct(req *matching.MatchRequest) (*matching.MatchResult, error) {
+	if m.matchError != nil {
+		return nil, m.matchError
+	}
 	if m.matchResult != nil {
 		return m.matchResult, nil
 	}
@@ -279,5 +284,83 @@ func TestProcessRawProducts_InvalidBatchSize(t *testing.T) {
 	// Должно обработать товар (batchSize заменен на 10)
 	if count != 1 {
 		t.Errorf("Expected 1 product processed, got %d", count)
+	}
+}
+
+func TestProcessRawProducts_MatchingError(t *testing.T) {
+	rawStorage := &mockRawStorage{
+		rawProducts: []*scraper.RawProduct{
+			{
+				Name:     "Test Product",
+				Brand:    "Test Brand",
+				Category: "Test Category",
+				Price:    100.0,
+				Currency: "RSD",
+			},
+		},
+	}
+	processedStorage := &mockProcessedStorage{}
+	matching := &mockMatching{
+		matchError: fmt.Errorf("matching service unavailable"),
+	}
+
+	service := New(rawStorage, processedStorage, matching, nil)
+
+	ctx := context.Background()
+	// Должен создать новый товар при ошибке matching
+	count, err := service.ProcessRawProducts(ctx, 10)
+
+	// Ошибка matching не должна прервать обработку
+	if err != nil {
+		t.Fatalf("ProcessRawProducts should handle matching errors gracefully: %v", err)
+	}
+
+	// Должен создать новый товар
+	if count != 1 {
+		t.Errorf("Expected 1 product processed, got %d", count)
+	}
+}
+
+func TestProcessRawProducts_LowSimilarity(t *testing.T) {
+	rawStorage := &mockRawStorage{
+		rawProducts: []*scraper.RawProduct{
+			{
+				Name:     "iPhone 15",
+				Brand:    "Apple",
+				Category: "Mobilni telefoni",
+				Price:    1000.0,
+				Currency: "RSD",
+			},
+		},
+	}
+	processedStorage := &mockProcessedStorage{}
+	matching := &mockMatching{
+		matchResult: &matching.MatchResult{
+			Matches: []*matching.ProductMatch{
+				{
+					MatchedID:  "existing-id",
+					Similarity: 0.5, // Низкая схожесть
+				},
+			},
+			Count: 1,
+		},
+	}
+
+	service := New(rawStorage, processedStorage, matching, nil)
+
+	ctx := context.Background()
+	count, err := service.ProcessRawProducts(ctx, 10)
+
+	if err != nil {
+		t.Fatalf("ProcessRawProducts failed: %v", err)
+	}
+
+	if count != 1 {
+		t.Errorf("Expected 1 product processed, got %d", count)
+	}
+
+	// При низкой схожести должен создать новый товар
+	if len(processedStorage.products) != 1 {
+		t.Errorf("Expected 1 new product created, got %d", len(processedStorage.products))
 	}
 }
