@@ -1114,10 +1114,7 @@ func (s *Service) isProductURL(url string, shopConfig *ShopConfig) bool {
 		if strings.Contains(urlLower, "/kategorija/") {
 			path := strings.TrimPrefix(urlLower, baseURL)
 			parts := filterEmpty(strings.Split(path, "/"))
-			if len(parts) >= 3 {
-				return true
-			}
-			return false
+			return len(parts) >= 3
 		}
 	}
 
