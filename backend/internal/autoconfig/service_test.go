@@ -8,7 +8,6 @@ import (
 // MockStorage мок для тестирования AutoConfig
 type mockAutoconfigStorage struct {
 	candidates []Candidate
-	attempts   []ConfigAttempt
 }
 
 func (m *mockAutoconfigStorage) GetClassifiedCandidates(limit int) ([]Candidate, error) {
@@ -23,11 +22,6 @@ func (m *mockAutoconfigStorage) MarkAsFailed(id, reason string) error {
 }
 
 func (m *mockAutoconfigStorage) MarkAsConfigured(id string, config ShopConfig) error {
-	return nil
-}
-
-func (m *mockAutoconfigStorage) RecordAttempt(attempt ConfigAttempt) error {
-	m.attempts = append(m.attempts, attempt)
 	return nil
 }
 
