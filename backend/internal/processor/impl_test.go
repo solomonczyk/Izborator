@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/solomonczyk/izborator/internal/matching"
 	"github.com/solomonczyk/izborator/internal/products"
 	"github.com/solomonczyk/izborator/internal/scraper"
 )
@@ -13,14 +14,14 @@ type mockRawStorage struct {
 	rawProducts []*scraper.RawProduct
 }
 
-func (m *mockRawStorage) GetUnprocessedRawProducts(ctx context.Context, limit int) ([]*scraper.RawProduct, error) {
+func (m *mockRawStorage) GetUnprocessedRawProducts(limit int) ([]*scraper.RawProduct, error) {
 	if limit > len(m.rawProducts) {
 		limit = len(m.rawProducts)
 	}
 	return m.rawProducts[:limit], nil
 }
 
-func (m *mockRawStorage) MarkAsProcessed(ctx context.Context, shopID, externalID string) error {
+func (m *mockRawStorage) MarkRawProductAsProcessed(shopID, externalID string) error {
 	return nil
 }
 
@@ -33,21 +34,26 @@ func (m *mockProcessedStorage) SaveProduct(product *products.Product) error {
 	return nil
 }
 
-func (m *mockProcessedStorage) GetProduct(id string) (*products.Product, error) {
-	for _, p := range m.products {
-		if p.ID == id {
-			return p, nil
-		}
-	}
-	return nil, products.ErrProductNotFound
+func (m *mockProcessedStorage) SavePrice(price *products.ProductPrice) error {
+	return nil
+}
+
+func (m *mockProcessedStorage) IndexProduct(product *products.Product) error {
+	return nil
 }
 
 type mockMatching struct {
-	similarProducts []*products.Product
+	matchResult *matching.MatchResult
 }
 
-func (m *mockMatching) FindSimilar(ctx context.Context, name, brand string, limit int) ([]*products.Product, error) {
-	return m.similarProducts, nil
+func (m *mockMatching) MatchProduct(req *matching.MatchRequest) (*matching.MatchResult, error) {
+	if m.matchResult != nil {
+		return m.matchResult, nil
+	}
+	return &matching.MatchResult{
+		Matches: []*matching.ProductMatch{},
+		Count:   0,
+	}, nil
 }
 
 func TestNormalizeBrand(t *testing.T) {
@@ -123,7 +129,12 @@ func TestProcessRawProducts_NoMatches(t *testing.T) {
 		},
 	}
 	processedStorage := &mockProcessedStorage{}
-	matching := &mockMatching{similarProducts: []*products.Product{}}
+	matching := &mockMatching{
+		matchResult: &matching.MatchResult{
+			Matches: []*matching.ProductMatch{},
+			Count:   0,
+		},
+	}
 
 	service := New(rawStorage, processedStorage, matching, nil)
 
@@ -161,7 +172,17 @@ func TestProcessRawProducts_WithMatches(t *testing.T) {
 		Name:  "iPhone 15",
 		Brand: "Apple",
 	}
-	matching := &mockMatching{similarProducts: []*products.Product{existingProduct}}
+	matching := &mockMatching{
+		matchResult: &matching.MatchResult{
+			Matches: []*matching.ProductMatch{
+				{
+					MatchedID: existingProduct.ID,
+					Similarity: 0.95,
+				},
+			},
+			Count: 1,
+		},
+	}
 
 	service := New(rawStorage, processedStorage, matching, nil)
 

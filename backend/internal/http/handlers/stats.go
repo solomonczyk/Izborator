@@ -34,9 +34,16 @@ func (h *StatsHandler) GetOverallStats(w http.ResponseWriter, r *http.Request) {
 	daysStr := r.URL.Query().Get("days")
 	days := 7 // По умолчанию 7 дней
 	if daysStr != "" {
-		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 365 {
-			days = d
+		d, err := strconv.Atoi(daysStr)
+		if err != nil {
+			h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_days")
+			return
 		}
+		if d < 1 || d > 365 {
+			h.respondError(w, r, http.StatusBadRequest, "api.errors.days_out_of_range")
+			return
+		}
+		days = d
 	}
 
 	stats, err := h.service.GetOverallStats(days)
@@ -64,9 +71,16 @@ func (h *StatsHandler) GetShopStats(w http.ResponseWriter, r *http.Request) {
 	daysStr := r.URL.Query().Get("days")
 	days := 7 // По умолчанию 7 дней
 	if daysStr != "" {
-		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 365 {
-			days = d
+		d, err := strconv.Atoi(daysStr)
+		if err != nil {
+			h.respondError(w, r, http.StatusBadRequest, "api.errors.invalid_days")
+			return
 		}
+		if d < 1 || d > 365 {
+			h.respondError(w, r, http.StatusBadRequest, "api.errors.days_out_of_range")
+			return
+		}
+		days = d
 	}
 
 	stats, err := h.service.GetShopStats(shopID, days)
