@@ -243,6 +243,7 @@ func TestProductsAdapter_GetProductPrices(t *testing.T) {
 	}
 
 	for _, price := range prices {
+		EnsureTestShop(t, pg, price.ShopID, price.ShopName)
 		if err := adapter.SaveProductPrice(price); err != nil {
 			t.Fatalf("Failed to save price: %v", err)
 		}
@@ -319,6 +320,7 @@ func TestProductsAdapter_Browse(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
+	EnsureTestShop(t, pg, price1.ShopID, price1.ShopName)
 	if err := adapter.SaveProductPrice(price1); err != nil {
 		t.Fatalf("Failed to save price1: %v", err)
 	}

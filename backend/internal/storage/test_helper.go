@@ -74,6 +74,25 @@ func CleanupTestData(t *testing.T, pg *Postgres, tables []string) {
 	}
 }
 
+// EnsureTestShop inserts a shop row required for FK constraints in tests.
+func EnsureTestShop(t *testing.T, pg *Postgres, id, name string) {
+	t.Helper()
+
+	if name == "" {
+		name = "Test Shop"
+	}
+
+	baseURL := "https://example.com/" + id
+	_, err := pg.DB().Exec(context.Background(), `
+		INSERT INTO shops (id, name, code, base_url)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT DO NOTHING
+	`, id, name, id, baseURL)
+	if err != nil {
+		t.Fatalf("Failed to create test shop: %v", err)
+	}
+}
+
 // Helper функции для работы с переменными окружения
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {

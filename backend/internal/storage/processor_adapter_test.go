@@ -118,6 +118,7 @@ func TestProcessorAdapter_SavePrice(t *testing.T) {
 			UpdatedAt: time.Now(),
 		}
 
+		EnsureTestShop(t, pg, price.ShopID, price.ShopName)
 		if err := adapter.SavePrice(price); err != nil {
 			t.Fatalf("Failed to save price: %v", err)
 		}
@@ -138,6 +139,7 @@ func TestProcessorAdapter_SavePrice(t *testing.T) {
 			UpdatedAt: time.Now(),
 		}
 
+		EnsureTestShop(t, pg, shopID, price1.ShopName)
 		if err := adapter.SavePrice(price1); err != nil {
 			t.Fatalf("Failed to save price (first time): %v", err)
 		}

@@ -41,6 +41,7 @@ func TestScraperAdapter_SaveRawProduct(t *testing.T) {
 			ParsedAt: time.Now(),
 		}
 
+		EnsureTestShop(t, pg, rawProduct.ShopID, rawProduct.ShopName)
 		if err := adapter.SaveRawProduct(rawProduct); err != nil {
 			t.Fatalf("Failed to save raw product: %v", err)
 		}
@@ -63,6 +64,7 @@ func TestScraperAdapter_SaveRawProduct(t *testing.T) {
 			ParsedAt:   time.Now(),
 		}
 
+		EnsureTestShop(t, pg, shopID, rawProduct1.ShopName)
 		if err := adapter.SaveRawProduct(rawProduct1); err != nil {
 			t.Fatalf("Failed to save raw product (first time): %v", err)
 		}
@@ -161,6 +163,7 @@ func TestScraperAdapter_GetUnprocessedRawProducts(t *testing.T) {
 	}
 
 	for _, p := range products {
+		EnsureTestShop(t, pg, p.ShopID, p.ShopName)
 		if err := adapter.SaveRawProduct(p); err != nil {
 			t.Fatalf("Failed to save raw product: %v", err)
 		}
@@ -216,6 +219,7 @@ func TestScraperAdapter_MarkRawProductAsProcessed(t *testing.T) {
 		ParsedAt:   time.Now(),
 	}
 
+	EnsureTestShop(t, pg, shopID, rawProduct.ShopName)
 	if err := adapter.SaveRawProduct(rawProduct); err != nil {
 		t.Fatalf("Failed to save raw product: %v", err)
 	}
