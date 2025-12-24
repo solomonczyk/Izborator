@@ -1,5 +1,6 @@
 // app/product/[id]/page.tsx
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { PriceChartWrapper } from "@/components/price-chart-wrapper";
 
@@ -102,10 +103,13 @@ export default async function ProductPage({
           <div className="flex gap-6 flex-col md:flex-row">
             {product.image_url && (
               <div className="flex-shrink-0">
-                <img
+                <Image
                   src={product.image_url}
                   alt={product.name}
+                  width={256}
+                  height={256}
                   className="w-full md:w-64 h-64 object-contain rounded-lg border bg-white"
+                  unoptimized
                 />
               </div>
             )}

@@ -1,5 +1,6 @@
 // app/[locale]/catalog/page.tsx
 import React from "react"
+import Image from "next/image"
 import { Link } from '@/navigation'
 import { getTranslations } from 'next-intl/server'
 import { fetchCategoriesTree, fetchCities, flattenCategories, type CategoryNode, type City } from '@/lib/api'
@@ -404,10 +405,13 @@ export default async function CatalogPage({
                 >
                   <Link href={`/product/${p.id}`} className="flex gap-4">
                     {p.image_url && (
-                      <img
+                      <Image
                         src={p.image_url}
                         alt={p.name}
+                        width={96}
+                        height={96}
                         className="w-24 h-24 object-contain rounded-md border-2 border-slate-300 bg-white flex-shrink-0"
+                        unoptimized
                       />
                     )}
                     <div className="flex-1 min-w-0">
