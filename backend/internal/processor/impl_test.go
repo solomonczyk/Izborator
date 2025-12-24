@@ -197,3 +197,87 @@ func TestProcessRawProducts_WithMatches(t *testing.T) {
 		t.Errorf("Expected 1 product processed, got %d", count)
 	}
 }
+
+func TestProcessRawProducts_EmptyBatch(t *testing.T) {
+	rawStorage := &mockRawStorage{
+		rawProducts: []*scraper.RawProduct{},
+	}
+	processedStorage := &mockProcessedStorage{}
+	matching := &mockMatching{}
+
+	service := New(rawStorage, processedStorage, matching, nil)
+
+	ctx := context.Background()
+	count, err := service.ProcessRawProducts(ctx, 10)
+
+	if err != nil {
+		t.Fatalf("ProcessRawProducts failed: %v", err)
+	}
+
+	if count != 0 {
+		t.Errorf("Expected 0 products processed, got %d", count)
+	}
+}
+
+func TestProcessRawProducts_BatchSizeLimit(t *testing.T) {
+	rawStorage := &mockRawStorage{
+		rawProducts: make([]*scraper.RawProduct, 150), // Больше лимита
+	}
+	for i := range rawStorage.rawProducts {
+		rawStorage.rawProducts[i] = &scraper.RawProduct{
+			Name:     "Test Product",
+			Brand:    "Test Brand",
+			Category: "Test Category",
+			Price:    100.0,
+			Currency: "RSD",
+		}
+	}
+	processedStorage := &mockProcessedStorage{}
+	matching := &mockMatching{}
+
+	service := New(rawStorage, processedStorage, matching, nil)
+
+	ctx := context.Background()
+	// Запрос с batchSize > 100 должен быть ограничен до 100
+	count, err := service.ProcessRawProducts(ctx, 150)
+
+	if err != nil {
+		t.Fatalf("ProcessRawProducts failed: %v", err)
+	}
+
+	// Должно обработать максимум 100 товаров
+	if count > 100 {
+		t.Errorf("Expected max 100 products processed, got %d", count)
+	}
+}
+
+func TestProcessRawProducts_InvalidBatchSize(t *testing.T) {
+	rawStorage := &mockRawStorage{
+		rawProducts: []*scraper.RawProduct{
+			{
+				Name:     "Test Product",
+				Brand:    "Test Brand",
+				Category: "Test Category",
+				Price:    100.0,
+				Currency: "RSD",
+			},
+		},
+	}
+	processedStorage := &mockProcessedStorage{}
+	matching := &mockMatching{}
+
+	service := New(rawStorage, processedStorage, matching, nil)
+
+	ctx := context.Background()
+	// Отрицательный batchSize должен быть заменен на 10
+	count, err := service.ProcessRawProducts(ctx, -5)
+
+	if err != nil {
+		t.Fatalf("ProcessRawProducts failed: %v", err)
+	}
+
+	// Должно обработать товар (batchSize заменен на 10)
+	if count != 1 {
+		t.Errorf("Expected 1 product processed, got %d", count)
+	}
+}

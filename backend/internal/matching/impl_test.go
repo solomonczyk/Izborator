@@ -16,17 +16,42 @@ func TestNormalizeName(t *testing.T) {
 		{
 			name:     "normal name",
 			input:    "iPhone 15 Pro Max",
-			expected: "iphone 15 pro max",
+			expected: "iphone 15",
 		},
 		{
 			name:     "uppercase name",
 			input:    "IPHONE 15 PRO MAX",
-			expected: "iphone 15 pro max",
+			expected: "iphone 15",
 		},
 		{
 			name:     "name with spaces",
 			input:    "  iPhone 15 Pro Max  ",
-			expected: "iphone 15 pro max",
+			expected: "iphone 15",
+		},
+		{
+			name:     "name with dashes",
+			input:    "iPhone-15-Pro-Max",
+			expected: "iphone 15",
+		},
+		{
+			name:     "name with memory",
+			input:    "iPhone 15 Pro Max 256GB",
+			expected: "iphone 15 256",
+		},
+		{
+			name:     "name with memory slash",
+			input:    "iPhone 15 12/512GB",
+			expected: "iphone 15 512",
+		},
+		{
+			name:     "name with cyrillic",
+			input:    "Смартфон iPhone 15",
+			expected: "смартфон iphone 15",
+		},
+		{
+			name:     "name with stop words",
+			input:    "iPhone 15 Pro Max Black",
+			expected: "iphone 15",
 		},
 		{
 			name:     "empty string",
@@ -68,6 +93,21 @@ func TestNormalizeBrand(t *testing.T) {
 			name:     "brand with spaces",
 			input:    "  Apple  ",
 			expected: "apple",
+		},
+		{
+			name:     "brand with dash",
+			input:    "Samsung-Galaxy",
+			expected: "samsunggalaxy",
+		},
+		{
+			name:     "brand alias Samsung",
+			input:    "SAMSUNG",
+			expected: "samsung",
+		},
+		{
+			name:     "brand alias Xiaomi",
+			input:    "XIAOMI",
+			expected: "xiaomi",
 		},
 		{
 			name:     "empty string",

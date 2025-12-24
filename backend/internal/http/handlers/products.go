@@ -521,22 +521,6 @@ func parseIntDefault(s string, def int) int {
 	return v
 }
 
-// respondError отправляет JSON ошибку
-func (h *ProductsHandler) respondError(w http.ResponseWriter, r *http.Request, status int, key string) {
-	lang := httpMiddleware.GetLangFromContext(r.Context())
-	message := h.translator.T(lang, key)
-	if message == key || message == "" {
-		// fallback на английский
-		message = h.translator.T("en", key)
-		if message == "" {
-			message = key
-		}
-	}
-	h.respondJSON(w, status, map[string]string{
-		"error": message,
-	})
-}
-
 // respondAppError отправляет JSON ошибку из AppError
 func (h *ProductsHandler) respondAppError(w http.ResponseWriter, r *http.Request, err *appErrors.AppError) {
 	lang := httpMiddleware.GetLangFromContext(r.Context())
