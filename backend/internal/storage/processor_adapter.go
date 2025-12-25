@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -13,17 +12,15 @@ import (
 
 // ProcessorAdapter адаптер для работы с обработкой сырых данных
 type ProcessorAdapter struct {
-	pg    *Postgres
+	*BaseAdapter
 	meili *Meilisearch
-	ctx   context.Context
 }
 
 // NewProcessorAdapter создаёт новый адаптер для обработки
 func NewProcessorAdapter(pg *Postgres, meili *Meilisearch) *ProcessorAdapter {
 	return &ProcessorAdapter{
-		pg:    pg,
-		meili: meili,
-		ctx:   pg.Context(),
+		BaseAdapter: NewBaseAdapter(pg, nil),
+		meili:       meili,
 	}
 }
 
@@ -49,7 +46,7 @@ func (a *ProcessorAdapter) SaveProduct(product *products.Product) error {
 		productUUID = uuid.New()
 		product.ID = productUUID.String()
 	} else {
-		productUUID, err = uuid.Parse(product.ID)
+		productUUID, err = a.ParseUUID(product.ID)
 		if err != nil {
 			return fmt.Errorf("invalid product ID: %w", err)
 		}
@@ -101,7 +98,7 @@ func (a *ProcessorAdapter) SaveProduct(product *products.Product) error {
 
 // SavePrice сохраняет цену товара в product_prices
 func (a *ProcessorAdapter) SavePrice(price *products.ProductPrice) error {
-	productUUID, err := uuid.Parse(price.ProductID)
+	productUUID, err := a.ParseUUID(price.ProductID)
 	if err != nil {
 		return fmt.Errorf("invalid product ID: %w", err)
 	}

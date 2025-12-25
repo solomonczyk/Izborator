@@ -1,27 +1,23 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/solomonczyk/izborator/internal/matching"
 )
 
 // MatchingAdapter адаптер для работы с matching
 type MatchingAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewMatchingAdapter создаёт новый адаптер для matching
 func NewMatchingAdapter(pg *Postgres) matching.Storage {
 	return &MatchingAdapter{
-		pg:  pg,
-		ctx: pg.Context(),
+		BaseAdapter: NewBaseAdapter(pg, nil),
 	}
 }
 
@@ -167,7 +163,7 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]
 
 // GetProductByID получает товар по ID
 func (a *MatchingAdapter) GetProductByID(id string) (*matching.Product, error) {
-	productUUID, err := uuid.Parse(id)
+	productUUID, err := a.ParseUUID(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}
@@ -207,12 +203,12 @@ func (a *MatchingAdapter) GetProductByID(id string) (*matching.Product, error) {
 
 // SaveMatch сохраняет результат сопоставления
 func (a *MatchingAdapter) SaveMatch(match *matching.ProductMatch) error {
-	productUUID, err := uuid.Parse(match.ProductID)
+	productUUID, err := a.ParseUUID(match.ProductID)
 	if err != nil {
 		return fmt.Errorf("invalid product ID: %w", err)
 	}
 
-	matchedUUID, err := uuid.Parse(match.MatchedID)
+	matchedUUID, err := a.ParseUUID(match.MatchedID)
 	if err != nil {
 		return fmt.Errorf("invalid matched ID: %w", err)
 	}
@@ -251,7 +247,7 @@ func (a *MatchingAdapter) SaveMatch(match *matching.ProductMatch) error {
 
 // GetMatches получает все сопоставления для товара
 func (a *MatchingAdapter) GetMatches(productID string) ([]*matching.ProductMatch, error) {
-	productUUID, err := uuid.Parse(productID)
+	productUUID, err := a.ParseUUID(productID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}

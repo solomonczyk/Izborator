@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -12,15 +11,13 @@ import (
 
 // ScraperAdapter адаптер для работы с парсингом
 type ScraperAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewScraperAdapter создаёт новый адаптер для парсинга
 func NewScraperAdapter(pg *Postgres) scraper.Storage {
 	return &ScraperAdapter{
-		pg:  pg,
-		ctx: pg.Context(),
+		BaseAdapter: NewBaseAdapter(pg, nil),
 	}
 }
 

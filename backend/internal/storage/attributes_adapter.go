@@ -1,31 +1,27 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/solomonczyk/izborator/internal/attributes"
 )
 
 // AttributesAdapter адаптер для работы с атрибутами
 type AttributesAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewAttributesAdapter создаёт новый адаптер для атрибутов
 func NewAttributesAdapter(pg *Postgres) attributes.Storage {
 	return &AttributesAdapter{
-		pg:  pg,
-		ctx: pg.Context(),
+		BaseAdapter: NewBaseAdapter(pg, nil),
 	}
 }
 
 // GetByID получает атрибут по ID
 func (a *AttributesAdapter) GetByID(id string) (*attributes.Attribute, error) {
-	attrUUID, err := uuid.Parse(id)
+	attrUUID, err := a.ParseUUID(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid attribute ID: %w", err)
 	}
@@ -122,7 +118,7 @@ func (a *AttributesAdapter) GetAllActive() ([]*attributes.Attribute, error) {
 
 // GetByProductTypeID получает атрибуты для типа товара
 func (a *AttributesAdapter) GetByProductTypeID(productTypeID string) ([]*attributes.ProductTypeAttribute, error) {
-	ptUUID, err := uuid.Parse(productTypeID)
+	ptUUID, err := a.ParseUUID(productTypeID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product type ID: %w", err)
 	}

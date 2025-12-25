@@ -16,25 +16,21 @@ import (
 
 // ProductsAdapter адаптер для работы с товарами
 type ProductsAdapter struct {
-	pg     *Postgres
-	meili  *Meilisearch
-	ctx    context.Context
-	logger *logger.Logger
+	*BaseAdapter
+	meili *Meilisearch
 }
 
 // NewProductsAdapter создаёт новый адаптер для товаров
 func NewProductsAdapter(pg *Postgres, meili *Meilisearch, log *logger.Logger) products.Storage {
 	return &ProductsAdapter{
-		pg:     pg,
-		meili:  meili,
-		ctx:    pg.Context(),
-		logger: log,
+		BaseAdapter: NewBaseAdapter(pg, log),
+		meili: meili,
 	}
 }
 
 // GetProduct получает товар по ID
 func (a *ProductsAdapter) GetProduct(id string) (*products.Product, error) {
-	productUUID, err := uuid.Parse(id)
+	productUUID, err := a.ParseUUID(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}
@@ -278,7 +274,7 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 		productUUID = uuid.New()
 		product.ID = productUUID.String()
 	} else {
-		productUUID, err = uuid.Parse(product.ID)
+		productUUID, err = a.ParseUUID(product.ID)
 		if err != nil {
 			return fmt.Errorf("invalid product ID: %w", err)
 		}
@@ -292,7 +288,7 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 
 	var categoryID *uuid.UUID
 	if product.CategoryID != nil {
-		catID, err := uuid.Parse(*product.CategoryID)
+		catID, err := a.ParseUUID(*product.CategoryID)
 		if err == nil {
 			categoryID = &catID
 		}
@@ -340,7 +336,7 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 
 // GetProductPrices получает цены товара из разных магазинов
 func (a *ProductsAdapter) GetProductPrices(productID string) ([]*products.ProductPrice, error) {
-	productUUID, err := uuid.Parse(productID)
+	productUUID, err := a.ParseUUID(productID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}
@@ -401,12 +397,12 @@ func (a *ProductsAdapter) GetProductPrices(productID string) ([]*products.Produc
 
 // GetProductPricesByCity получает цены товара для конкретного города
 func (a *ProductsAdapter) GetProductPricesByCity(productID string, cityID string) ([]*products.ProductPrice, error) {
-	productUUID, err := uuid.Parse(productID)
+	productUUID, err := a.ParseUUID(productID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}
 
-	cityUUID, err := uuid.Parse(cityID)
+	cityUUID, err := a.ParseUUID(cityID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid city ID: %w", err)
 	}
@@ -1156,7 +1152,7 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 
 // SaveProductPrice сохраняет цену товара
 func (a *ProductsAdapter) SaveProductPrice(price *products.ProductPrice) error {
-	productUUID, err := uuid.Parse(price.ProductID)
+	productUUID, err := a.ParseUUID(price.ProductID)
 	if err != nil {
 		return fmt.Errorf("invalid product ID: %w", err)
 	}

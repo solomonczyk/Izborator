@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 	"time"
 
@@ -11,15 +10,13 @@ import (
 
 // ScrapingStatsAdapter адаптер для работы со статистикой парсинга
 type ScrapingStatsAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewScrapingStatsAdapter создаёт новый адаптер статистики
 func NewScrapingStatsAdapter(pg *Postgres) scrapingstats.Storage {
 	return &ScrapingStatsAdapter{
-		pg:  pg,
-		ctx: pg.Context(), // Используем контекст из Postgres вместо Background()
+		BaseAdapter: NewBaseAdapter(pg, nil), // Используем контекст из Postgres вместо Background()
 	}
 }
 
@@ -28,7 +25,7 @@ func (a *ScrapingStatsAdapter) SaveStat(stat *scrapingstats.ScrapingStat) error 
 	statID := uuid.New()
 	if stat.ID != "" {
 		var err error
-		statID, err = uuid.Parse(stat.ID)
+		statID, err = a.ParseUUID(stat.ID)
 		if err != nil {
 			return fmt.Errorf("invalid stat ID: %w", err)
 		}

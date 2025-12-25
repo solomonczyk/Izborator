@@ -1,31 +1,27 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/solomonczyk/izborator/internal/producttypes"
 )
 
 // ProductTypesAdapter адаптер для работы с типами товаров
 type ProductTypesAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewProductTypesAdapter создаёт новый адаптер для типов товаров
 func NewProductTypesAdapter(pg *Postgres) producttypes.Storage {
 	return &ProductTypesAdapter{
-		pg:  pg,
-		ctx: pg.Context(),
+		BaseAdapter: NewBaseAdapter(pg, nil),
 	}
 }
 
 // GetByID получает тип товара по ID
 func (a *ProductTypesAdapter) GetByID(id string) (*producttypes.ProductType, error) {
-	ptUUID, err := uuid.Parse(id)
+	ptUUID, err := a.ParseUUID(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product type ID: %w", err)
 	}
@@ -114,7 +110,7 @@ func (a *ProductTypesAdapter) GetAllActive() ([]*producttypes.ProductType, error
 
 // GetByCategoryID получает типы товаров для категории
 func (a *ProductTypesAdapter) GetByCategoryID(categoryID string) ([]*producttypes.ProductType, error) {
-	categoryUUID, err := uuid.Parse(categoryID)
+	categoryUUID, err := a.ParseUUID(categoryID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid category ID: %w", err)
 	}

@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -17,15 +16,13 @@ var nonAlphanumericRegex = regexp.MustCompile(`[^a-zA-Z0-9]`)
 
 // autoconfigAdapter реализация Storage для autoconfig
 type autoconfigAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewAutoconfigAdapter создаёт новый адаптер для autoconfig
 func NewAutoconfigAdapter(pg *Postgres) autoconfig.Storage {
 	return &autoconfigAdapter{
-		pg:  pg,
-		ctx: pg.Context(),
+		BaseAdapter: NewBaseAdapter(pg, nil),
 	}
 }
 

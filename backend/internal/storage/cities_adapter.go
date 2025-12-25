@@ -1,31 +1,27 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/solomonczyk/izborator/internal/cities"
 )
 
 // CitiesAdapter адаптер для работы с городами
 type CitiesAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewCitiesAdapter создаёт новый адаптер для городов
 func NewCitiesAdapter(pg *Postgres) cities.Storage {
 	return &CitiesAdapter{
-		pg:  pg,
-		ctx: pg.Context(),
+		BaseAdapter: NewBaseAdapter(pg, nil),
 	}
 }
 
 // GetByID получает город по ID
 func (a *CitiesAdapter) GetByID(id string) (*cities.City, error) {
-	cityUUID, err := uuid.Parse(id)
+	cityUUID, err := a.ParseUUID(id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid city ID: %w", err)
 	}

@@ -1,25 +1,21 @@
 package storage
 
 import (
-	"context"
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/solomonczyk/izborator/internal/pricehistory"
 )
 
 // PriceHistoryAdapter адаптер для работы с историей цен через PostgreSQL
 type PriceHistoryAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewPriceHistoryAdapter создаёт новый адаптер для истории цен
 func NewPriceHistoryAdapter(pg *Postgres) pricehistory.Storage {
 	return &PriceHistoryAdapter{
-		pg:  pg,
-		ctx: pg.Context(), // Используем контекст из Postgres вместо Background()
+		BaseAdapter: NewBaseAdapter(pg, nil),
 	}
 }
 
@@ -35,7 +31,7 @@ func (a *PriceHistoryAdapter) SavePrice(point *pricehistory.PricePoint) error {
 // GetHistory получает историю цен за период из product_prices
 // Используем updated_at как timestamp изменения цены
 func (a *PriceHistoryAdapter) GetHistory(productID string, from, to time.Time) ([]*pricehistory.PricePoint, error) {
-	productUUID, err := uuid.Parse(productID)
+	productUUID, err := a.ParseUUID(productID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}
@@ -85,7 +81,7 @@ func (a *PriceHistoryAdapter) GetHistory(productID string, from, to time.Time) (
 // GetPriceChart получает данные для графика цен
 // Группирует цены по магазинам и возвращает структуру для отображения графика
 func (a *PriceHistoryAdapter) GetPriceChart(productID string, period string, shopIDs []string) (*pricehistory.PriceChart, error) {
-	productUUID, err := uuid.Parse(productID)
+	productUUID, err := a.ParseUUID(productID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid product ID: %w", err)
 	}

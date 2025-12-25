@@ -4973,3 +4973,93 @@ bash run-harvest.sh
 
 **?????????? ??????:**
 - Stage 2 Day 1-2: ??????????? storage adapters ????? BaseAdapter (internal/storage/adapters/*.go), ????? ?????? CI.
+
+
+**Stage 2 (2025-12-24):**
+- Tried listing `internal/storage` and found path missing (actual location likely under `backend/internal/storage`).
+
+
+**Stage 2 (2025-12-24):**
+- Inventoried storage adapters under `backend/internal/storage` and reviewed existing `base_adapter.go` (only CategoriesAdapter uses it so far).
+
+
+**Stage 2 (2025-12-24):**
+- Refactor: AttributesAdapter now embeds BaseAdapter and uses ParseUUID helper.
+
+
+**Stage 2 (2025-12-24):**
+- Refactor: autoconfigAdapter now embeds BaseAdapter for shared pg/ctx handling.
+
+
+**Stage 2 (2025-12-24):**
+- Refactor: CitiesAdapter embeds BaseAdapter and uses ParseUUID.
+
+
+**Stage 2 (2025-12-24):**
+- Refactor: classifierAdapter embeds BaseAdapter for shared pg/ctx handling.
+
+
+**Stage 2 (2025-12-24):**
+- Refactor: MatchingAdapter embeds BaseAdapter and uses ParseUUID for IDs.
+
+
+**Stage 2 (2025-12-24):**
+- Refactor: PriceHistoryAdapter embeds BaseAdapter and uses ParseUUID.
+
+
+**Stage 2 (2025-12-24):**
+- Refactor: ProcessorAdapter embeds BaseAdapter and uses ParseUUID for product IDs.
+
+
+**Stage 2 (2025-12-24):**
+- Refactor: ProductTypesAdapter embeds BaseAdapter and uses ParseUUID for IDs.
+
+
+**Stage 2 (2025-12-25):**
+- Attempted to append development log using pwsh; failed because pwsh is not available.
+
+**Stage 2 (2025-12-25):**
+- Checked git status to confirm modified storage adapter files and development log.
+
+
+**Stage 2 (2025-12-25):**
+- Attempted apply_patch on ScrapingStatsAdapter; patch failed due to mismatched lines.
+
+**Stage 2 (2025-12-25):**
+- Refactor: ScrapingStatsAdapter now embeds BaseAdapter and uses ParseUUID; fixed constructor comma after refactor.
+
+
+**Stage 2 (2025-12-25):**
+- Refactor: ProductsAdapter now embeds BaseAdapter, uses ParseUUID, and constructor initializes BaseAdapter with logger.
+
+
+**Stage 2 (2025-12-25):**
+- Verified storage adapters no longer declare pg/ctx fields; remaining context usage is in method signatures.
+
+
+**Stage 2 (2025-12-25):**
+- Checked git status; modifications now include all storage adapters and development log.
+
+
+**Stage 2 (2025-12-25):**
+- Updated Stage 2 plan status after completing BaseAdapter refactor across storage adapters.
+
+
+**Stage 2 (2025-12-25):**
+- Verified all adapters initialize BaseAdapter with the updated NewBaseAdapter signature (logger param).
+
+
+**Stage 2 (2025-12-25):**
+- Ran go test ./internal/storage -run TestDoesNotExist; build failed due to unused uuid imports in several adapters (attributes, cities, matching, pricehistory, producttypes).
+
+
+**Stage 2 (2025-12-25):**
+- Removed unused uuid imports from Attributes, Cities, Matching, PriceHistory, and ProductTypes adapters to fix build errors.
+
+
+**Stage 2 (2025-12-25):**
+- Re-ran go test ./internal/storage -run TestDoesNotExist; failed with %1 is not a valid Win32 application when executing the test binary.
+
+
+**Stage 2 (2025-12-25):**
+- Staged storage adapter refactor and development log updates; git warned about CRLF/LF conversions on products_adapter.go, scrapingstats_adapter.go, and DEVELOPMENT_LOG.md.

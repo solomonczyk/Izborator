@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -12,15 +11,13 @@ import (
 
 // classifierAdapter реализация Storage для classifier
 type classifierAdapter struct {
-	pg  *Postgres
-	ctx context.Context
+	*BaseAdapter
 }
 
 // NewClassifierAdapter создаёт новый адаптер для classifier
 func NewClassifierAdapter(pg *Postgres) classifier.Storage {
 	return &classifierAdapter{
-		pg:  pg,
-		ctx: pg.Context(),
+		BaseAdapter: NewBaseAdapter(pg, nil),
 	}
 }
 
