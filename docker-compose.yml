@@ -170,7 +170,7 @@ services:
     restart: always
     # Порт убран - доступен только через Nginx
     environment:
-      - NEXT_PUBLIC_API_BASE=http://backend:8080
+      - NEXT_PUBLIC_API_BASE=https://152.53.227.37.nip.io
       - NODE_ENV=production
     depends_on:
       - backend

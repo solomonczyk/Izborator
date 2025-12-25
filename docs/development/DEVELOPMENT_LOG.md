@@ -5207,3 +5207,11 @@ bash run-harvest.sh
 
 **Stage 2 (2025-12-25):**
 - Committed Day 3 error standardization as 7809af0 (feat: standardize error responses and tests).
+
+
+**Stage 2 (2025-12-25):**
+- Pushed commits 7809af0 and a51ea2 to origin/main.
+
+
+**Stage 2 (2025-12-25):**
+- Updated docker-compose frontend NEXT_PUBLIC_API_BASE to https://152.53.227.37.nip.io for production API access behind nginx.
