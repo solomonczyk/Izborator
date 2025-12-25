@@ -5251,3 +5251,19 @@ bash run-harvest.sh
 
 **Stage 2 (2025-12-25):**
 - Committed validator integration and handler updates as 38eeb0b and pushed to origin/main.
+
+
+**Stage 2 (2025-12-25):**
+- Rewrote logger to include env/service fields (ENV/APP_ENV/SERVICE_NAME) and clarified zerolog setup.
+
+**Stage 2 (2025-12-25):**
+- Formatted logger and HTTP logging middleware after recent rewrites.
+- Rebuilt recovery middleware to log panics with request metadata and return 500 responses.
+- Ran gofmt on recovery middleware to keep style consistent.
+
+**Stage 2 (2025-12-25):**
+- go test ./internal/http/... -run TestDoesNotExist failed from repo root because the module lives under backend/.
+- Reran go test ./internal/http/... from backend/; compile check passed.
+
+**Stage 2 (2025-12-25):**
+- Ran gofmt on backend/internal/logger/logger.go after comment cleanup.
