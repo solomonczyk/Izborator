@@ -3,7 +3,6 @@ package router
 import (
 	"encoding/json"
 	"net/http"
-
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -11,6 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
+	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	"github.com/solomonczyk/izborator/internal/http/handlers"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
@@ -122,16 +122,15 @@ func setupRoutes(r *chi.Mux, h *Handlers, translator *i18n.Translator, redisClie
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusNotFound)
 		lang := httpMiddleware.GetLangFromContext(r.Context())
-		message := translator.T(lang, "api.errors.not_found")
-		if message == "" {
-			message = translator.T("en", "api.errors.not_found")
+		messageKey := "api.errors.not_found"
+		message := translator.T(lang, messageKey)
+		if message == "" || message == messageKey {
+			message = translator.T("en", messageKey)
 		}
-		if message == "" {
+		if message == "" || message == messageKey {
 			message = "not found"
 		}
-		_ = json.NewEncoder(w).Encode(map[string]string{
-			"error": message,
-		})
+		_ = json.NewEncoder(w).Encode(appErrors.NewErrorResponse(appErrors.CodeNotFound, message))
 	})
 }
 

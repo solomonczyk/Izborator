@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/solomonczyk/izborator/internal/categories"
+	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
 )
@@ -27,13 +28,8 @@ func NewCategoriesHandler(service *categories.Service, log *logger.Logger, trans
 func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 	tree, err := h.service.GetTree()
 	if err != nil {
-		// Возвращаем пустой массив вместо ошибки, чтобы фронтенд не ломался
-		// Но логируем ошибку для отладки
-		h.logger.Error("GetTree failed", map[string]interface{}{
-			"error": err.Error(),
-		})
-		emptyArray := []CategoryNode{}
-		h.RespondJSON(w, http.StatusOK, emptyArray)
+		appErr := appErrors.NewInternalError("Failed to load categories tree", err)
+		h.RespondAppError(w, r, appErr)
 		return
 	}
 

@@ -11,6 +11,13 @@ import (
 	"github.com/solomonczyk/izborator/internal/storage"
 )
 
+type errorResponse struct {
+	Error struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
 // TestProductsHandler_GetByID_Integration тестирует GET /api/v1/products/{id}
 func TestProductsHandler_GetByID_Integration(t *testing.T) {
 	if testing.Short() {
@@ -92,6 +99,14 @@ func TestProductsHandler_GetByID_Integration(t *testing.T) {
 		if resp.StatusCode != http.StatusNotFound {
 			t.Errorf("Expected status 404, got %d", resp.StatusCode)
 		}
+
+		errResp := decodeErrorResponse(t, resp)
+		if errResp.Error.Code != "NOT_FOUND" {
+			t.Errorf("Expected error code NOT_FOUND, got %s", errResp.Error.Code)
+		}
+		if errResp.Error.Message == "" {
+			t.Error("Expected non-empty error message")
+		}
 	})
 
 	// Тест 3: Невалидный UUID
@@ -101,6 +116,14 @@ func TestProductsHandler_GetByID_Integration(t *testing.T) {
 
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("Expected status 400, got %d", resp.StatusCode)
+		}
+
+		errResp := decodeErrorResponse(t, resp)
+		if errResp.Error.Code != "VALIDATION_FAILED" {
+			t.Errorf("Expected error code VALIDATION_FAILED, got %s", errResp.Error.Code)
+		}
+		if errResp.Error.Message == "" {
+			t.Error("Expected non-empty error message")
 		}
 	})
 }
@@ -191,6 +214,14 @@ func TestProductsHandler_Search_Integration(t *testing.T) {
 
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("Expected status 400, got %d", resp.StatusCode)
+		}
+
+		errResp := decodeErrorResponse(t, resp)
+		if errResp.Error.Code != "VALIDATION_FAILED" {
+			t.Errorf("Expected error code VALIDATION_FAILED, got %s", errResp.Error.Code)
+		}
+		if errResp.Error.Message == "" {
+			t.Error("Expected non-empty error message")
 		}
 	})
 }
@@ -299,7 +330,25 @@ func TestProductsHandler_Browse_Integration(t *testing.T) {
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Errorf("Expected status 400, got %d", resp.StatusCode)
 		}
+
+		errResp := decodeErrorResponse(t, resp)
+		if errResp.Error.Code != "VALIDATION_FAILED" {
+			t.Errorf("Expected error code VALIDATION_FAILED, got %s", errResp.Error.Code)
+		}
+		if errResp.Error.Message == "" {
+			t.Error("Expected non-empty error message")
+		}
 	})
+}
+
+func decodeErrorResponse(t *testing.T, resp *http.Response) errorResponse {
+	t.Helper()
+
+	var payload errorResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("Failed to decode error response: %v", err)
+	}
+	return payload
 }
 
 // TestProductsHandler_GetPrices_Integration тестирует GET /api/v1/products/{id}/prices

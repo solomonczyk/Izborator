@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	httpMiddleware "github.com/solomonczyk/izborator/internal/http/middleware"
@@ -38,9 +39,7 @@ func (h *BaseHandler) RespondJSON(w http.ResponseWriter, status int, data interf
 
 // RespondAppError отправляет JSON ошибку из AppError с поддержкой i18n
 func (h *BaseHandler) RespondAppError(w http.ResponseWriter, r *http.Request, err *appErrors.AppError) {
-	lang := httpMiddleware.GetLangFromContext(r.Context())
-	messageKey := "api.errors." + err.Code
-	message := h.translator.T(lang, messageKey)
+	message := h.resolveErrorMessage(r, err)
 
 	h.logger.Error("API error response", map[string]interface{}{
 		"code":    err.Code,
@@ -50,16 +49,42 @@ func (h *BaseHandler) RespondAppError(w http.ResponseWriter, r *http.Request, er
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(err.HTTPStatus)
-	if err := json.NewEncoder(w).Encode(map[string]interface{}{
-		"error": map[string]interface{}{
-			"code":    err.Code,
-			"message": message,
-		},
-	}); err != nil {
+	if err := json.NewEncoder(w).Encode(appErrors.NewErrorResponse(err.Code, message)); err != nil {
 		h.logger.Error("Failed to encode error response", map[string]interface{}{
 			"error": err,
 		})
 	}
+}
+
+func (h *BaseHandler) resolveErrorMessage(r *http.Request, err *appErrors.AppError) string {
+	message := err.Message
+	if h.translator == nil {
+		if message == "" {
+			return "Internal server error"
+		}
+		return message
+	}
+
+	lang := httpMiddleware.GetLangFromContext(r.Context())
+	messageKey := "api.errors." + strings.ToLower(err.Code)
+	translated := h.translator.T(lang, messageKey)
+	if translated != messageKey && translated != "" {
+		return translated
+	}
+
+	if err.Code == appErrors.CodeInternalError {
+		internalKey := "api.errors.internal"
+		translated = h.translator.T(lang, internalKey)
+		if translated != internalKey && translated != "" {
+			return translated
+		}
+	}
+
+	if message == "" {
+		return "Internal server error"
+	}
+
+	return message
 }
 
 // ParseIntParam парсит целое число из query параметра с значением по умолчанию
