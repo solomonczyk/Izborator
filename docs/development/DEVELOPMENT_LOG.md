@@ -5267,3 +5267,6 @@ bash run-harvest.sh
 
 **Stage 2 (2025-12-25):**
 - Ran gofmt on backend/internal/logger/logger.go after comment cleanup.
+
+**Stage 2 (2025-12-25):**
+- Committed and pushed logging/recovery updates (chore: improve logging and recovery).
