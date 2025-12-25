@@ -17,6 +17,22 @@ import (
 	"github.com/solomonczyk/izborator/internal/products"
 )
 
+type SearchRequest struct {
+	Query string `json:"query" validate:"required,min=2,max=200"`
+}
+
+type BrowseRequest struct {
+	Query    string   `json:"query" validate:"omitempty,max=200"`
+	Category string   `json:"category" validate:"omitempty"`
+	City     string   `json:"city" validate:"omitempty"`
+	ShopID   string   `json:"shop_id" validate:"omitempty,uuid4"`
+	MinPrice *float64 `json:"min_price" validate:"omitempty,gte=0"`
+	MaxPrice *float64 `json:"max_price" validate:"omitempty,gte=0"`
+	Page     int      `json:"page" validate:"gte=1"`
+	PerPage  int      `json:"per_page" validate:"gte=1,lte=100"`
+	Sort     string   `json:"sort" validate:"omitempty,oneof=price_asc price_desc name_asc name_desc newest"`
+}
+
 // ProductsHandler обработчик для работы с товарами
 type ProductsHandler struct {
 	*BaseHandler
@@ -41,20 +57,15 @@ func NewProductsHandler(service *products.Service, priceHistorySvc *pricehistory
 // GET /api/v1/products/search?q=query
 // GET /api/products?q=query&limit=10&offset=0 (старый формат)
 func (h *ProductsHandler) Search(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query().Get("q")
-	if query == "" {
-		appErr := appErrors.NewValidationError("Search query is required", nil)
+	query := validation.SanitizeString(r.URL.Query().Get("q"))
+	req := SearchRequest{Query: query}
+
+	if err := validation.ValidateStruct(req); err != nil {
+		message := validation.FormatValidationErrors(err)
+		appErr := appErrors.NewValidationError(message, err)
 		h.RespondAppError(w, r, appErr)
 		return
 	}
-
-	// Валидация поискового запроса
-	if err := validation.ValidateSearchQuery(query); err != nil {
-		appErr := appErrors.NewValidationError("Invalid search query", err)
-		h.RespondAppError(w, r, appErr)
-		return
-	}
-
 	ctx := r.Context()
 
 	// Для нового endpoint /api/v1/products/search используем простой поиск
@@ -351,31 +362,31 @@ func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
-	query := q.Get("query")
-	category := q.Get("category")
-	city := q.Get("city")
-	shopID := q.Get("shop_id")
-	sort := q.Get("sort")
+	query := validation.SanitizeString(q.Get("query"))
+	category := validation.SanitizeString(q.Get("category"))
+	city := validation.SanitizeString(q.Get("city"))
+	shopID := validation.SanitizeString(q.Get("shop_id"))
+	sort := validation.SanitizeString(q.Get("sort"))
 
 	minPriceStr := q.Get("min_price")
 	maxPriceStr := q.Get("max_price")
 
 	page, err := validation.ParseIntParam(q, "page", 1)
 	if err != nil {
-		appErr := appErrors.NewValidationError("Invalid page parameter", err)
+		appErr := appErrors.NewValidationError(err.Error(), err)
 		h.RespondAppError(w, r, appErr)
 		return
 	}
 	perPage, err := validation.ParseIntParam(q, "per_page", 20)
 	if err != nil {
-		appErr := appErrors.NewValidationError("Invalid per_page parameter", err)
+		appErr := appErrors.NewValidationError(err.Error(), err)
 		h.RespondAppError(w, r, appErr)
 		return
 	}
 
-	// Валидация пагинации
+	// ????????? ????????? (???????) ????? ???????? ??????????
 	if err := validation.ValidatePagination(page, perPage); err != nil {
-		appErr := appErrors.NewValidationError("Invalid pagination parameters", err)
+		appErr := appErrors.NewValidationError(err.Error(), err)
 		h.RespondAppError(w, r, appErr)
 		return
 	}
@@ -385,17 +396,17 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		maxPrice *float64
 	)
 
-	// Валидация цен
+	// ?????? ????
 	if minPriceStr != "" {
 		if v, err := strconv.ParseFloat(minPriceStr, 64); err == nil {
 			if err := validation.ValidatePrice(v); err != nil {
-				appErr := appErrors.NewValidationError("Invalid min_price", err)
+				appErr := appErrors.NewValidationError(err.Error(), err)
 				h.RespondAppError(w, r, appErr)
 				return
 			}
 			minPrice = &v
 		} else {
-			appErr := appErrors.NewValidationError("Invalid min_price format", err)
+			appErr := appErrors.NewValidationError("min_price must be a number", err)
 			h.RespondAppError(w, r, appErr)
 			return
 		}
@@ -403,25 +414,42 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	if maxPriceStr != "" {
 		if v, err := strconv.ParseFloat(maxPriceStr, 64); err == nil {
 			if err := validation.ValidatePrice(v); err != nil {
-				appErr := appErrors.NewValidationError("Invalid max_price", err)
+				appErr := appErrors.NewValidationError(err.Error(), err)
 				h.RespondAppError(w, r, appErr)
 				return
 			}
 			maxPrice = &v
 		} else {
-			appErr := appErrors.NewValidationError("Invalid max_price format", err)
+			appErr := appErrors.NewValidationError("max_price must be a number", err)
 			h.RespondAppError(w, r, appErr)
 			return
 		}
 	}
 
-	// Проверка, что min_price <= max_price
 	if minPrice != nil && maxPrice != nil && *minPrice > *maxPrice {
 		appErr := appErrors.NewValidationError("min_price cannot be greater than max_price", nil)
 		h.RespondAppError(w, r, appErr)
 		return
 	}
 
+	req := BrowseRequest{
+		Query:    query,
+		Category: category,
+		City:     city,
+		ShopID:   shopID,
+		MinPrice: minPrice,
+		MaxPrice: maxPrice,
+		Page:     page,
+		PerPage:  perPage,
+		Sort:     sort,
+	}
+
+	if err := validation.ValidateStruct(req); err != nil {
+		message := validation.FormatValidationErrors(err)
+		appErr := appErrors.NewValidationError(message, err)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
 	ctx := r.Context()
 
 	// Преобразуем category slug в category_id, если указан

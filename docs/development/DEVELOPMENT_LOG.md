@@ -5215,3 +5215,35 @@ bash run-harvest.sh
 
 **Stage 2 (2025-12-25):**
 - Updated docker-compose frontend NEXT_PUBLIC_API_BASE to https://152.53.227.37.nip.io for production API access behind nginx.
+
+
+**Stage 2 (2025-12-25):**
+- Started Day 4 validation work; updated plan for validator/sanitization and tests.
+
+
+**Stage 2 (2025-12-25):**
+- Attempted go get github.com/go-playground/validator/v10@v10.22.0; command timed out while downloading (saw start of downloads).
+
+
+**Stage 2 (2025-12-25):**
+- Successfully fetched validator/v10 dependency (go get github.com/go-playground/validator/v10@v10.22.0); go.mod/go.sum updated.
+
+
+**Stage 2 (2025-12-25):**
+- Added validator/v10 helper (ValidateStruct, FormatValidationErrors, JSON tag names) in validation/validator_v10.go.
+
+
+**Stage 2 (2025-12-25):**
+- Updated products Search/Browse handlers to sanitize input, validate via validator/v10 structs, and return unified validation errors.
+
+
+**Stage 2 (2025-12-25):**
+- Ran gofmt on updated validation files (products handler, validator_v10).
+
+
+**Stage 2 (2025-12-25):**
+- Ran go test ./internal/http/... -run TestDoesNotExist; compile check passed after validation changes.
+
+
+**Stage 2 (2025-12-25):**
+- Day 4 validation plan steps marked completed after validator integration and checks.
