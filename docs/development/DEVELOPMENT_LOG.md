@@ -5063,3 +5063,59 @@ bash run-harvest.sh
 
 **Stage 2 (2025-12-25):**
 - Staged storage adapter refactor and development log updates; git warned about CRLF/LF conversions on products_adapter.go, scrapingstats_adapter.go, and DEVELOPMENT_LOG.md.
+
+
+**Stage 2 (2025-12-25):**
+- Committed BaseAdapter storage refactor as e186c15 (refactor: use BaseAdapter for storage adapters).
+
+
+**Stage 2 (2025-12-25):**
+- Pushed commit e186c15 to origin/main.
+
+
+**Stage 2 (2025-12-25):**
+- Updated Stage 2 plan status after validation attempt and commit/push completion.
+
+
+**Stage 2 (2025-12-25):**
+- Checked go env: GOOS=linux, GOARCH=amd64, GOROOT=C:\Program Files\Go, GOPATH=C:\Users\Andy\go, GOCACHE=C:\Users\Andy\AppData\Local\go-build.
+
+
+**Stage 2 (2025-12-25):**
+- Checked GOENV file at C:\Users\Andy\AppData\Roaming\go\env; found GOOS=linux and GOARCH=amd64 overrides.
+
+
+**Stage 2 (2025-12-25):**
+- Tried go env -u GOOS -u GOARCH; command failed (unsupported -u flag).
+
+
+**Stage 2 (2025-12-25):**
+- Set GOOS=windows and GOARCH=amd64 via go env -w.
+
+
+**Stage 2 (2025-12-25):**
+- Verified go env now reports GOOS=windows and GOARCH=amd64.
+
+
+**Stage 2 (2025-12-25):**
+- Cleared Go build/test caches with go clean -cache -testcache.
+
+
+**Stage 2 (2025-12-25):**
+- Re-ran go test ./internal/storage -run TestDoesNotExist; command timed out after ~14s.
+
+
+**Stage 2 (2025-12-25):**
+- Re-ran go test ./internal/storage -run TestDoesNotExist with longer timeout; passed (no tests to run).
+
+
+**Stage 2 (2025-12-25):**
+- Checked Env:GOOS/Env:GOARCH/Env:GOFLAGS in PowerShell; no values found (not set).
+
+
+**Stage 2 (2025-12-25):**
+- Checked git status; only docs/development/DEVELOPMENT_LOG.md remains modified.
+
+
+**Stage 2 (2025-12-25):**
+- Staged development log updates for commit (git warned about LF->CRLF conversion).
