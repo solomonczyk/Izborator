@@ -16,8 +16,9 @@ import (
 	"github.com/solomonczyk/izborator/internal/config"
 )
 
-// Dorking Queries — запросы для поиска магазинов в Сербии
+// Dorking Queries — запросы для поиска магазинов и услуг в Сербии
 var queries = []string{
+	// E-commerce магазины (существующие запросы)
 	"site:.rs \"dodaj u korpu\"",
 	"site:.rs \"kupi odmah\"",
 	"site:.rs \"cena rsd\"",
@@ -28,6 +29,53 @@ var queries = []string{
 	"site:.rs \"internet prodavnica\"",
 	"site:.rs \"e-shop\"",
 	"site:.rs \"webshop\"",
+	
+	// Услуги - прайс-листы и цены
+	"site:.rs \"cenovnik usluga\"",
+	"site:.rs \"cenovnik\" cena",
+	"site:.rs \"cena usluge\"",
+	"site:.rs \"cena rada\"",
+	"site:.rs \"zakazivanje termina\"",
+	"site:.rs \"rezervacija\" cena",
+	
+	// Медицинские услуги
+	"site:.rs \"zubarska ordinacija\" cene",
+	"site:.rs \"dermatolog\" cena",
+	"site:.rs \"fizioterapija\" cena",
+	"site:.rs \"masaza\" cena",
+	
+	// Красота и уход
+	"site:.rs \"frizerski salon\" cena",
+	"site:.rs \"manikir pedikir\" cena",
+	"site:.rs \"kozmeticki salon\" cena",
+	
+	// Ремонт и обслуживание
+	"site:.rs \"servis\" cena",
+	"site:.rs \"popravka\" cena",
+	"site:.rs \"montaza\" cena",
+	
+	// Образование и курсы
+	"site:.rs \"kurs\" cena",
+	"site:.rs \"obuka\" cena",
+	"site:.rs \"skola\" cena",
+	
+	// Юридические и консультационные услуги
+	"site:.rs \"advokat\" cena",
+	"site:.rs \"notar\" cena",
+	"site:.rs \"konsultacije\" cena",
+	
+	// Транспорт и доставка
+	"site:.rs \"prevoz\" cena",
+	"site:.rs \"dostava\" cena",
+	"site:.rs \"kurirska sluzba\" cena",
+	
+	// Общие паттерны для услуг
+	"site:.rs inurl:cenovnik",
+	"site:.rs inurl:cene",
+	"site:.rs inurl:usluge",
+	"site:.rs \"tabela cena\"",
+	"site:.rs \"cena po satu\"",
+	"site:.rs \"cena po terminu\"",
 }
 
 // GoogleResult структура ответа Google Custom Search API
