@@ -86,6 +86,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 	// 3. Brain: ÃÂ¡ÃÂ¿Ã‘â‚¬ÃÂ°Ã‘Ë†ÃÂ¸ÃÂ²ÃÂ°ÃÂµÃÂ¼ AI
 	s.log.Info("Asking AI for selectors", map[string]interface{}{
 		"html_length": len(cleanHTML),
+		"site_type":   siteType,
 	})
 	selectorsJSON, err := s.ai.GenerateSelectors(ctx, cleanHTML, siteType)
 	if err != nil {
@@ -176,10 +177,20 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		}
 
 		// ÃÅ¡ÃÂ»Ã‘Å½Ã‘â€¡ÃÂµÃÂ²Ã‘â€¹ÃÂµ Ã‘ÂÃÂ»ÃÂ¾ÃÂ²ÃÂ° ÃÂ´ÃÂ»Ã‘Â Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€  Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ÃÂ¾ÃÂ²
-		if strings.Contains(linkLower, "/proizvod/") || strings.Contains(linkLower, "/p/") ||
-			strings.Contains(linkLower, "/product/") || strings.Contains(linkLower, "/artikal/") ||
-			strings.Contains(linkLower, "/products/") || strings.Contains(linkLower, "/proizvodi/") {
-			score += 50
+		if siteType == "ecommerce" {
+			if strings.Contains(linkLower, "/proizvod/") || strings.Contains(linkLower, "/p/") ||
+				strings.Contains(linkLower, "/product/") || strings.Contains(linkLower, "/artikal/") ||
+				strings.Contains(linkLower, "/products/") || strings.Contains(linkLower, "/proizvodi/") {
+				score += 50
+			}
+		}
+
+		if siteType == "service_provider" {
+			if strings.Contains(linkLower, "cenovnik") || strings.Contains(linkLower, "cene") ||
+				strings.Contains(linkLower, "usluge") || strings.Contains(linkLower, "price") ||
+				strings.Contains(linkLower, "pricelist") || strings.Contains(linkLower, "tabela") {
+				score += 50
+			}
 		}
 
 		// Ãâ€ÃÂ»ÃÂ¸ÃÂ½ÃÂ½ÃÂ°Ã‘Â Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃÂ° (ÃÂ¾ÃÂ±Ã‘â€¹Ã‘â€¡ÃÂ½ÃÂ¾ Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬Ã‘â€¹ ÃÂ¸ÃÂ¼ÃÂµÃ‘Å½Ã‘â€š ÃÂ´ÃÂ»ÃÂ¸ÃÂ½ÃÂ½Ã‘â€¹ÃÂµ URL)
