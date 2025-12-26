@@ -6,12 +6,35 @@
 
 ---
 
+## Шаг 0: Подключение к серверу
+
+**Сначала подключись к серверу по SSH:**
+
+```bash
+ssh root@152.53.227.37
+```
+
+**Или если используешь SSH ключ:**
+
+```bash
+ssh -i ~/.ssh/your_key root@152.53.227.37
+```
+
+**После подключения перейди в директорию проекта:**
+
+```bash
+cd /root/izborator  # Или путь, где находится проект
+# Если не знаешь путь, найди его:
+find / -name "docker-compose.yml" -type f 2>/dev/null | grep izborator
+```
+
+---
+
 ## Шаг А: Проверка docker-compose.yml
 
 **На сервере выполни:**
 
 ```bash
-cd /path/to/izborator  # Перейди в директорию проекта
 nano docker-compose.yml
 ```
 
