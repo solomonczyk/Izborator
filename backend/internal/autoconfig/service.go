@@ -45,8 +45,8 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 	candidate := candidates[0]
 
 	siteType := candidate.SiteType
-	if siteType == ` {
-		siteType = `ecommerce`
+	if siteType == "" {
+		siteType = "ecommerce"
 	}
 
 	s.log.Info("Ã°Å¸Â¤â€“ Auto-configuring shop", map[string]interface{}{
