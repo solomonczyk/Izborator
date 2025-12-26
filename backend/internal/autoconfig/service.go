@@ -86,7 +86,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 	s.log.Info("Asking AI for selectors", map[string]interface{}{
 		"html_length": len(cleanHTML),
 	})
-	selectorsJSON, err := s.ai.GenerateSelectors(ctx, cleanHTML)
+	selectorsJSON, err := s.ai.GenerateSelectors(ctx, cleanHTML, siteType)
 	if err != nil {
 		s.log.Error("AI generation failed", map[string]interface{}{
 			"error": err.Error(),
@@ -136,7 +136,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 // --- Helpers ---
 
 // findProductPage ÃÂ¸Ã‘â€°ÃÂµÃ‘â€š Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃ‘Æ’ ÃÂ½ÃÂ° Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ Ã‘Â ÃÂ³ÃÂ»ÃÂ°ÃÂ²ÃÂ½ÃÂ¾ÃÂ¹ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€ Ã‘â€¹
-func (s *Service) findProductPage(domain string) (string, error) {
+func (s *Service) findProductPage(domain string, siteType string) (string, error) {
 	baseURL := domain
 	if !strings.HasPrefix(baseURL, "http://") && !strings.HasPrefix(baseURL, "https://") {
 		baseURL = "https://" + baseURL

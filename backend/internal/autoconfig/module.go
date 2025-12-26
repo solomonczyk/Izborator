@@ -9,8 +9,9 @@ type Storage interface {
 
 // Candidate кандидат на магазин для авто-конфигурации
 type Candidate struct {
-	ID     string
-	Domain string
+	ID       string
+	Domain   string
+	SiteType string // "ecommerce" | "service_provider" | "unknown"
 }
 
 // ShopConfig конфигурация магазина с селекторами

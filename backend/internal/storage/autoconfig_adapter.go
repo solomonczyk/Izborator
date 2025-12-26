@@ -29,7 +29,7 @@ func NewAutoconfigAdapter(pg *Postgres) autoconfig.Storage {
 // GetClassifiedCandidates получает кандидатов со статусом "classified" для авто-конфигурации
 func (a *autoconfigAdapter) GetClassifiedCandidates(limit int) ([]autoconfig.Candidate, error) {
 	query := `
-		SELECT id, domain
+		SELECT id, domain, metadata
 		FROM potential_shops
 		WHERE status = 'classified'
 		ORDER BY confidence_score DESC, discovered_at ASC
@@ -45,9 +45,21 @@ func (a *autoconfigAdapter) GetClassifiedCandidates(limit int) ([]autoconfig.Can
 	var candidates []autoconfig.Candidate
 	for rows.Next() {
 		var c autoconfig.Candidate
-		if err := rows.Scan(&c.ID, &c.Domain); err != nil {
+		var metadataJSON []byte
+		if err := rows.Scan(&c.ID, &c.Domain, &metadataJSON); err != nil {
 			return nil, fmt.Errorf("failed to scan candidate: %w", err)
 		}
+		
+		// Извлекаем site_type из metadata
+		if metadataJSON != nil {
+			var metadata map[string]interface{}
+			if err := json.Unmarshal(metadataJSON, &metadata); err == nil {
+				if siteType, ok := metadata["site_type"].(string); ok {
+					c.SiteType = siteType
+				}
+			}
+		}
+		
 		candidates = append(candidates, c)
 	}
 
