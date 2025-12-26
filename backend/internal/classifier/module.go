@@ -14,7 +14,9 @@ type ClassificationScore struct {
 
 // ClassificationResult результат классификации домена
 type ClassificationResult struct {
-	IsShop           bool // Является ли сайт магазином
+	IsShop           bool   // Является ли сайт магазином (e-commerce)
+	IsService        bool   // Является ли сайт провайдером услуг
+	SiteType         string // "ecommerce" | "service_provider" | "unknown"
 	Score            ClassificationScore
 	DetectedPlatform string   // Обнаруженная платформа (shopify, woocommerce, etc.)
 	Reasons          []string // Причины решения

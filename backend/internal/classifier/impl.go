@@ -35,6 +35,17 @@ var shopKeywords = []string{
 	"cena sa pdv", "cena bez pdv", "ukupno", "total",
 }
 
+// Ключевые слова для определения провайдеров услуг (сербский язык)
+var serviceKeywords = []string{
+	"cenovnik", "cenovnik usluga", "tabela cena", "cena usluge",
+	"zakazivanje", "zakazivanje termina", "rezervacija", "rezervacija termina",
+	"usluga", "usluge", "cena rada", "cena po satu", "cena po terminu",
+	"ordinacija", "salon", "servis", "popravka", "montaza",
+	"frizerski", "kozmeticki", "masaza", "manikir", "pedikir",
+	"zubarska", "dermatolog", "fizioterapija", "advokat", "notar",
+	"kurs", "obuka", "skola", "prevoz", "dostava",
+}
+
 // Платформы E-commerce
 var ecommercePlatforms = map[string][]string{
 	"shopify":     {"shopify", "cdn.shopify.com", "myshopify.com"},
@@ -74,19 +85,50 @@ func (s *Service) Classify(ctx context.Context, domain string) (*ClassificationR
 	// Нормализуем HTML (нижний регистр для поиска)
 	htmlLower := strings.ToLower(html)
 
-	// 1. Анализ ключевых слов
+	// 1. Анализ ключевых слов (e-commerce)
 	keywordsScore := s.analyzeKeywords(htmlLower)
+
+	// 1.1 Анализ ключевых слов для услуг
+	serviceKeywordsScore := s.analyzeServiceKeywords(htmlLower)
 
 	// 2. Анализ платформы
 	platformScore, detectedPlatform := s.analyzePlatform(htmlLower)
 
-	// 3. Анализ структуры
-	structureScore := s.analyzeStructure(htmlLower, html)
+	// 3. Анализ структуры (адаптирован для услуг)
+	structureScore, hasPriceTable := s.analyzeStructure(htmlLower, html)
 
-	// 4. Подсчет общего скора
-	totalScore := (keywordsScore * weightKeywords) +
-		(platformScore * weightPlatform) +
-		(structureScore * weightStructure)
+	// 4. Определение типа сайта (до подсчета totalScore)
+	isService := serviceKeywordsScore > 0.5 || hasPriceTable || strings.Contains(htmlLower, "cenovnik")
+	
+	// Если найден cenovnik или таблица цен - это услуга, повышаем score
+	if strings.Contains(htmlLower, "cenovnik") || hasPriceTable {
+		isService = true
+		// Повышаем score для услуг
+		if serviceKeywordsScore > 0.3 {
+			structureScore += 0.3
+			if structureScore > 1.0 {
+				structureScore = 1.0
+			}
+		}
+	}
+
+	// 5. Подсчет общего скора
+	var totalScore float64
+	if isService {
+		// Для услуг: учитываем service keywords
+		totalScore = (keywordsScore * 0.2) +
+			(serviceKeywordsScore * 0.3) +
+			(platformScore * weightPlatform) +
+			(structureScore * weightStructure)
+	} else {
+		// Для e-commerce: стандартная формула
+		totalScore = (keywordsScore * weightKeywords) +
+			(platformScore * weightPlatform) +
+			(structureScore * weightStructure)
+	}
+
+	// 6. Определение isShop (только для e-commerce)
+	isShop := !isService && keywordsScore > 0.5 && totalScore >= thresholdShop
 
 	score := ClassificationScore{
 		KeywordsScore:  keywordsScore,
@@ -95,12 +137,21 @@ func (s *Service) Classify(ctx context.Context, domain string) (*ClassificationR
 		TotalScore:     totalScore,
 	}
 
-	// 5. Принятие решения
-	isShop := totalScore >= thresholdShop
-	reasons := s.generateReasons(score, detectedPlatform, isShop)
+	// 6. Определение типа сайта
+	siteType := "unknown"
+	if isShop {
+		siteType = "ecommerce"
+	} else if isService {
+		siteType = "service_provider"
+	}
+
+	// 7. Принятие решения
+	reasons := s.generateReasons(score, detectedPlatform, isShop, isService, siteType)
 
 	result := &ClassificationResult{
 		IsShop:           isShop,
+		IsService:        isService,
+		SiteType:         siteType,
 		Score:            score,
 		DetectedPlatform: detectedPlatform,
 		Reasons:          reasons,
@@ -164,7 +215,7 @@ func (s *Service) fetchPage(ctx context.Context, url string) (string, error) {
 	return string(body), nil
 }
 
-// analyzeKeywords анализирует наличие ключевых слов
+// analyzeKeywords анализирует наличие ключевых слов для e-commerce
 func (s *Service) analyzeKeywords(htmlLower string) float64 {
 	foundCount := 0
 	for _, keyword := range shopKeywords {
@@ -176,6 +227,29 @@ func (s *Service) analyzeKeywords(htmlLower string) float64 {
 	// Нормализуем: если найдено больше половины ключевых слов, это 1.0
 	// Иначе пропорционально
 	maxScore := float64(len(shopKeywords)) * 0.5
+	if maxScore == 0 {
+		return 0
+	}
+
+	score := float64(foundCount) / maxScore
+	if score > 1.0 {
+		score = 1.0
+	}
+
+	return score
+}
+
+// analyzeServiceKeywords анализирует наличие ключевых слов для услуг
+func (s *Service) analyzeServiceKeywords(htmlLower string) float64 {
+	foundCount := 0
+	for _, keyword := range serviceKeywords {
+		if strings.Contains(htmlLower, keyword) {
+			foundCount++
+		}
+	}
+
+	// Нормализуем: если найдено больше половины ключевых слов, это 1.0
+	maxScore := float64(len(serviceKeywords)) * 0.5
 	if maxScore == 0 {
 		return 0
 	}
@@ -215,10 +289,33 @@ func (s *Service) analyzePlatform(htmlLower string) (float64, string) {
 }
 
 // analyzeStructure анализирует структуру страницы
-func (s *Service) analyzeStructure(htmlLower, html string) float64 {
+// Возвращает score и флаг hasPriceTable (найдена ли таблица с ценами)
+func (s *Service) analyzeStructure(htmlLower, html string) (float64, bool) {
 	score := 0.0
+	hasPriceTable := false
 
-	// Проверка наличия иконки корзины (расширенный поиск)
+	// Проверка наличия таблиц с ценами (для услуг)
+	tablePatterns := []*regexp.Regexp{
+		regexp.MustCompile(`<table[^>]*>.*?<tr[^>]*>.*?(?:cena|price|rsd|din).*?</tr>.*?</table>`),
+		regexp.MustCompile(`<table[^>]*>.*?cenovnik.*?</table>`),
+		regexp.MustCompile(`<table[^>]*class="[^"]*cenovnik[^"]*"`),
+		regexp.MustCompile(`<table[^>]*id="[^"]*cenovnik[^"]*"`),
+	}
+	for _, pattern := range tablePatterns {
+		if pattern.MatchString(htmlLower) {
+			hasPriceTable = true
+			score += 0.3 // Таблица с ценами - сильный признак услуги
+			break
+		}
+	}
+
+	// Проверка наличия слова "cenovnik" (прайс-лист)
+	if strings.Contains(htmlLower, "cenovnik") {
+		hasPriceTable = true
+		score += 0.2
+	}
+
+	// Проверка наличия иконки корзины (только для e-commerce, не понижаем score если нет)
 	cartPatterns := []string{
 		`class="[^"]*cart[^"]*"`,
 		`class="[^"]*korpa[^"]*"`,
@@ -239,6 +336,7 @@ func (s *Service) analyzeStructure(htmlLower, html string) float64 {
 			break
 		}
 	}
+	// НЕ понижаем score за отсутствие корзины (услуги могут не иметь корзины)
 
 	// Проверка наличия цен в формате RSD (расширенный поиск)
 	pricePatterns := []*regexp.Regexp{
@@ -306,11 +404,11 @@ func (s *Service) analyzeStructure(htmlLower, html string) float64 {
 		score = 1.0
 	}
 
-	return score
+	return score, hasPriceTable
 }
 
 // generateReasons генерирует список причин решения
-func (s *Service) generateReasons(score ClassificationScore, platform string, isShop bool) []string {
+func (s *Service) generateReasons(score ClassificationScore, platform string, isShop, isService bool, siteType string) []string {
 	reasons := []string{}
 
 	if score.KeywordsScore > 0.5 {
@@ -322,15 +420,17 @@ func (s *Service) generateReasons(score ClassificationScore, platform string, is
 	}
 
 	if score.StructureScore > 0.5 {
-		reasons = append(reasons, fmt.Sprintf("Структура страницы похожа на магазин (score: %.2f)", score.StructureScore))
+		reasons = append(reasons, fmt.Sprintf("Структура страницы похожа на магазин/услугу (score: %.2f)", score.StructureScore))
 	}
 
-	if isShop {
+	if isService {
+		reasons = append(reasons, fmt.Sprintf("Обнаружен провайдер услуг (type: %s, score: %.2f)", siteType, score.TotalScore))
+	} else if isShop {
 		reasons = append(reasons, fmt.Sprintf("Общий score: %.2f (>= %.2f) → Это магазин", score.TotalScore, thresholdShop))
 	} else if score.TotalScore >= thresholdReview {
 		reasons = append(reasons, fmt.Sprintf("Общий score: %.2f (требуется ручная проверка)", score.TotalScore))
 	} else {
-		reasons = append(reasons, fmt.Sprintf("Общий score: %.2f (< %.2f) → Не магазин", score.TotalScore, thresholdReview))
+		reasons = append(reasons, fmt.Sprintf("Общий score: %.2f (< %.2f) → Не магазин/услуга", score.TotalScore, thresholdReview))
 	}
 
 	return reasons
