@@ -20,24 +20,14 @@ ssh root@152.53.227.37
 ssh -i ~/.ssh/your_key root@152.53.227.37
 ```
 
-**После подключения найди директорию проекта:**
+**После подключения перейди в директорию проекта:**
 
 ```bash
-# Сначала проверь текущую директорию
-pwd
-ls -la
+# Проект находится в /root/Izborator (с большой буквы I)
+cd /root/Izborator
 
-# Поищи docker-compose.yml в домашней директории
-find ~ -name "docker-compose.yml" -type f 2>/dev/null
-
-# Поищи в корне
-find / -name "docker-compose.yml" -type f 2>/dev/null | head -5
-
-# Или поищи по имени проекта
-find / -type d -name "*izborator*" 2>/dev/null | head -10
-
-# Если нашел путь, перейди в него:
-cd /найденный/путь/к/проекту
+# Проверь, что ты в правильной директории
+ls -la | grep docker-compose.yml
 ```
 
 ---
