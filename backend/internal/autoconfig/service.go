@@ -50,7 +50,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 	})
 
 	// 1. Scout: ÃËœÃ‘â€°ÃÂµÃÂ¼ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€ Ã‘Æ’ Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ÃÂ°
-	productURL, err := s.findProductPage(candidate.Domain)
+	productURL, err := s.findProductPage(candidate.Domain, siteType)
 	if err != nil {
 		s.log.Error("Scout failed", map[string]interface{}{
 			"domain": candidate.Domain,
