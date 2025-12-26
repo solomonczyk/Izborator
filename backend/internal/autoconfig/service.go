@@ -59,8 +59,9 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 		_ = s.storage.MarkAsFailed(candidate.ID, "scout_failed: "+err.Error())
 		return fmt.Errorf("scout failed: %w", err)
 	}
-	s.log.Info("Found product page", map[string]interface{}{
-		"url": productURL,
+	s.log.Info("Found page", map[string]interface{}{
+		"url":       productURL,
+		"site_type": siteType,
 	})
 
 	// 2. Fetch & Clean: ÃÂ¡ÃÂºÃÂ°Ã‘â€¡ÃÂ¸ÃÂ²ÃÂ°ÃÂµÃÂ¼ HTML
