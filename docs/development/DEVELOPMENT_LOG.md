@@ -5270,3 +5270,50 @@ bash run-harvest.sh
 
 **Stage 2 (2025-12-25):**
 - Committed and pushed logging/recovery updates (chore: improve logging and recovery).
+
+---
+
+## 2025-01-XX: Pivot - Исправления после Недели 1
+
+**Время:** ~2 часа
+**Задачи:** Исправление ошибок компиляции и деплоя
+
+### Исправление ошибки компиляции (undefined: siteType)
+**Проблема:** 
+- В ackend/internal/autoconfig/service.go переменная siteType использовалась до определения
+- Ошибки компиляции на строках 53, 64, 89, 91
+
+**Решение:**
+- Добавлено определение siteType := candidate.SiteType в начале функции ProcessNextCandidate
+- Установлено значение по умолчанию "ecommerce" если SiteType пустой
+- Исправлен вызов indProductPage(candidate.Domain, siteType) - добавлен параметр siteType
+- Исправлены синтаксические ошибки (обратные кавычки заменены на двойные)
+
+**Файлы:**
+- ackend/internal/autoconfig/service.go
+
+### Улучшение скрипта деплоя
+**Проблема:**
+- Контейнер izborator_backend падал между проверками health check
+- Ошибка: Error: No such container: izborator_backend при выполнении docker exec
+
+**Решение:**
+- Добавлена проверка существования контейнера перед docker exec
+- Улучшена обработка ошибок и логирование
+- Добавлен вывод детальных логов при ошибках health check
+
+**Файлы:**
+- .github/workflows/deploy.yml
+
+### Результаты:
+- ✅ Код компилируется без ошибок
+- ✅ Code Quality Check проходит успешно (Backend + Frontend)
+- ✅ Изменения отправлены в GitHub
+- ⚠️ Предупреждения о кеше GitHub Actions (не критично)
+
+**Коммиты:**
+- 369c8b - Fix: Replace backticks with double quotes in siteType definition
+- 599a196 - Fix: Correct siteType definition with proper formatting
+- 9b274d6 - Fix: Improve backend health check in deployment script
+
+---
