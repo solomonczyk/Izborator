@@ -44,7 +44,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 	}
 	candidate := candidates[0]
 
-	s.log.Info("Ã°Å¸Â¤â€“ Auto-configuring shop", map[string]interface{}{
+	siteType := candidate.SiteType`r`n	if siteType == "" {`r`n		siteType = "ecommerce"`r`n	}`r`n`r`n	s.log.Info("Ã°Å¸Â¤â€“ Auto-configuring shop", map[string]interface{}{
 		"domain": candidate.Domain,
 		"id":     candidate.ID,
 	})
