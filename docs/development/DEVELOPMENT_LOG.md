@@ -5317,3 +5317,49 @@ bash run-harvest.sh
 - 9b274d6 - Fix: Improve backend health check in deployment script
 
 ---
+
+---
+
+## 2025-01-XX: Pivot - Неделя 2.1: Абстракция Product -> Offer
+
+**Время:** ~3 часа
+**Задачи:** Расширение модели данных для поддержки товаров и услуг
+
+### Миграция базы данных (0007_product_offer_abstraction)
+**Добавлено:**
+- Поле 	ype VARCHAR(20) - тип продукта ('good' | 'service')
+- Поле service_metadata JSONB - метаданные для услуг (duration, master_name, service_area)
+- Поле is_deliverable BOOLEAN - товар можно доставить (для товаров)
+- Поле is_onsite BOOLEAN - услуга с выездом мастера (для услуг)
+- Индексы для оптимизации поиска по типу и логистике
+
+**Обновление существующих записей:**
+- Все существующие продукты установлены как 	ype='good'
+- Значения по умолчанию: is_deliverable=TRUE, is_onsite=FALSE
+
+### Обновление Go моделей
+**Файл:** ackend/internal/products/models.go
+- Добавлен тип ProductType с константами ProductTypeGood и ProductTypeService
+- Добавлена структура ServiceMetadata для метаданных услуг
+- Расширена структура Product новыми полями
+- Расширена структура BrowseProduct новыми полями
+
+### Обновление SQL запросов
+**Файл:** ackend/internal/storage/products_adapter.go
+- Обновлен GetProduct - добавлены новые поля в SELECT и Scan
+- Обновлен SaveProduct - добавлены новые поля в INSERT/UPDATE
+- Обновлен searchViaPostgres - добавлены новые поля в запрос
+- Обновлен rowseViaPostgres - добавлены новые поля в запрос
+- Обновлен searchViaMeilisearch - добавлена обработка новых полей при десериализации
+- Обновлено создание BrowseProduct - включены новые поля
+
+### Результаты:
+- ✅ Миграция создана и готова к применению
+- ✅ Код компилируется без ошибок
+- ✅ Все SQL запросы обновлены
+- ✅ Обратная совместимость сохранена (существующие продукты = товары)
+- ✅ Поддержка JSONB для service_metadata реализована
+
+**Коммит:** 1467499 - feat: Pivot Week 2.1 - Product -> Offer abstraction
+
+---
