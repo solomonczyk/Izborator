@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/solomonczyk/izborator/internal/ai"
 	"github.com/solomonczyk/izborator/internal/logger"
 )
 
