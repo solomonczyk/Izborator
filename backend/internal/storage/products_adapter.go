@@ -36,13 +36,16 @@ func (a *ProductsAdapter) GetProduct(id string) (*products.Product, error) {
 	}
 
 	query := `
-		SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
+		SELECT id, name, description, brand, category, category_id, image_url, specs, 
+		       type, service_metadata, is_deliverable, is_onsite, created_at, updated_at
 		FROM products
 		WHERE id = $1
 	`
 
 	var product products.Product
 	var specsJSON []byte
+	var serviceMetadataJSON []byte
+	var productType string
 	var createdAt, updatedAt time.Time
 	var categoryID *uuid.UUID
 
@@ -55,6 +58,10 @@ func (a *ProductsAdapter) GetProduct(id string) (*products.Product, error) {
 		&categoryID,
 		&product.ImageURL,
 		&specsJSON,
+		&productType,
+		&serviceMetadataJSON,
+		&product.IsDeliverable,
+		&product.IsOnsite,
 		&createdAt,
 		&updatedAt,
 	)
@@ -71,6 +78,13 @@ func (a *ProductsAdapter) GetProduct(id string) (*products.Product, error) {
 		return nil, fmt.Errorf("failed to get product: %w", err)
 	}
 
+	// Установка типа продукта
+	if productType != "" {
+		product.Type = products.ProductType(productType)
+	} else {
+		product.Type = products.ProductTypeGood // По умолчанию товар
+	}
+
 	// Десериализация JSONB specs
 	if len(specsJSON) > 0 {
 		if err := json.Unmarshal(specsJSON, &product.Specs); err != nil {
@@ -78,6 +92,15 @@ func (a *ProductsAdapter) GetProduct(id string) (*products.Product, error) {
 		}
 	} else {
 		product.Specs = make(map[string]string)
+	}
+
+	// Десериализация JSONB service_metadata
+	if len(serviceMetadataJSON) > 0 {
+		var metadata products.ServiceMetadata
+		if err := json.Unmarshal(serviceMetadataJSON, &metadata); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal service_metadata: %w", err)
+		}
+		product.ServiceMetadata = &metadata
 	}
 
 	product.CreatedAt = createdAt
@@ -156,6 +179,38 @@ func (a *ProductsAdapter) searchViaMeilisearch(query string, limit, offset int) 
 			}
 		}
 
+		// Обработка type
+		if productType, ok := hitMap["type"].(string); ok {
+			product.Type = products.ProductType(productType)
+		} else {
+			product.Type = products.ProductTypeGood // По умолчанию товар
+		}
+
+		// Обработка service_metadata
+		if serviceMetadata, ok := hitMap["service_metadata"].(map[string]interface{}); ok {
+			metadata := products.ServiceMetadata{}
+			if duration, ok := serviceMetadata["duration"].(string); ok {
+				metadata.Duration = duration
+			}
+			if masterName, ok := serviceMetadata["master_name"].(string); ok {
+				metadata.MasterName = masterName
+			}
+			if serviceArea, ok := serviceMetadata["service_area"].(string); ok {
+				metadata.ServiceArea = serviceArea
+			}
+			product.ServiceMetadata = &metadata
+		}
+
+		// Обработка is_deliverable и is_onsite
+		if isDeliverable, ok := hitMap["is_deliverable"].(bool); ok {
+			product.IsDeliverable = isDeliverable
+		} else {
+			product.IsDeliverable = true // По умолчанию для товаров
+		}
+		if isOnsite, ok := hitMap["is_onsite"].(bool); ok {
+			product.IsOnsite = isOnsite
+		}
+
 		// Обработка timestamps
 		if createdAt, ok := hitMap["created_at"].(string); ok {
 			if t, err := time.Parse(time.RFC3339, createdAt); err == nil {
@@ -185,7 +240,8 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 	// Это быстрее, чем два отдельных запроса
 	querySQL := `
 		WITH search_results AS (
-			SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at,
+			SELECT id, name, description, brand, category, category_id, image_url, specs, 
+			       type, service_metadata, is_deliverable, is_onsite, created_at, updated_at,
 				   CASE 
 					   WHEN name ILIKE $1 THEN 1
 					   WHEN brand ILIKE $1 THEN 2
@@ -199,8 +255,8 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 		)
 		SELECT 
 			sr.id, sr.name, sr.description, sr.brand, sr.category, sr.category_id, 
-			sr.image_url, sr.specs, sr.created_at, sr.updated_at,
-			tc.count
+			sr.image_url, sr.specs, sr.type, sr.service_metadata, sr.is_deliverable, sr.is_onsite,
+			sr.created_at, sr.updated_at, tc.count
 		FROM search_results sr
 		CROSS JOIN total_count tc
 		ORDER BY sr.relevance, sr.name
@@ -219,6 +275,8 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 	for rows.Next() {
 		var product products.Product
 		var specsJSON []byte
+		var serviceMetadataJSON []byte
+		var productType string
 		var createdAt, updatedAt time.Time
 		var categoryID *string
 
@@ -231,6 +289,10 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 			&categoryID,
 			&product.ImageURL,
 			&specsJSON,
+			&productType,
+			&serviceMetadataJSON,
+			&product.IsDeliverable,
+			&product.IsOnsite,
 			&createdAt,
 			&updatedAt,
 			&total, // Получаем total из CTE
@@ -242,6 +304,13 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 			return nil, 0, fmt.Errorf("failed to scan product: %w", err)
 		}
 
+		// Установка типа продукта
+		if productType != "" {
+			product.Type = products.ProductType(productType)
+		} else {
+			product.Type = products.ProductTypeGood
+		}
+
 		// Десериализация JSONB specs
 		if len(specsJSON) > 0 {
 			if err := json.Unmarshal(specsJSON, &product.Specs); err != nil {
@@ -249,6 +318,15 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 			}
 		} else {
 			product.Specs = make(map[string]string)
+		}
+
+		// Десериализация JSONB service_metadata
+		if len(serviceMetadataJSON) > 0 {
+			var metadata products.ServiceMetadata
+			if err := json.Unmarshal(serviceMetadataJSON, &metadata); err != nil {
+				return nil, 0, fmt.Errorf("failed to unmarshal service_metadata: %w", err)
+			}
+			product.ServiceMetadata = &metadata
 		}
 
 		product.CreatedAt = createdAt
@@ -286,6 +364,15 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 		return fmt.Errorf("failed to marshal specs: %w", err)
 	}
 
+	// Сериализация service_metadata в JSON
+	var serviceMetadataJSON []byte
+	if product.ServiceMetadata != nil {
+		serviceMetadataJSON, err = json.Marshal(product.ServiceMetadata)
+		if err != nil {
+			return fmt.Errorf("failed to marshal service_metadata: %w", err)
+		}
+	}
+
 	var categoryID *uuid.UUID
 	if product.CategoryID != nil {
 		catID, err := a.ParseUUID(*product.CategoryID)
@@ -294,9 +381,16 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 		}
 	}
 
+	// Установка типа по умолчанию
+	productType := string(product.Type)
+	if productType == "" {
+		productType = string(products.ProductTypeGood)
+	}
+
 	query := `
-		INSERT INTO products (id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO products (id, name, description, brand, category, category_id, image_url, specs, 
+		                     type, service_metadata, is_deliverable, is_onsite, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		ON CONFLICT (id) DO UPDATE SET
 			name = EXCLUDED.name,
 			description = EXCLUDED.description,
@@ -305,6 +399,10 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 			category_id = EXCLUDED.category_id,
 			image_url = EXCLUDED.image_url,
 			specs = EXCLUDED.specs,
+			type = EXCLUDED.type,
+			service_metadata = EXCLUDED.service_metadata,
+			is_deliverable = EXCLUDED.is_deliverable,
+			is_onsite = EXCLUDED.is_onsite,
 			updated_at = EXCLUDED.updated_at
 	`
 
@@ -323,6 +421,10 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 		categoryID,
 		product.ImageURL,
 		specsJSON,
+		productType,
+		serviceMetadataJSON,
+		product.IsDeliverable,
+		product.IsOnsite,
 		product.CreatedAt,
 		product.UpdatedAt,
 	)
@@ -771,7 +873,8 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		
 		// Строим запрос с фильтрами
 		querySQL := `
-			SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
+			SELECT id, name, description, brand, category, category_id, image_url, specs, 
+			       type, service_metadata, is_deliverable, is_onsite, created_at, updated_at
 			FROM products
 			WHERE 1=1
 		`
@@ -823,6 +926,8 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		for rows.Next() {
 			var product products.Product
 			var specsJSON []byte
+			var serviceMetadataJSON []byte
+			var productType string
 			var createdAt, updatedAt time.Time
 			var categoryID *string
 
@@ -835,6 +940,10 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 				&categoryID,
 				&product.ImageURL,
 				&specsJSON,
+				&productType,
+				&serviceMetadataJSON,
+				&product.IsDeliverable,
+				&product.IsOnsite,
 				&createdAt,
 				&updatedAt,
 			)
@@ -845,6 +954,13 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 				return nil, fmt.Errorf("failed to scan product: %w", err)
 			}
 
+			// Установка типа продукта
+			if productType != "" {
+				product.Type = products.ProductType(productType)
+			} else {
+				product.Type = products.ProductTypeGood
+			}
+
 			// Десериализация JSONB specs
 			if len(specsJSON) > 0 {
 				if err := json.Unmarshal(specsJSON, &product.Specs); err != nil {
@@ -852,6 +968,15 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 				}
 			} else {
 				product.Specs = make(map[string]string)
+			}
+
+			// Десериализация JSONB service_metadata
+			if len(serviceMetadataJSON) > 0 {
+				var metadata products.ServiceMetadata
+				if err := json.Unmarshal(serviceMetadataJSON, &metadata); err != nil {
+					return nil, fmt.Errorf("failed to unmarshal service_metadata: %w", err)
+				}
+				product.ServiceMetadata = &metadata
 			}
 
 			product.CreatedAt = createdAt
@@ -993,15 +1118,19 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		}
 
 		browseProduct := products.BrowseProduct{
-			ID:         p.ID,
-			Name:       p.Name,
-			Brand:      p.Brand,
-			Category:   p.Category,
-			CategoryID: p.CategoryID,
-			ImageURL:   p.ImageURL,
-			ShopsCount: len(prices),
-			ShopNames:  shopNames, // Должен всегда быть массивом, даже пустым
-			Specs:      p.Specs,
+			ID:              p.ID,
+			Name:            p.Name,
+			Brand:           p.Brand,
+			Category:        p.Category,
+			CategoryID:      p.CategoryID,
+			ImageURL:        p.ImageURL,
+			ShopsCount:      len(prices),
+			ShopNames:       shopNames, // Должен всегда быть массивом, даже пустым
+			Specs:           p.Specs,
+			Type:            p.Type,
+			ServiceMetadata: p.ServiceMetadata,
+			IsDeliverable:   p.IsDeliverable,
+			IsOnsite:        p.IsOnsite,
 		}
 
 		// Дополнительная проверка после создания
