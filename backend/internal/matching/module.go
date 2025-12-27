@@ -6,8 +6,8 @@ import (
 
 // Storage интерфейс для работы с хранилищем товаров для matching
 type Storage interface {
-	// FindSimilarProducts ищет похожие товары
-	FindSimilarProducts(name, brand string, limit int) ([]*Product, error)
+	// FindSimilarProducts ищет похожие товары или услуги
+	FindSimilarProducts(name, brand string, productType string, limit int) ([]*Product, error)
 
 	// GetProductByID получает товар по ID
 	GetProductByID(id string) (*Product, error)
@@ -26,6 +26,7 @@ type Product struct {
 	Name  string
 	Brand string
 	Specs map[string]string
+	Type  string // "good" | "service"
 }
 
 // Service сервис для сопоставления товаров между магазинами

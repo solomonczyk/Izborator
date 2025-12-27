@@ -11,12 +11,13 @@ type ProductMatch struct {
 	Confidence string    `json:"confidence"` // "high", "medium", "low"
 }
 
-// MatchRequest запрос на сопоставление товара
+// MatchRequest запрос на сопоставление товара или услуги
 type MatchRequest struct {
 	ProductID string            `json:"product_id"`
 	Name      string            `json:"name"`
 	Brand     string            `json:"brand"`
 	Specs     map[string]string `json:"specs"`
+	Type      string            `json:"type,omitempty"` // "good" | "service"
 }
 
 // MatchResult результат поиска похожих товаров

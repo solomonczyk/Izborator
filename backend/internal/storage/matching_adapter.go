@@ -21,8 +21,8 @@ func NewMatchingAdapter(pg *Postgres) matching.Storage {
 	}
 }
 
-// FindSimilarProducts ищет похожие товары
-func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]*matching.Product, error) {
+// FindSimilarProducts ищет похожие товары или услуги
+func (a *MatchingAdapter) FindSimilarProducts(name, brand string, productType string, limit int) ([]*matching.Product, error) {
 	var query string
 	var args []interface{}
 
@@ -30,10 +30,15 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]
 	normalizedName := strings.ToLower(strings.TrimSpace(name))
 	normalizedBrand := strings.ToLower(strings.TrimSpace(brand))
 
+	// Определяем тип продукта для фильтрации
+	if productType == "" {
+		productType = "good" // По умолчанию товар
+	}
+
 	// Поиск по названию и бренду
 	if normalizedBrand != "" {
 		query = `
-			SELECT id, name, brand, specs
+			SELECT id, name, brand, specs, COALESCE(type, 'good') as type
 			FROM products
 			WHERE (
 				LOWER(TRIM(name)) = $1
@@ -45,17 +50,18 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]
 				OR LOWER(TRIM(brand)) = $4
 				OR LOWER(TRIM(brand)) LIKE $5
 			)
+			AND COALESCE(type, 'good') = $6
 			ORDER BY 
 				CASE WHEN LOWER(TRIM(name)) = $1 THEN 1 ELSE 2 END,
 				CASE WHEN LOWER(TRIM(brand)) = $4 THEN 1 ELSE 2 END
-			LIMIT $6
+			LIMIT $7
 		`
 		nameExact := normalizedName
 		namePrefix := normalizedName + "%"
 		nameContains := "%" + normalizedName + "%"
 		brandExact := normalizedBrand
 		brandContains := "%" + normalizedBrand + "%"
-		args = []interface{}{nameExact, namePrefix, nameContains, brandExact, brandContains, limit}
+		args = []interface{}{nameExact, namePrefix, nameContains, brandExact, brandContains, productType, limit}
 	} else {
 		// Улучшенный поиск: ищем по ключевым словам из названия
 		// Разбиваем название на слова и ищем товары, содержащие несколько ключевых слов
@@ -87,35 +93,41 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]
 				argIndex++
 			}
 
+			// Добавляем фильтр по типу продукта
+			typeCondition := fmt.Sprintf(" AND COALESCE(type, 'good') = $%d", argIndex)
+			queryArgs = append(queryArgs, productType)
+			argIndex++
+			
 			query = fmt.Sprintf(`
-				SELECT id, name, brand, specs
+				SELECT id, name, brand, specs, COALESCE(type, 'good') as type
 				FROM products
-				WHERE (%s)
+				WHERE (%s)%s
 				ORDER BY 
 					CASE WHEN LOWER(TRIM(name)) = $1 THEN 1 ELSE 2 END,
 					name
 				LIMIT $%d
-			`, strings.Join(conditions, " OR "), argIndex)
+			`, strings.Join(conditions, " OR "), typeCondition, argIndex)
 			queryArgs = append(queryArgs, limit)
 			args = queryArgs
 		} else {
 			// Fallback на старый поиск
 			query = `
-				SELECT id, name, brand, specs
+				SELECT id, name, brand, specs, COALESCE(type, 'good') as type
 				FROM products
 				WHERE (
 					LOWER(TRIM(name)) = $1
 					OR LOWER(TRIM(name)) LIKE $2
 					OR LOWER(TRIM(name)) LIKE $3
 				)
+				AND COALESCE(type, 'good') = $4
 				ORDER BY 
 					CASE WHEN LOWER(TRIM(name)) = $1 THEN 1 ELSE 2 END
-				LIMIT $4
+				LIMIT $5
 			`
 			nameExact := normalizedName
 			namePrefix := normalizedName + "%"
 			nameContains := "%" + normalizedName + "%"
-			args = []interface{}{nameExact, namePrefix, nameContains, limit}
+			args = []interface{}{nameExact, namePrefix, nameContains, productType, limit}
 		}
 	}
 
@@ -136,6 +148,7 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, limit int) ([]
 			&product.Name,
 			&product.Brand,
 			&specsJSON,
+			&product.Type,
 		)
 
 		if err != nil {
@@ -169,7 +182,7 @@ func (a *MatchingAdapter) GetProductByID(id string) (*matching.Product, error) {
 	}
 
 	query := `
-		SELECT id, name, brand, specs
+		SELECT id, name, brand, specs, COALESCE(type, 'good') as type
 		FROM products
 		WHERE id = $1
 	`
@@ -182,6 +195,7 @@ func (a *MatchingAdapter) GetProductByID(id string) (*matching.Product, error) {
 		&product.Name,
 		&product.Brand,
 		&specsJSON,
+		&product.Type,
 	)
 
 	if err != nil {

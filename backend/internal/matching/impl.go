@@ -2,6 +2,7 @@ package matching
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -15,12 +16,18 @@ func (s *Service) MatchProduct(req *MatchRequest) (*MatchResult, error) {
 		return nil, ErrInsufficientData
 	}
 
+	// Определяем тип продукта
+	productType := req.Type
+	if productType == "" {
+		productType = "good" // По умолчанию товар
+	}
+
 	// Нормализуем данные для поиска
-	normalizedName := s.normalizeName(req.Name)
+	normalizedName := s.normalizeName(req.Name, productType)
 	normalizedBrand := s.normalizeBrand(req.Brand)
 
-	// Ищем похожие товары
-	similar, err := s.storage.FindSimilarProducts(normalizedName, normalizedBrand, 10)
+	// Ищем похожие товары или услуги
+	similar, err := s.storage.FindSimilarProducts(normalizedName, normalizedBrand, productType, 10)
 	if err != nil {
 		s.logger.Error("Failed to find similar products", map[string]interface{}{
 			"error": err,
@@ -28,12 +35,18 @@ func (s *Service) MatchProduct(req *MatchRequest) (*MatchResult, error) {
 		return nil, fmt.Errorf("failed to find similar: %w", err)
 	}
 
-	// Рассчитываем схожесть для каждого найденного товара
+	// Рассчитываем схожесть для каждого найденного товара или услуги
 	matches := make([]*ProductMatch, 0, len(similar))
 	for _, product := range similar {
-		similarity := s.calculateSimilarity(req, product)
+		// Для услуг используем более мягкий порог
+		threshold := 0.5
+		if productType == "service" {
+			threshold = 0.4 // Более мягкий порог для услуг
+		}
 
-		if similarity > 0.5 { // Порог схожести
+		similarity := s.calculateSimilarity(req, product, productType)
+
+		if similarity > threshold {
 			matches = append(matches, &ProductMatch{
 				ProductID:  req.ProductID,
 				MatchedID:  product.ID,
@@ -48,14 +61,36 @@ func (s *Service) MatchProduct(req *MatchRequest) (*MatchResult, error) {
 	}, nil
 }
 
-// normalizeName нормализует название товара для сравнения
-func (s *Service) normalizeName(name string) string {
+// normalizeUnits нормализует единицы измерения
+func (s *Service) normalizeUnits(text string) string {
+	// Нормализация единиц веса
+	text = regexp.MustCompile(`(?i)\b(\d+)\s*(kg|кило|килограм|килограма|килограма)\b`).ReplaceAllString(text, "${1}kg")
+	text = regexp.MustCompile(`(?i)\b(\d+)\s*(g|gr|грам|грама|грама)\b`).ReplaceAllString(text, "${1}g")
+	text = regexp.MustCompile(`(?i)\b(\d+)\s*(mg|милиграм|милиграма)\b`).ReplaceAllString(text, "${1}mg")
+
+	// Нормализация единиц объема
+	text = regexp.MustCompile(`(?i)\b(\d+)\s*(l|литр|литра|литре)\b`).ReplaceAllString(text, "${1}l")
+	text = regexp.MustCompile(`(?i)\b(\d+)\s*(ml|мл|милилитр|милилитра)\b`).ReplaceAllString(text, "${1}ml")
+
+	// Нормализация единиц времени (для услуг)
+	text = regexp.MustCompile(`(?i)\b(\d+)\s*(час|часа|часа|h|hr|hours?)\b`).ReplaceAllString(text, "${1}h")
+	text = regexp.MustCompile(`(?i)\b(\d+)\s*(мин|минут|минута|min|mins?)\b`).ReplaceAllString(text, "${1}min")
+	text = regexp.MustCompile(`(?i)\b(\d+)\s*(сек|секунд|секунда|sec|secs?)\b`).ReplaceAllString(text, "${1}sec")
+
+	return text
+}
+
+// normalizeName нормализует название товара или услуги для сравнения
+func (s *Service) normalizeName(name string, productType string) string {
 	name = strings.ToLower(name)
 	name = strings.TrimSpace(name)
 
 	if name == "" {
 		return ""
 	}
+
+	// Нормализация единиц измерения
+	name = s.normalizeUnits(name)
 
 	name = strings.ReplaceAll(name, "-", " ")
 	name = strings.ReplaceAll(name, "_", " ")
@@ -74,10 +109,23 @@ func (s *Service) normalizeName(name string) string {
 
 	words := strings.Fields(name)
 	filteredWords := make([]string, 0, len(words))
-	stopWords := map[string]bool{
+	
+	// Стоп-слова для товаров
+	stopWordsGoods := map[string]bool{
 		"crni": true, "black": true, "white": true, "midnight": true,
 		"gb": true, "mb": true, "tb": true,
 		"pro": true, "max": true, "mini": true, "plus": true,
+	}
+	
+	// Стоп-слова для услуг (менее агрессивные)
+	stopWordsServices := map[string]bool{
+		"usluga": true, "usluge": true, "service": true, "services": true,
+		"cena": true, "cene": true, "price": true, "prices": true,
+	}
+	
+	stopWords := stopWordsGoods
+	if productType == "service" {
+		stopWords = stopWordsServices
 	}
 
 	for _, word := range words {
@@ -199,12 +247,17 @@ func (s *Service) normalizeBrand(brand string) string {
 	return brand
 }
 
-// calculateSimilarity рассчитывает схожесть между товарами
-func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float64 {
-	reqName := s.normalizeName(req.Name)
-	prodName := s.normalizeName(product.Name)
+// calculateSimilarity рассчитывает схожесть между товарами или услугами
+func (s *Service) calculateSimilarity(req *MatchRequest, product *Product, productType string) float64 {
+	reqName := s.normalizeName(req.Name, productType)
+	prodName := s.normalizeName(product.Name, productType)
 
 	if reqName == prodName {
+		// Для услуг бренд менее важен
+		if productType == "service" {
+			return 0.95 // Высокая схожесть даже без бренда
+		}
+		
 		if req.Brand != "" && product.Brand != "" {
 			reqBrand := s.normalizeBrand(req.Brand)
 			prodBrand := s.normalizeBrand(product.Brand)
@@ -244,12 +297,27 @@ func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float
 		commonWords := 0
 		importantWords := 0
 
+		// Для услуг используем fuzzy matching (частичное совпадение слов)
+		useFuzzy := productType == "service"
+
 		for _, reqWord := range reqWords {
 			if len(reqWord) <= 2 {
 				continue
 			}
 			for _, prodWord := range prodWords {
+				matched := false
 				if reqWord == prodWord {
+					matched = true
+				} else if useFuzzy {
+					// Fuzzy matching для услуг: проверяем, содержит ли одно слово другое
+					if len(reqWord) >= 4 && len(prodWord) >= 4 {
+						if strings.Contains(reqWord, prodWord) || strings.Contains(prodWord, reqWord) {
+							matched = true
+						}
+					}
+				}
+				
+				if matched {
 					commonWords++
 					if commonWords <= 3 {
 						importantWords++
@@ -272,7 +340,8 @@ func (s *Service) calculateSimilarity(req *MatchRequest, product *Product) float
 		}
 	}
 
-	if !skipBrandBonus && req.Brand != "" && product.Brand != "" {
+	// Для услуг бренд менее важен (или вообще не важен)
+	if !skipBrandBonus && productType != "service" && req.Brand != "" && product.Brand != "" {
 		reqBrand := s.normalizeBrand(req.Brand)
 		prodBrand := s.normalizeBrand(product.Brand)
 		if reqBrand == prodBrand {
