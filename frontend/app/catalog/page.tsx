@@ -1,7 +1,7 @@
 // app/catalog/page.tsx
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
+import { ProductCard } from '@/components/product-card'
 
 type BrowseProduct = {
   id: string;
@@ -13,6 +13,15 @@ type BrowseProduct = {
   max_price?: number;
   currency?: string;
   shops_count?: number;
+  shop_names?: string[];
+  type?: 'good' | 'service';
+  service_metadata?: {
+    duration?: string;
+    master_name?: string;
+    service_area?: string;
+  };
+  is_deliverable?: boolean;
+  is_onsite?: boolean;
 };
 
 type BrowseResponse = {
@@ -381,47 +390,24 @@ export default async function CatalogPage({
 
             <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {data.items.map((p) => (
-                <li
+                <ProductCard
                   key={p.id}
-                  className="bg-white rounded-xl shadow-sm border-2 border-slate-300 p-4 hover:shadow-md hover:border-blue-400 transition-all"
-                >
-                  <Link href={`/product/${p.id}`} className="flex gap-4">
-                    {p.image_url && (
-                      <Image
-                        src={p.image_url}
-                        alt={p.name}
-                        width={96}
-                        height={96}
-                        className="w-24 h-24 object-contain rounded-md border-2 border-slate-300 bg-white flex-shrink-0"
-                        unoptimized
-                      />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h2 className="font-medium text-sm mb-1 line-clamp-2 hover:text-blue-600 text-slate-900">
-                        {p.name}
-                      </h2>
-                      {p.brand && (
-                        <p className="text-xs text-slate-600 mb-1">
-                          {p.brand}
-                        </p>
-                      )}
-                      {typeof p.min_price === "number" && (
-                        <p className="font-semibold text-sm mt-2 text-slate-900">
-                          {p.min_price === p.max_price
-                            ? `${formatPrice(p.min_price)} ${p.currency || "RSD"}`
-                            : `от ${formatPrice(p.min_price)} до ${formatPrice(p.max_price || p.min_price)} ${
-                                p.currency || "RSD"
-                              }`}
-                        </p>
-                      )}
-                      {typeof p.shops_count === "number" && (
-                        <p className="text-xs text-slate-600 mt-1">
-                          Магазинов: {p.shops_count}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                </li>
+                  id={p.id}
+                  name={p.name}
+                  brand={p.brand}
+                  category={p.category}
+                  image_url={p.image_url}
+                  min_price={p.min_price}
+                  max_price={p.max_price}
+                  currency={p.currency}
+                  shops_count={p.shops_count}
+                  shop_names={p.shop_names}
+                  type={p.type}
+                  service_metadata={p.service_metadata}
+                  is_deliverable={p.is_deliverable}
+                  is_onsite={p.is_onsite}
+                  locale="sr"
+                />
               ))}
             </ul>
 

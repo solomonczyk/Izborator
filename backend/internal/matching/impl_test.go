@@ -248,7 +248,7 @@ func TestCalculateSimilarity(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := service.calculateSimilarity(tt.req, tt.product)
+			result := service.calculateSimilarity(tt.req, tt.product, "good")
 			// Проверяем с небольшой погрешностью для float
 			if result < tt.expected-0.1 || result > tt.expected+0.1 {
 				t.Errorf("calculateSimilarity() = %f, want ~%f", result, tt.expected)

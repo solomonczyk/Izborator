@@ -23,7 +23,7 @@ func setupTestServer(t *testing.T) (*httptest.Server, *storage.Postgres, func())
 	// Настраиваем тестовую БД
 	pg := storage.SetupTestDB(t)
 	deferFunc := func() {
-		storage.CleanupTestData(t, pg, []string{"products", "product_prices", "raw_products", "product_matches"})
+		storage.CleanupTestData(t, pg, []string{"product_prices", "products", "raw_products", "product_matches", "categories", "cities"})
 		pg.Close()
 	}
 
