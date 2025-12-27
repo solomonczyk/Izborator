@@ -299,12 +299,9 @@ func TestValidationWithMockHTTPServer(t *testing.T) {
 		}))
 		defer ecommerceServer.Close()
 		
-		ecommerceSelectors := map[string]string{
-			"name":  "h1.product-title",
-			"price": "div.price",
-		}
-		
 		// Note: Этот тест требует реального сервиса
+		_ = ecommerceServer
+		_ = ecommerceHTML
 		t.Log("⚠️  Validation test skipped - requires real AI client")
 		t.Skip("Skipping validation test - requires real AI client, not mock")
 	})
