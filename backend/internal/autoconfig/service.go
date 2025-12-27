@@ -123,7 +123,7 @@ func (s *Service) ProcessNextCandidate(ctx context.Context) error {
 	}
 
 	// 5. Validate: ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃÂ¼, Ã‘â‚¬ÃÂ°ÃÂ±ÃÂ¾Ã‘â€šÃÂ°Ã‘Å½Ã‘â€š ÃÂ»ÃÂ¸ Ã‘ÂÃÂµÃÂ»ÃÂµÃÂºÃ‘â€šÃÂ¾Ã‘â‚¬Ã‘â€¹
-	if err := s.validateSelectors(productURL, selectors); err != nil {
+	if err := s.validateSelectors(productURL, selectors, siteType); err != nil {
 		s.log.Warn("Validation failed", map[string]interface{}{
 			"error":     err.Error(),
 			"selectors": selectors,
@@ -277,8 +277,9 @@ func (s *Service) fetchHTML(url string) (string, error) {
 }
 
 // validateSelectors ÃÂ¿Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃ‘â€š, Ã‘â€¡Ã‘â€šÃÂ¾ Ã‘ÂÃÂµÃÂ»ÃÂµÃÂºÃ‘â€šÃÂ¾Ã‘â‚¬Ã‘â€¹ Ã‘â‚¬ÃÂ°ÃÂ±ÃÂ¾Ã‘â€šÃÂ°Ã‘Å½Ã‘â€š ÃÂ¸ ÃÂ¸ÃÂ·ÃÂ²ÃÂ»ÃÂµÃÂºÃÂ°Ã‘Å½Ã‘â€š ÃÂ´ÃÂ°ÃÂ½ÃÂ½Ã‘â€¹ÃÂµ
-func (s *Service) validateSelectors(url string, selectors map[string]string) error {
-	var name, price string
+func (s *Service) validateSelectors(url string, selectors map[string]string, siteType string) error {
+	var names []string
+	var prices []string
 	var validationErr error
 
 	c := colly.NewCollector(
@@ -296,10 +297,33 @@ func (s *Service) validateSelectors(url string, selectors map[string]string) err
 		return fmt.Errorf("missing required selectors: name=%s, price=%s", nameSel, priceSel)
 	}
 
-	c.OnHTML("body", func(e *colly.HTMLElement) {
-		name = strings.TrimSpace(e.ChildText(nameSel))
-		price = strings.TrimSpace(e.ChildText(priceSel))
-	})
+	// Для service_provider собираем все элементы (таблица может содержать несколько услуг)
+	if siteType == "service_provider" {
+		c.OnHTML(nameSel, func(e *colly.HTMLElement) {
+			text := strings.TrimSpace(e.Text)
+			if text != "" {
+				names = append(names, text)
+			}
+		})
+		c.OnHTML(priceSel, func(e *colly.HTMLElement) {
+			text := strings.TrimSpace(e.Text)
+			if text != "" {
+				prices = append(prices, text)
+			}
+		})
+	} else {
+		// Для ecommerce берем только первый элемент
+		c.OnHTML("body", func(e *colly.HTMLElement) {
+			name := strings.TrimSpace(e.ChildText(nameSel))
+			price := strings.TrimSpace(e.ChildText(priceSel))
+			if name != "" {
+				names = append(names, name)
+			}
+			if price != "" {
+				prices = append(prices, price)
+			}
+		})
+	}
 
 	c.OnError(func(r *colly.Response, err error) {
 		validationErr = err
@@ -313,21 +337,52 @@ func (s *Service) validateSelectors(url string, selectors map[string]string) err
 	}
 
 	// ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃÂ¼, Ã‘â€¡Ã‘â€šÃÂ¾ ÃÂ´ÃÂ°ÃÂ½ÃÂ½Ã‘â€¹ÃÂµ ÃÂ¸ÃÂ·ÃÂ²ÃÂ»ÃÂµÃ‘â€¡ÃÂµÃÂ½Ã‘â€¹
-	if name == "" {
+	if len(names) == 0 {
 		return fmt.Errorf("name selector '%s' did not extract data", nameSel)
 	}
-	if price == "" {
+	if len(prices) == 0 {
 		return fmt.Errorf("price selector '%s' did not extract data", priceSel)
 	}
 
 	// ÃÅ¸Ã‘â‚¬ÃÂ¾ÃÂ²ÃÂµÃ‘â‚¬Ã‘ÂÃÂµÃÂ¼, Ã‘â€¡Ã‘â€šÃÂ¾ Ã‘â€ ÃÂµÃÂ½ÃÂ° Ã‘ÂÃÂ¾ÃÂ´ÃÂµÃ‘â‚¬ÃÂ¶ÃÂ¸Ã‘â€š Ã‘â€¡ÃÂ¸Ã‘ÂÃÂ»ÃÂ°
-	if !strings.ContainsAny(price, "0123456789") {
-		return fmt.Errorf("price selector extracted non-numeric value: '%s'", price)
+	// Проверяем, что цена содержит число
+	hasNumericPrice := false
+	for _, price := range prices {
+		if strings.ContainsAny(price, "0123456789") {
+			hasNumericPrice = true
+			break
+		}
+	}
+	if !hasNumericPrice {
+		return fmt.Errorf("price selector extracted non-numeric values: %v", prices)
+	}
+
+	// Для service_provider проверяем, что найдено несколько элементов (таблица)
+	if siteType == "service_provider" {
+		if len(names) < 2 {
+			s.log.Warn("Service provider found only one service, might not be a table", map[string]interface{}{
+				"names_count":  len(names),
+				"prices_count": len(prices),
+			})
+		}
+		if len(names) > 1 && len(prices) > 1 {
+			ratio := float64(len(prices)) / float64(len(names))
+			if ratio < 0.5 || ratio > 2.0 {
+				s.log.Warn("Mismatch between names and prices count", map[string]interface{}{
+					"names_count":  len(names),
+					"prices_count": len(prices),
+					"ratio":        ratio,
+				})
+			}
+		}
 	}
 
 	s.log.Info("Validation successful", map[string]interface{}{
-		"name":  name,
-		"price": price,
+		"site_type":    siteType,
+		"names_count":  len(names),
+		"prices_count": len(prices),
+		"first_name":   names[0],
+		"first_price":  prices[0],
 	})
 
 	return nil
