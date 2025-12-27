@@ -62,9 +62,9 @@ func TestNormalizeName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := service.normalizeName(tt.input)
+			result := service.normalizeName(tt.input, "good")
 			if result != tt.expected {
-				t.Errorf("normalizeName(%q) = %q, want %q", tt.input, result, tt.expected)
+				t.Errorf("normalizeName(%q, \"good\") = %q, want %q", tt.input, result, tt.expected)
 			}
 		})
 	}

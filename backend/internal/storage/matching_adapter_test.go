@@ -57,7 +57,7 @@ func TestMatchingAdapter_FindSimilarProducts(t *testing.T) {
 
 	// Тест 1: Поиск по точному названию и бренду
 	t.Run("ExactMatch", func(t *testing.T) {
-		results, err := adapter.FindSimilarProducts("iPhone 15 Pro", "Apple", 10)
+		results, err := adapter.FindSimilarProducts("iPhone 15 Pro", "Apple", "good", 10)
 		if err != nil {
 			t.Fatalf("FindSimilarProducts failed: %v", err)
 		}
@@ -81,7 +81,7 @@ func TestMatchingAdapter_FindSimilarProducts(t *testing.T) {
 
 	// Тест 2: Поиск по частичному совпадению
 	t.Run("PartialMatch", func(t *testing.T) {
-		results, err := adapter.FindSimilarProducts("iPhone", "Apple", 10)
+		results, err := adapter.FindSimilarProducts("iPhone", "Apple", "good", 10)
 		if err != nil {
 			t.Fatalf("FindSimilarProducts failed: %v", err)
 		}
@@ -93,7 +93,7 @@ func TestMatchingAdapter_FindSimilarProducts(t *testing.T) {
 
 	// Тест 3: Поиск без бренда
 	t.Run("NoBrand", func(t *testing.T) {
-		results, err := adapter.FindSimilarProducts("iPhone 15", "", 10)
+		results, err := adapter.FindSimilarProducts("iPhone 15", "", "good", 10)
 		if err != nil {
 			t.Fatalf("FindSimilarProducts failed: %v", err)
 		}
@@ -105,7 +105,7 @@ func TestMatchingAdapter_FindSimilarProducts(t *testing.T) {
 
 	// Тест 4: Ограничение лимита
 	t.Run("Limit", func(t *testing.T) {
-		results, err := adapter.FindSimilarProducts("iPhone", "Apple", 1)
+		results, err := adapter.FindSimilarProducts("iPhone", "Apple", "good", 1)
 		if err != nil {
 			t.Fatalf("FindSimilarProducts failed: %v", err)
 		}
