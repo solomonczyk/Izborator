@@ -260,12 +260,6 @@ func TestValidationWithMockHTTPServer(t *testing.T) {
 	}))
 	defer server.Close()
 	
-	// Тестируем валидацию с селекторами для таблиц
-	selectors := map[string]string{
-		"name":  "table tbody tr td:first-child",
-		"price": "table tbody tr td:last-child",
-	}
-	
 	// Создаем реальный сервис с моками
 	mockStorage := NewMockStorage()
 	// Note: MockAIClient не может быть использован напрямую с NewService
