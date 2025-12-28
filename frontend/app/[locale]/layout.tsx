@@ -22,7 +22,8 @@ export default async function LocaleLayout({
   }
 
   // Загружаем сообщения для языка
-  const messages = await getMessages()
+  // Явно передаем locale, чтобы гарантировать загрузку правильных переводов
+  const messages = await getMessages({ locale: resolvedLocale })
 
   return (
     <NextIntlClientProvider locale={resolvedLocale} messages={messages}>
