@@ -234,13 +234,28 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		}
 
 		if siteType == "ecommerce" {
+			// Предпочитаем явные паттерны страниц продуктов
 			if strings.Contains(linkLower, "/proizvod/") || strings.Contains(linkLower, "/p/") ||
 				strings.Contains(linkLower, "/product/") || strings.Contains(linkLower, "/artikal/") {
 				score += 50
 			}
-			// /proizvodi/ только если длинное название (товар, не категория)
-			if strings.Contains(linkLower, "/proizvodi/") && len(link) > len(baseURL)+30 {
-				score += 30
+			// /proizvodi/ - НЕ даем очки, так как это может быть категория
+			// Категории уже отфильтрованы выше, но для безопасности не даем очки
+			// Только если очень длинное название (товар с полным названием)
+			if strings.Contains(linkLower, "/proizvodi/") && len(link) > len(baseURL)+60 {
+				// Дополнительная проверка - товары обычно содержат больше слов
+				idx := strings.Index(linkLower, "/proizvodi/")
+				if idx != -1 {
+					afterProizvodi := linkLower[idx+len("/proizvodi/"):]
+					if slashIdx := strings.Index(afterProizvodi, "/"); slashIdx != -1 {
+						afterProizvodi = afterProizvodi[:slashIdx]
+					}
+					words := strings.Split(afterProizvodi, "-")
+					// Если больше 4 слов - это скорее всего товар
+					if len(words) > 4 {
+						score += 20 // Меньше очков, так как менее надежно
+					}
+				}
 			}
 		}
 
