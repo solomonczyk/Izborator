@@ -35,7 +35,8 @@ export async function fetchCategoriesTree(locale?: string): Promise<CategoryNode
       : `${API_BASE}/api/v1/categories/tree`
     
     const res = await fetch(url, {
-      next: { revalidate: 3600 }, // Кэшируем на 1 час
+      cache: 'no-store', // Не кэшируем - категории могут изменяться
+      next: { revalidate: 0 }, // Отключаем revalidation
     })
 
     if (!res.ok) {
