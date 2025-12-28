@@ -615,6 +615,12 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 		// Фильтр по категории (строка, для обратной совместимости)
 		filters = append(filters, fmt.Sprintf("category = \"%s\"", params.Category))
 	}
+	
+	// Фильтр по типу (good/service)
+	if params.Type != "" {
+		filters = append(filters, fmt.Sprintf("type = \"%s\"", params.Type))
+	}
+	
 	// Пока shop_id и price фильтры пропускаем, т.к. эти поля могут быть не в индексе
 	// Их можно добавить позже, когда обновим индекс
 
@@ -719,6 +725,25 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 		}
 		if imageURL, ok := hitMap["image_url"].(string); ok {
 			browseProduct.ImageURL = imageURL
+		}
+		
+		// Извлекаем тип (good/service) и фильтруем, если указан
+		if productType, ok := hitMap["type"].(string); ok {
+			browseProduct.Type = products.ProductType(productType)
+			// Дополнительная фильтрация по типу (на случай, если Meilisearch не отфильтровал)
+			if params.Type != "" && productType != params.Type {
+				continue // Пропускаем товар, если тип не совпадает
+			}
+		} else {
+			// Если тип не найден в индексе, получаем из PostgreSQL
+			product, err := a.GetProduct(productID)
+			if err == nil && product != nil {
+				browseProduct.Type = product.Type
+				// Фильтруем по типу, если указан
+				if params.Type != "" && string(product.Type) != params.Type {
+					continue
+				}
+			}
 		}
 
 		// Обработка specs
@@ -893,6 +918,13 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		} else if params.CategoryID != nil {
 			querySQL += fmt.Sprintf(" AND category_id = $%d", argIndex)
 			args = append(args, *params.CategoryID)
+			argIndex++
+		}
+		
+		// Фильтр по типу (good/service)
+		if params.Type != "" {
+			querySQL += fmt.Sprintf(" AND type = $%d", argIndex)
+			args = append(args, params.Type)
 			argIndex++
 		}
 		

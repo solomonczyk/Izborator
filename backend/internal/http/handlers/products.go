@@ -26,6 +26,7 @@ type BrowseRequest struct {
 	Category string   `json:"category" validate:"omitempty"`
 	City     string   `json:"city" validate:"omitempty"`
 	ShopID   string   `json:"shop_id" validate:"omitempty,uuid4"`
+	Type     string   `json:"type" validate:"omitempty,oneof=good service"` // Фильтр по типу: "good" | "service" | ""
 	MinPrice *float64 `json:"min_price" validate:"omitempty,gte=0"`
 	MaxPrice *float64 `json:"max_price" validate:"omitempty,gte=0"`
 	Page     int      `json:"page" validate:"gte=1"`
@@ -366,7 +367,15 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	category := validation.SanitizeString(q.Get("category"))
 	city := validation.SanitizeString(q.Get("city"))
 	shopID := validation.SanitizeString(q.Get("shop_id"))
+	productType := validation.SanitizeString(q.Get("type")) // "good" | "service" | ""
 	sort := validation.SanitizeString(q.Get("sort"))
+
+	// Валидация типа продукта
+	if productType != "" && productType != "good" && productType != "service" {
+		appErr := appErrors.NewValidationError("type must be 'good' or 'service'", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
 
 	minPriceStr := q.Get("min_price")
 	maxPriceStr := q.Get("max_price")
@@ -437,6 +446,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		Category: category,
 		City:     city,
 		ShopID:   shopID,
+		Type:     productType,
 		MinPrice: minPrice,
 		MaxPrice: maxPrice,
 		Page:     page,
@@ -497,6 +507,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	res, err := h.service.Browse(ctx, products.BrowseParams{
 		Query:       query,
 		Category:    category,
+		Type:        productType,
 		CategoryID:  categoryID,
 		CategoryIDs: categoryIDs,
 		City:        city,

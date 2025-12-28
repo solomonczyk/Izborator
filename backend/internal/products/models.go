@@ -84,6 +84,7 @@ type BrowseParams struct {
 	City        string   // slug города (будет преобразован в city_id)
 	CityID      *string  // ID города (используется внутри)
 	ShopID      string
+	Type        string   // тип: "good" | "service" | "" (все)
 	MinPrice    *float64
 	MaxPrice    *float64
 	Page        int
