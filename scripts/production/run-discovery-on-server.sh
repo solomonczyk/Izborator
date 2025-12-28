@@ -39,9 +39,15 @@ if [ -z "\$GOOGLE_API_KEY" ] || [ -z "\$GOOGLE_CX" ]; then
     exit 1
 fi
 
+# Определяем версию docker-compose
+DOCKER_COMPOSE="docker compose"
+if ! docker compose version &> /dev/null 2>&1; then
+    DOCKER_COMPOSE="docker-compose"
+fi
+
 # Запуск Discovery
 echo -e "${BLUE}🚀 Запуск Discovery...${NC}"
-docker compose run --rm backend ./discovery -max-results $MAX_RESULTS -delay ${DELAY}s
+$DOCKER_COMPOSE run --rm backend ./discovery -max-results $MAX_RESULTS -delay ${DELAY}s
 
 echo ""
 echo -e "${GREEN}✅ Discovery завершен!${NC}"

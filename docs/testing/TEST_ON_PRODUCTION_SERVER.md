@@ -30,13 +30,14 @@ chmod +x scripts/production/check-autoconfig-on-server.sh
 
 ```bash
 cd ~/Izborator
-docker compose run --rm backend ./discovery -max-results 200
+# На сервере используется старая версия Docker Compose
+docker-compose run --rm backend ./discovery -max-results 200
 ```
 
 ### Классифицировать найденные сайты:
 
 ```bash
-docker compose run --rm backend ./classifier -classify-all -limit 100
+docker-compose run --rm backend ./classifier -classify-all -limit 100
 ```
 
 ## Шаг 3: Тестирование AutoConfig
