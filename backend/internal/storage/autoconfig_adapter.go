@@ -171,10 +171,11 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 // MarkAsFailed обновляет статус кандидата на "rejected" и сохраняет причину ошибки
 func (a *autoconfigAdapter) MarkAsFailed(id string, reason string) error {
 	// Обновляем статус и метаданные с ошибкой
+	// Используем явное приведение типов для jsonb_build_object
 	query := `
 		UPDATE potential_shops
 		SET status = 'rejected',
-		    metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('autoconfig_error', $2, 'autoconfig_failed_at', $3),
+		    metadata = COALESCE(metadata, '{}'::jsonb) || jsonb_build_object('autoconfig_error', $2::text, 'autoconfig_failed_at', $3::text),
 		    updated_at = NOW()
 		WHERE id = $1
 	`
