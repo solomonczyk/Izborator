@@ -4,6 +4,7 @@ import React from 'react'
 import { Link } from '@/navigation'
 import { fetchCategoriesTree, type CategoryNode } from '@/lib/api'
 import { SearchForm } from '@/components/search-form'
+import { LanguageSwitcher } from '@/components/language-switcher'
 
 // Делаем страницу динамической, чтобы избежать ошибок при статической генерации
 export const dynamic = 'force-dynamic'
@@ -86,6 +87,11 @@ export default async function HomePage({
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      {/* Language Switcher - в правом верхнем углу */}
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-10">
+        <LanguageSwitcher />
+      </div>
+
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 py-16 md:py-24">
         <div className="text-center mb-12">

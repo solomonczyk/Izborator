@@ -4,6 +4,7 @@ import { Link } from '@/navigation'
 import { getTranslations } from 'next-intl/server'
 import { fetchCategoriesTree, fetchCities, flattenCategories, type CategoryNode, type City } from '@/lib/api'
 import { ProductCard } from '@/components/product-card'
+import { LanguageSwitcher } from '@/components/language-switcher'
 
 type BrowseProduct = {
   id: string
@@ -190,7 +191,12 @@ export default async function CatalogPage({
   if (perPage !== "20") baseParams.set("per_page", perPage)
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen bg-slate-50 text-slate-900 relative">
+      {/* Language Switcher - в правом верхнем углу */}
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-10">
+        <LanguageSwitcher />
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-semibold mb-6 text-slate-900">
           {t('catalog.title')} {query ? `— ${t('catalog.search_for')} "${query}"` : ""}

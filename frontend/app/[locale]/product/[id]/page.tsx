@@ -4,6 +4,7 @@ import Image from "next/image"
 import { Link } from '@/navigation'
 import { getTranslations } from 'next-intl/server'
 import { PriceChartWrapper } from "@/components/price-chart-wrapper"
+import { LanguageSwitcher } from '@/components/language-switcher'
 
 type ProductPrice = {
   product_id: string
@@ -93,7 +94,12 @@ export default async function ProductPage({
   })
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-slate-50 relative">
+      {/* Language Switcher - в правом верхнем углу */}
+      <div className="absolute top-4 right-4 md:top-6 md:right-6 z-10">
+        <LanguageSwitcher />
+      </div>
+
       <div className="max-w-5xl mx-auto px-4 py-8">
         <Link
           href="catalog"
