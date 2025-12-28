@@ -69,6 +69,14 @@
     "error_not_found": "未找到商品",
     "error_load_failed": "加载失败"
   },
+  "home": {
+    "title": "找到您需要的一切",
+    "subtitle": "在整个互联网上搜索商品和服务",
+    "search_placeholder": "搜索商品和服务...",
+    "search_button": "搜索",
+    "popular_categories": "热门类别",
+    "footer_text": "我们汇总来自多个商店和服务提供商的价格"
+  },
   "common": {
     "error_unknown": "未知错误"
   }

@@ -69,6 +69,14 @@
     "error_not_found": "Product not found",
     "error_load_failed": "Failed to load product"
   },
+  "home": {
+    "title": "Find Everything You Need",
+    "subtitle": "Search for products and services across the entire internet",
+    "search_placeholder": "Search for products and services...",
+    "search_button": "Search",
+    "popular_categories": "Popular Categories",
+    "footer_text": "We aggregate prices from multiple shops and service providers"
+  },
   "common": {
     "error_unknown": "Unknown error"
   }

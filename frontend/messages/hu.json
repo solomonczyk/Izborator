@@ -69,6 +69,14 @@
     "error_not_found": "Termék nem található",
     "error_load_failed": "Betöltési hiba"
   },
+  "home": {
+    "title": "Találd meg, amire szükséged van",
+    "subtitle": "Keresés termékek és szolgáltatások között az egész interneten",
+    "search_placeholder": "Keresés termékek és szolgáltatások között...",
+    "search_button": "Keresés",
+    "popular_categories": "Népszerű kategóriák",
+    "footer_text": "Árakat gyűjtünk több üzletből és szolgáltatótól"
+  },
   "common": {
     "error_unknown": "Ismeretlen hiba"
   }

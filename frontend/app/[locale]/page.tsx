@@ -2,6 +2,7 @@
 // Главная страница с глобальным поиском (Hero Section)
 import React from 'react'
 import { Link } from '@/navigation'
+import { getTranslations } from 'next-intl/server'
 import { fetchCategoriesTree, type CategoryNode } from '@/lib/api'
 import { SearchForm } from '@/components/search-form'
 import { LanguageSwitcher } from '@/components/language-switcher'
@@ -12,10 +13,10 @@ export const dynamic = 'force-dynamic'
 // Компонент быстрых категорий
 function QuickCategories({ 
   categories, 
-  locale 
+  title
 }: { 
   categories: CategoryNode[]
-  locale: string 
+  title: string
 }) {
   // Берем первые 8 категорий (или меньше, если их меньше)
   const quickCategories = categories.slice(0, 8)
@@ -27,15 +28,15 @@ function QuickCategories({
   return (
     <div className="w-full max-w-5xl mx-auto mt-8">
       <h2 className="text-xl font-semibold text-slate-800 mb-4 text-center">
-        {locale === 'sr' ? 'Популарне категорије' : 'Popular Categories'}
+        {title}
       </h2>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4">
         {quickCategories.map((category) => (
-          <Link
-            key={category.id}
-            href={`/${locale}/catalog?category=${category.slug}`}
-            className="bg-white rounded-xl border-2 border-slate-300 p-4 hover:border-blue-400 hover:shadow-md transition-all text-center group"
-          >
+            <Link
+              key={category.id}
+              href={`/catalog?category=${category.slug}`}
+              className="bg-white rounded-xl border-2 border-slate-300 p-4 hover:border-blue-400 hover:shadow-md transition-all text-center group"
+            >
             <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">
               {/* Иконки для популярных категорий */}
               {category.code === 'phones' || category.slug.includes('telefon') ? '📱' :
@@ -64,6 +65,7 @@ export default async function HomePage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
+  const t = await getTranslations('home')
 
   // Загружаем категории для быстрого доступа
   let categories: CategoryNode[] = []
@@ -96,23 +98,19 @@ export default async function HomePage({
       <div className="max-w-7xl mx-auto px-4 py-16 md:py-24">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-4">
-            {locale === 'sr' 
-              ? 'Нађи све што ти треба' 
-              : 'Find Everything You Need'}
+            {t('title')}
           </h1>
           <p className="text-xl md:text-2xl text-slate-600 mb-8">
-            {locale === 'sr'
-              ? 'Претражи производе и услуге из целог интернета'
-              : 'Search for products and services across the entire internet'}
+            {t('subtitle')}
           </p>
         </div>
 
         {/* Поисковая строка */}
-        <SearchForm locale={locale} />
+        <SearchForm />
 
         {/* Быстрые категории */}
         {allCategories.length > 0 && (
-          <QuickCategories categories={allCategories} locale={locale} />
+          <QuickCategories categories={allCategories} title={t('popular_categories')} />
         )}
 
         {categoriesError && (
@@ -126,9 +124,7 @@ export default async function HomePage({
         {/* Дополнительная информация */}
         <div className="mt-16 text-center">
           <p className="text-slate-500 text-sm">
-            {locale === 'sr'
-              ? 'Агрегирамо цене из више продавница и провајдера услуга'
-              : 'We aggregate prices from multiple shops and service providers'}
+            {t('footer_text')}
           </p>
         </div>
       </div>
