@@ -176,8 +176,15 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 		Description string            `json:"description,omitempty"`
 		ImageURL    string            `json:"image_url,omitempty"`
 		Specs       map[string]string `json:"specs,omitempty"`
+		Type        string            `json:"type"` // "good" | "service"
 		ShopNames   []string          `json:"shop_names,omitempty"`
 		ShopsCount  int               `json:"shops_count,omitempty"`
+	}
+
+	// Определяем тип продукта
+	productType := string(product.Type)
+	if productType == "" {
+		productType = "good" // По умолчанию "good" для обратной совместимости
 	}
 
 	doc := MeiliDoc{
@@ -189,6 +196,7 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 		Description: product.Description,
 		ImageURL:    product.ImageURL,
 		Specs:       product.Specs,
+		Type:        productType,
 		ShopNames:   shopNames,
 		ShopsCount:  len(shopNames),
 	}

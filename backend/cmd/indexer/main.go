@@ -98,6 +98,7 @@ func (i *Indexer) SetupIndex() error {
 		"brand",
 		"category",
 		"category_id",
+		"type", // Фильтр по типу: good/service
 		"created_at",
 		"updated_at",
 	}
@@ -163,7 +164,7 @@ func (i *Indexer) SyncProducts() error {
 
 	// Получаем все товары из PostgreSQL
 	query := `
-		SELECT id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at
+		SELECT id, name, description, brand, category, category_id, image_url, specs, type, created_at, updated_at
 		FROM products
 		ORDER BY created_at DESC
 	`
@@ -189,6 +190,7 @@ func (i *Indexer) SyncProducts() error {
 			categoryID  *string
 			imageURL    *string
 			specsJSON   []byte
+			productType *string
 			createdAt   time.Time
 			updatedAt   time.Time
 		)
@@ -202,6 +204,7 @@ func (i *Indexer) SyncProducts() error {
 			&categoryID,
 			&imageURL,
 			&specsJSON,
+			&productType,
 			&createdAt,
 			&updatedAt,
 		); err != nil {
@@ -230,6 +233,12 @@ func (i *Indexer) SyncProducts() error {
 		}
 		if imageURL != nil {
 			doc["image_url"] = *imageURL
+		}
+		if productType != nil {
+			doc["type"] = *productType
+		} else {
+			// По умолчанию "good" для обратной совместимости
+			doc["type"] = "good"
 		}
 
 		// Парсим specs из JSONB
