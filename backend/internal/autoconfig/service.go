@@ -173,6 +173,14 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		// ÃÂ­ÃÂ²Ã‘â‚¬ÃÂ¸Ã‘ÂÃ‘â€šÃÂ¸ÃÂºÃÂ°: Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃÂ° ÃÂ½ÃÂ° Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ ÃÂ¾ÃÂ±Ã‘â€¹Ã‘â€¡ÃÂ½ÃÂ¾ ÃÂ´ÃÂ»ÃÂ¸ÃÂ½ÃÂ½ÃÂ°Ã‘Â ÃÂ¸ Ã‘ÂÃÂ¾ÃÂ´ÃÂµÃ‘â‚¬ÃÂ¶ÃÂ¸Ã‘â€š ÃÂºÃÂ»Ã‘Å½Ã‘â€¡ÃÂµÃÂ²Ã‘â€¹ÃÂµ Ã‘ÂÃÂ»ÃÂ¾ÃÂ²ÃÂ°
 		linkLower := strings.ToLower(link)
 		
+		// Игнорируем файлы (PDF, DOC, ZIP и т.д.)
+		if strings.HasSuffix(linkLower, ".pdf") || strings.HasSuffix(linkLower, ".doc") ||
+			strings.HasSuffix(linkLower, ".docx") || strings.HasSuffix(linkLower, ".zip") ||
+			strings.HasSuffix(linkLower, ".rar") || strings.HasSuffix(linkLower, ".xls") ||
+			strings.HasSuffix(linkLower, ".xlsx") || strings.HasSuffix(linkLower, ".csv") {
+			return
+		}
+
 		// Игнорируем служебные страницы (сербский + английский) - проверяем СРАЗУ
 		excludedPatterns := []string{
 			"login", "cart", "korpa", "checkout", "kosarica",
@@ -188,6 +196,7 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 			"servis", "service", "reklamacije", "reklamacija", "warranty", "garancija",
 			"delivery", "dostava", "shipping", "isporuka",
 			"payment", "placanje", "naplata",
+			"obrasci", "forms", "download", "preuzimanje",
 		}
 		for _, pattern := range excludedPatterns {
 			if strings.Contains(linkLower, pattern) {
