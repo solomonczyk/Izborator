@@ -197,6 +197,7 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 			"delivery", "dostava", "shipping", "isporuka",
 			"payment", "placanje", "naplata",
 			"obrasci", "forms", "download", "preuzimanje",
+			"dostupno", "available", "web-shopu", "webshop",
 		}
 		for _, pattern := range excludedPatterns {
 			if strings.Contains(linkLower, pattern) {
