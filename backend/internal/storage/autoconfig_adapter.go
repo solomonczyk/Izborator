@@ -27,12 +27,20 @@ func NewAutoconfigAdapter(pg *Postgres) autoconfig.Storage {
 }
 
 // GetClassifiedCandidates получает кандидатов со статусом "classified" для авто-конфигурации
+// Исключает кандидатов с >= 3 неудачными попытками конфигурации
 func (a *autoconfigAdapter) GetClassifiedCandidates(limit int) ([]autoconfig.Candidate, error) {
 	query := `
-		SELECT id, domain, metadata
-		FROM potential_shops
-		WHERE status = 'classified'
-		ORDER BY confidence_score DESC, discovered_at ASC
+		SELECT ps.id, ps.domain, ps.metadata
+		FROM potential_shops ps
+		LEFT JOIN (
+			SELECT potential_shop_id, COUNT(*) as failed_count
+			FROM shop_config_attempts
+			WHERE status = 'failed'
+			GROUP BY potential_shop_id
+		) attempts ON ps.id = attempts.potential_shop_id
+		WHERE ps.status = 'classified'
+		  AND (attempts.failed_count IS NULL OR attempts.failed_count < 3)
+		ORDER BY ps.confidence_score DESC, ps.discovered_at ASC
 		LIMIT $1
 	`
 
