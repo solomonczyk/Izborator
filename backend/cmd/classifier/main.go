@@ -255,6 +255,7 @@ func classifyAllDomains(ctx context.Context, limit int, log *logger.Logger) {
 		if shop.Metadata == nil {
 			shop.Metadata = make(map[string]interface{})
 		}
+		shop.Metadata["site_type"] = result.SiteType // Сохраняем тип сайта для AutoConfig
 		shop.Metadata["classification"] = map[string]interface{}{
 			"keywords_score":  result.Score.KeywordsScore,
 			"platform_score":  result.Score.PlatformScore,
