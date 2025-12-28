@@ -1,7 +1,8 @@
 'use client'
 
 import { useLocale } from 'next-intl'
-import { usePathname, useRouter } from '@/navigation'
+import { usePathname } from '@/navigation'
+import { Link } from '@/navigation'
 import { locales, type Locale } from '@/i18n'
 import { useState, useRef, useEffect } from 'react'
 
@@ -25,7 +26,6 @@ const languageFlags: Record<Locale, string> = {
 
 export function LanguageSwitcher() {
   const locale = useLocale() as Locale
-  const router = useRouter()
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -43,12 +43,6 @@ export function LanguageSwitcher() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
-
-  const handleLanguageChange = (newLocale: Locale) => {
-    setIsOpen(false)
-    // Переключаем язык, сохраняя текущий путь
-    router.replace(pathname, { locale: newLocale })
-  }
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -73,9 +67,11 @@ export function LanguageSwitcher() {
       {isOpen && (
         <div className="absolute top-full right-0 mt-2 bg-white border-2 border-slate-300 rounded-lg shadow-lg z-50 min-w-[160px]">
           {locales.map((loc) => (
-            <button
+            <Link
               key={loc}
-              onClick={() => handleLanguageChange(loc)}
+              href={pathname}
+              locale={loc}
+              onClick={() => setIsOpen(false)}
               className={`w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-slate-50 transition-colors ${
                 loc === locale ? 'bg-blue-50 text-blue-600' : 'text-slate-700'
               } ${loc === locales[0] ? 'rounded-t-lg' : ''} ${loc === locales[locales.length - 1] ? 'rounded-b-lg' : ''}`}
@@ -87,7 +83,7 @@ export function LanguageSwitcher() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               )}
-            </button>
+            </Link>
           ))}
         </div>
       )}
