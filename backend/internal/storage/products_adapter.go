@@ -889,7 +889,7 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 				args = append(args, catID)
 				argIndex++
 			}
-			querySQL += fmt.Sprintf(" AND category_id = ANY(ARRAY[%s])", strings.Join(placeholders, ","))
+			querySQL += fmt.Sprintf(" AND category_id = ANY(ARRAY[%s]::uuid[])", strings.Join(placeholders, ","))
 		} else if params.CategoryID != nil {
 			querySQL += fmt.Sprintf(" AND category_id = $%d", argIndex)
 			args = append(args, *params.CategoryID)
