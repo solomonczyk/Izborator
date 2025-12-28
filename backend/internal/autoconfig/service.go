@@ -183,7 +183,7 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 
 		// ÃÅ¡ÃÂ»Ã‘Å½Ã‘â€¡ÃÂµÃÂ²Ã‘â€¹ÃÂµ Ã‘ÂÃÂ»ÃÂ¾ÃÂ²ÃÂ° ÃÂ´ÃÂ»Ã‘Â Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€  Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ÃÂ¾ÃÂ²
 		// Специальная проверка для /proizvodi/ - это может быть категория или товар
-		// Если URL содержит /proizvodi/XXX/ и XXX короткое (1-2 слова) - это категория
+		// Паттерны категорий обычно содержат дефисы и короткие слова
 		if strings.Contains(linkLower, "/proizvodi/") {
 			// Извлекаем часть после /proizvodi/
 			idx := strings.Index(linkLower, "/proizvodi/")
@@ -196,8 +196,38 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 				if paramIdx := strings.Index(afterProizvodi, "?"); paramIdx != -1 {
 					afterProizvodi = afterProizvodi[:paramIdx]
 				}
-				// Если короткое название (меньше 20 символов) - это категория
-				if len(afterProizvodi) < 20 && afterProizvodi != "" {
+				
+				// Проверяем паттерны категорий:
+				// 1. Типичные названия категорий (мебель, техника и т.д.)
+				categoryKeywords := []string{
+					"kancelarijski", "namestaj", "dnevne-sobe", "spavace-sobe",
+					"kuhinje", "kupatila", "decije-sobe", "garderoba",
+					"elektronika", "racunari", "telefoni", "tableti",
+					"bela-tehnika", "mali-kucni-aparati", "sport", "odeca",
+					"kancelarijski-namestaj", "dnevne-sobe", "spavace-sobe",
+				}
+				isCategory := false
+				for _, keyword := range categoryKeywords {
+					if strings.Contains(afterProizvodi, keyword) {
+						isCategory = true
+						break
+					}
+				}
+				// 2. Если короткое название (меньше 35 символов) и содержит дефис - вероятно категория
+				// Категории обычно имеют формат: "kancelarijski-namestaj", "dnevne-sobe" и т.д.
+				if !isCategory && len(afterProizvodi) < 35 && strings.Contains(afterProizvodi, "-") {
+					// Проверяем количество слов (категории обычно 1-3 слова)
+					words := strings.Split(afterProizvodi, "-")
+					if len(words) <= 3 {
+						isCategory = true
+					}
+				}
+				// 3. Если очень короткое (меньше 15 символов) - точно категория
+				if len(afterProizvodi) < 15 {
+					isCategory = true
+				}
+				
+				if isCategory {
 					return // Это категория, пропускаем
 				}
 			}
