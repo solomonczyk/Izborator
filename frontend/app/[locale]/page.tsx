@@ -5,6 +5,9 @@ import { Link } from '@/navigation'
 import { fetchCategoriesTree, type CategoryNode } from '@/lib/api'
 import { SearchForm } from '@/components/search-form'
 
+// Делаем страницу динамической, чтобы избежать ошибок при статической генерации
+export const dynamic = 'force-dynamic'
+
 // Компонент быстрых категорий
 function QuickCategories({ 
   categories, 

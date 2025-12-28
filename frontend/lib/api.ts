@@ -27,24 +27,32 @@ export interface City {
  * Загружает дерево категорий
  */
 export async function fetchCategoriesTree(): Promise<CategoryNode[]> {
-  const res = await fetch(`${API_BASE}/api/v1/categories/tree`, {
-    next: { revalidate: 3600 }, // Кэшируем на 1 час
-  })
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/categories/tree`, {
+      next: { revalidate: 3600 }, // Кэшируем на 1 час
+    })
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch categories: ${res.status}`)
-  }
+    if (!res.ok) {
+      console.warn(`Failed to fetch categories: ${res.status}`)
+      return [] // Возвращаем пустой массив вместо ошибки
+    }
 
-  const data = await res.json()
-  
-  // API может вернуть объект или массив - нормализуем в массив
-  if (Array.isArray(data)) {
-    return data
-  } else if (data && typeof data === 'object') {
-    // Если это объект (одиночная категория), оборачиваем в массив
-    return [data]
-  } else {
-    console.warn('Categories API returned unexpected format:', data)
+    const data = await res.json()
+    
+    // API может вернуть объект или массив - нормализуем в массив
+    if (Array.isArray(data)) {
+      return data
+    } else if (data && typeof data === 'object') {
+      // Если это объект (одиночная категория), оборачиваем в массив
+      return [data]
+    } else {
+      console.warn('Categories API returned unexpected format:', data)
+      return []
+    }
+  } catch (error) {
+    // Во время сборки API может быть недоступен - это нормально
+    // Возвращаем пустой массив, чтобы сборка не падала
+    console.warn('Categories API unavailable, returning empty array:', error instanceof Error ? error.message : String(error))
     return []
   }
 }
