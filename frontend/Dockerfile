@@ -16,6 +16,10 @@ COPY . .
 # Отключаем телеметрию Next.js для скорости
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Переменные окружения для сборки (ARG для передачи из docker-compose)
+ARG NEXT_PUBLIC_API_BASE
+ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
+
 # Собираем проект
 RUN npm run build
 
