@@ -65,7 +65,7 @@ export default async function HomePage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  const t = await getTranslations('home')
+  const t = await getTranslations({ locale, namespace: 'home' })
 
   // Загружаем категории для быстрого доступа
   let categories: CategoryNode[] = []
