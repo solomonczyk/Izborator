@@ -273,11 +273,23 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		}
 
 		// ÃËœÃÂ³ÃÂ½ÃÂ¾Ã‘â‚¬ÃÂ¸Ã‘â‚¬Ã‘Æ’ÃÂµÃÂ¼ ÃÂ¼Ã‘Æ’Ã‘ÂÃÂ¾Ã‘â‚¬
-		if strings.Contains(linkLower, "login") || strings.Contains(linkLower, "cart") ||
-			strings.Contains(linkLower, "facebook") || strings.Contains(linkLower, "twitter") ||
-			strings.Contains(linkLower, "instagram") || strings.Contains(linkLower, "contact") ||
-			strings.Contains(linkLower, "about") || strings.Contains(linkLower, "privacy") {
-			score = -100
+		// Игнорируем служебные страницы (сербский + английский) - проверяем ДО подсчета очков
+		excludedPatterns := []string{
+			"login", "cart", "korpa", "checkout", "kosarica",
+			"facebook", "twitter", "instagram", "linkedin",
+			"contact", "kontakt", "about", "o-nama", "onama",
+			"privacy", "pravila", "terms", "uslovi",
+			"blog", "novosti", "news", "vesti",
+			"search", "pretraga", "filter", "filtri",
+			"account", "nalog", "profile", "profil",
+			"register", "registracija", "signup",
+			"help", "pomoc", "support", "podrska",
+			"faq", "cesto-postavljana-pitanja",
+		}
+		for _, pattern := range excludedPatterns {
+			if strings.Contains(linkLower, pattern) {
+				return // Пропускаем служебные страницы полностью
+			}
 		}
 
 		// ÃËœÃÂ³ÃÂ½ÃÂ¾Ã‘â‚¬ÃÂ¸Ã‘â‚¬Ã‘Æ’ÃÂµÃÂ¼ Ã‘ÂÃÂºÃÂ¾Ã‘â‚¬Ã‘Â ÃÂ¸ ÃÂ¿Ã‘Æ’Ã‘ÂÃ‘â€šÃ‘â€¹ÃÂµ Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃÂ¸
