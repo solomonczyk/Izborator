@@ -3,11 +3,7 @@ package autoconfig
 import (
 	"context"
 	"encoding/json"
-	"net/http"
-	"net/http/httptest"
 	"testing"
-
-	"github.com/solomonczyk/izborator/internal/logger"
 )
 
 // MockStorage для тестирования
@@ -162,10 +158,9 @@ func TestMockFlow(t *testing.T) {
 		"description": ""
 	}`, nil)
 	
-	log := logger.New("error")
 	// Note: MockAIClient не может быть использован напрямую с NewService,
 	// так как NewService ожидает *ai.Client. Этот тест проверяет только логику моков.
-	_ = log
+	_ = mockAI
 	
 	// Добавляем тестового кандидата
 	mockStorage.candidates = []Candidate{
@@ -226,43 +221,9 @@ func TestValidationWithMockHTTPServer(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 	
-	// Создаем мок HTTP сервер с таблицей услуг
-	htmlContent := `
-	<!DOCTYPE html>
-	<html>
-	<head><title>Прайс-лист услуг</title></head>
-	<body>
-		<h1>Цены на услуги</h1>
-		<table>
-			<thead>
-				<tr><th>Услуга</th><th>Цена</th></tr>
-			</thead>
-			<tbody>
-				<tr><td>Стрижка мужская</td><td>1500 RSD</td></tr>
-				<tr><td>Стрижка женская</td><td>2000 RSD</td></tr>
-				<tr><td>Окрашивание</td><td>3000 RSD</td></tr>
-				<tr><td>Укладка</td><td>1000 RSD</td></tr>
-				<tr><td>Маникюр</td><td>1200 RSD</td></tr>
-			</tbody>
-		</table>
-	</body>
-	</html>
-	`
-	
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(htmlContent))
-	}))
-	defer server.Close()
-	
-	// Создаем реальный сервис с моками
-	mockStorage := NewMockStorage()
 	// Note: MockAIClient не может быть использован напрямую с NewService
 	// Валидация требует реального AI клиента или нужно пропустить этот тест
-	_ = mockStorage
-	log := logger.New("error")
-	_ = log
+	// htmlContent и server не используются, так как тест пропускается
 	// service := NewService(mockStorage, mockAI, log) // Пропускаем из-за несовместимости типов
 	
 	t.Run("Validation for service_provider with table", func(t *testing.T) {
@@ -273,25 +234,8 @@ func TestValidationWithMockHTTPServer(t *testing.T) {
 	})
 	
 	t.Run("Validation for ecommerce (single element)", func(t *testing.T) {
-		// Для ecommerce используем другой HTML
-		ecommerceHTML := `
-		<!DOCTYPE html>
-		<html>
-		<body>
-			<h1 class="product-title">iPhone 15 Pro</h1>
-			<div class="price">129999 RSD</div>
-		</body>
-		</html>
-		`
-		
-		ecommerceServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte(ecommerceHTML))
-		}))
-		defer ecommerceServer.Close()
-		
 		// Note: Этот тест требует реального сервиса
-		_ = ecommerceServer
-		_ = ecommerceHTML
+		// ecommerceHTML и ecommerceServer не используются, так как тест пропускается
 		t.Log("⚠️  Validation test skipped - requires real AI client")
 		t.Skip("Skipping validation test - requires real AI client, not mock")
 	})
