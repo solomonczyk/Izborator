@@ -79,12 +79,15 @@ export default async function HomePage({
   }
 
   // Преобразуем дерево категорий в плоский список для быстрого доступа
+  // Показываем только дочерние категории (level 2), чтобы избежать дублирования
+  // Например, не показываем "Еда и напитки" и "Молоко и молочные продукты" одновременно
   const allCategories = categories.flatMap(cat => {
-    const result: CategoryNode[] = [cat]
+    // Если у категории есть дети, показываем только детей (более специфичные категории)
     if (cat.children && cat.children.length > 0) {
-      result.push(...cat.children)
+      return cat.children
     }
-    return result
+    // Если детей нет, показываем саму категорию (это корневая категория без подкатегорий)
+    return [cat]
   })
 
   return (
