@@ -5,10 +5,10 @@ export default createMiddleware({
   // Поддерживаемые языки
   locales: [...locales] as string[],
   
-  // Язык по умолчанию
-  defaultLocale: 'en',
+  // Язык по умолчанию (сербский для сербского рынка)
+  defaultLocale: 'sr',
   
-  // Префикс локали в URL (например, /en/catalog)
+  // Префикс локали в URL (например, /sr/catalog)
   localePrefix: 'always'
 })
 
