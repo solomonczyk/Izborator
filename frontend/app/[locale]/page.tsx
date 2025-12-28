@@ -50,7 +50,7 @@ function QuickCategories({
                '🛍️'}
             </div>
             <p className="text-sm font-medium text-slate-700 group-hover:text-blue-600 transition-colors">
-              {category.name_sr_lc || category.name_sr}
+              {category.name || category.name_sr}
             </p>
           </Link>
         ))}
@@ -72,7 +72,7 @@ export default async function HomePage({
   let categoriesError: string | null = null
 
   try {
-    categories = await fetchCategoriesTree()
+    categories = await fetchCategoriesTree(locale)
   } catch (err) {
     categoriesError = err instanceof Error ? err.message : 'Failed to load categories'
     console.error('Failed to fetch categories:', err)

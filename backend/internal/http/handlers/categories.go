@@ -5,6 +5,7 @@ import (
 
 	"github.com/solomonczyk/izborator/internal/categories"
 	appErrors "github.com/solomonczyk/izborator/internal/errors"
+	"github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
 )
@@ -24,8 +25,11 @@ func NewCategoriesHandler(service *categories.Service, log *logger.Logger, trans
 }
 
 // GetTree обрабатывает получение дерева категорий
-// GET /api/v1/categories/tree
+// GET /api/v1/categories/tree?lang=ru
 func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
+	// Определяем язык из запроса (query param или Accept-Language header)
+	locale := middleware.GetLangFromContext(r.Context())
+	
 	tree, err := h.service.GetTree()
 	if err != nil {
 		appErr := appErrors.NewInternalError("Failed to load categories tree", err)
@@ -40,8 +44,8 @@ func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Преобразуем в JSON структуру с children
-	result := h.buildTree(tree)
+	// Преобразуем в JSON структуру с children, используя правильный язык
+	result := h.buildTree(tree, locale)
 
 	// Убеждаемся, что возвращаем массив, даже если пустой
 	// Всегда создаем новый слайс явно
@@ -56,7 +60,7 @@ func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
 }
 
 // buildTree строит иерархическое дерево из плоского списка
-func (h *CategoriesHandler) buildTree(cats []*categories.Category) []CategoryNode {
+func (h *CategoriesHandler) buildTree(cats []*categories.Category, locale string) []CategoryNode {
 	// Если нет категорий, возвращаем пустой массив (не nil)
 	if len(cats) == 0 {
 		return []CategoryNode{}
@@ -72,7 +76,8 @@ func (h *CategoriesHandler) buildTree(cats []*categories.Category) []CategoryNod
 			ID:        cat.ID,
 			Slug:      cat.Slug,
 			Code:      cat.Code,
-			NameSr:    cat.NameSr,
+			Name:      cat.GetName(locale), // Переведенное название
+			NameSr:    cat.NameSr,          // Оставляем для обратной совместимости
 			NameSrLc:  cat.NameSrLc,
 			Level:     cat.Level,
 			IsActive:  cat.IsActive,
@@ -124,7 +129,8 @@ type CategoryNode struct {
 	ID        string         `json:"id"`
 	Slug      string         `json:"slug"`
 	Code      string         `json:"code"`
-	NameSr    string         `json:"name_sr"`
+	Name      string         `json:"name"`      // Переведенное название (в зависимости от locale)
+	NameSr    string         `json:"name_sr"`   // Сербское название (для обратной совместимости)
 	NameSrLc  string         `json:"name_sr_lc"`
 	Level     int            `json:"level"`
 	IsActive  bool           `json:"is_active"`

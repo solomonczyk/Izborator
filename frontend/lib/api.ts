@@ -6,7 +6,8 @@ export interface CategoryNode {
   id: string
   slug: string
   code: string
-  name_sr: string
+  name?: string      // Переведенное название (в зависимости от locale)
+  name_sr: string   // Сербское название (для обратной совместимости)
   name_sr_lc: string
   level: number
   is_active: boolean
@@ -26,9 +27,14 @@ export interface City {
 /**
  * Загружает дерево категорий
  */
-export async function fetchCategoriesTree(): Promise<CategoryNode[]> {
+export async function fetchCategoriesTree(locale?: string): Promise<CategoryNode[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/v1/categories/tree`, {
+    // Передаем locale в query параметре для получения переведенных названий
+    const url = locale 
+      ? `${API_BASE}/api/v1/categories/tree?lang=${locale}`
+      : `${API_BASE}/api/v1/categories/tree`
+    
+    const res = await fetch(url, {
       next: { revalidate: 3600 }, // Кэшируем на 1 час
     })
 
@@ -106,7 +112,7 @@ export function flattenCategories(categories: CategoryNode[] | CategoryNode | nu
         const indent = "  ".repeat(level)
         result.push({
           value: node.slug,
-          label: `${indent}${node.name_sr}`,
+          label: `${indent}${node.name || node.name_sr}`, // Используем переведенное название, если есть
           level: node.level || level,
         })
         

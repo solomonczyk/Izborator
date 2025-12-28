@@ -123,7 +123,7 @@ export default async function CatalogPage({
   let citiesError: string | null = null
 
   try {
-    const categoriesData = await fetchCategoriesTree()
+    const categoriesData = await fetchCategoriesTree(locale)
     categories = Array.isArray(categoriesData) ? categoriesData : []
     console.log('Categories loaded:', categories.length, categories)
   } catch (err) {

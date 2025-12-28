@@ -154,7 +154,7 @@ func (a *CategoriesAdapter) GetByParentID(parentID string) ([]*categories.Catego
 // GetAllActive получает все активные категории
 func (a *CategoriesAdapter) GetAllActive() ([]*categories.Category, error) {
 	query := `
-		SELECT id, parent_id, slug, code, name_sr, name_sr_lc, level, is_active, sort_order
+		SELECT id, parent_id, slug, code, name_sr, name_sr_lc, name_ru, name_en, name_hu, name_zh, level, is_active, sort_order
 		FROM categories
 		WHERE is_active = true
 		ORDER BY sort_order, name_sr
@@ -170,6 +170,7 @@ func (a *CategoriesAdapter) GetAllActive() ([]*categories.Category, error) {
 	for rows.Next() {
 		var cat categories.Category
 		var parentID *uuid.UUID
+		var nameRu, nameEn, nameHu, nameZh *string
 
 		if err := rows.Scan(
 			&cat.ID,
@@ -178,12 +179,21 @@ func (a *CategoriesAdapter) GetAllActive() ([]*categories.Category, error) {
 			&cat.Code,
 			&cat.NameSr,
 			&cat.NameSrLc,
+			&nameRu,
+			&nameEn,
+			&nameHu,
+			&nameZh,
 			&cat.Level,
 			&cat.IsActive,
 			&cat.SortOrder,
 		); err != nil {
 			continue
 		}
+
+		cat.NameRu = nameRu
+		cat.NameEn = nameEn
+		cat.NameHu = nameHu
+		cat.NameZh = nameZh
 
 		if parentID != nil {
 			parentIDStr := parentID.String()
@@ -202,7 +212,7 @@ func (a *CategoriesAdapter) GetTree() ([]*categories.Category, error) {
 	// Оптимизированный запрос: получаем все активные категории одним запросом
 	// Используем UNION для объединения корневых и дочерних категорий
 	query := `
-		SELECT id, parent_id, slug, code, name_sr, name_sr_lc, level, is_active, sort_order
+		SELECT id, parent_id, slug, code, name_sr, name_sr_lc, name_ru, name_en, name_hu, name_zh, level, is_active, sort_order
 		FROM categories
 		WHERE is_active = true
 		ORDER BY 
@@ -222,6 +232,7 @@ func (a *CategoriesAdapter) GetTree() ([]*categories.Category, error) {
 	for rows.Next() {
 		var cat categories.Category
 		var parentID *uuid.UUID
+		var nameRu, nameEn, nameHu, nameZh *string
 
 		if err := rows.Scan(
 			&cat.ID,
@@ -230,12 +241,21 @@ func (a *CategoriesAdapter) GetTree() ([]*categories.Category, error) {
 			&cat.Code,
 			&cat.NameSr,
 			&cat.NameSrLc,
+			&nameRu,
+			&nameEn,
+			&nameHu,
+			&nameZh,
 			&cat.Level,
 			&cat.IsActive,
 			&cat.SortOrder,
 		); err != nil {
 			continue
 		}
+
+		cat.NameRu = nameRu
+		cat.NameEn = nameEn
+		cat.NameHu = nameHu
+		cat.NameZh = nameZh
 
 		if parentID != nil {
 			parentIDStr := parentID.String()
