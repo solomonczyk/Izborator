@@ -171,8 +171,37 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		}
 
 		// ÃÂ­ÃÂ²Ã‘â‚¬ÃÂ¸Ã‘ÂÃ‘â€šÃÂ¸ÃÂºÃÂ°: Ã‘ÂÃ‘ÂÃ‘â€¹ÃÂ»ÃÂºÃÂ° ÃÂ½ÃÂ° Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ ÃÂ¾ÃÂ±Ã‘â€¹Ã‘â€¡ÃÂ½ÃÂ¾ ÃÂ´ÃÂ»ÃÂ¸ÃÂ½ÃÂ½ÃÂ°Ã‘Â ÃÂ¸ Ã‘ÂÃÂ¾ÃÂ´ÃÂµÃ‘â‚¬ÃÂ¶ÃÂ¸Ã‘â€š ÃÂºÃÂ»Ã‘Å½Ã‘â€¡ÃÂµÃÂ²Ã‘â€¹ÃÂµ Ã‘ÂÃÂ»ÃÂ¾ÃÂ²ÃÂ°
-		score := 0
 		linkLower := strings.ToLower(link)
+		
+		// Игнорируем служебные страницы (сербский + английский) - проверяем СРАЗУ
+		excludedPatterns := []string{
+			"login", "cart", "korpa", "checkout", "kosarica",
+			"facebook", "twitter", "instagram", "linkedin",
+			"contact", "kontakt", "about", "o-nama", "onama",
+			"privacy", "pravila", "terms", "uslovi",
+			"blog", "novosti", "news", "vesti",
+			"search", "pretraga", "filter", "filtri",
+			"account", "nalog", "profile", "profil",
+			"register", "registracija", "signup",
+			"help", "pomoc", "support", "podrska",
+			"faq", "cesto-postavljana-pitanja",
+			"servis", "service", "reklamacije", "reklamacija", "warranty", "garancija",
+			"delivery", "dostava", "shipping", "isporuka",
+			"payment", "placanje", "naplata",
+		}
+		for _, pattern := range excludedPatterns {
+			if strings.Contains(linkLower, pattern) {
+				return // Пропускаем служебные страницы полностью
+			}
+		}
+
+		// Игнорируем якоря и пустые ссылки
+		if strings.HasPrefix(link, "#") || link == "" || link == baseURL || link == baseURL+"/" {
+			return
+		}
+
+		// Эвристика: ссылка на товар обычно длинная и содержит ключевые слова
+		score := 0
 
 		// ÃËœÃÂ³ÃÂ½ÃÂ¾Ã‘â‚¬ÃÂ¸Ã‘â‚¬Ã‘Æ’ÃÂµÃÂ¼ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€ Ã‘â€¹ ÃÂºÃÂ¾ÃÂ»ÃÂ»ÃÂµÃÂºÃ‘â€ ÃÂ¸ÃÂ¹/ÃÂºÃÂ°Ã‘â€šÃÂµÃÂ³ÃÂ¾Ã‘â‚¬ÃÂ¸ÃÂ¹ (ÃÂ½ÃÂµ Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬Ã‘â€¹)
 		if strings.Contains(linkLower, "/collections/") || strings.Contains(linkLower, "/collection/") ||
@@ -285,6 +314,9 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 			"register", "registracija", "signup",
 			"help", "pomoc", "support", "podrska",
 			"faq", "cesto-postavljana-pitanja",
+			"servis", "service", "reklamacije", "reklamacija", "warranty", "garancija",
+			"delivery", "dostava", "shipping", "isporuka",
+			"payment", "placanje", "naplata",
 		}
 		for _, pattern := range excludedPatterns {
 			if strings.Contains(linkLower, pattern) {
