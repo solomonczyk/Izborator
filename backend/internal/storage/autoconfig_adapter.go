@@ -185,14 +185,15 @@ func (a *autoconfigAdapter) MarkAsFailed(id string, reason string) error {
 	}
 
 	// Сохраняем попытку конфигурации в shop_config_attempts
-	// Не игнорируем ошибку - нужно знать, если что-то не работает
-	_, err = a.pg.DB().Exec(a.ctx, `
+	// Игнорируем ошибку INSERT - основной статус уже обновлен, попытка - это дополнительная информация
+	_, insertErr := a.pg.DB().Exec(a.ctx, `
 		INSERT INTO shop_config_attempts (potential_shop_id, status, error_message, created_at)
 		VALUES ($1, 'failed', $2, NOW())
 	`, id, reason)
-	if err != nil {
-		// Логируем, но не возвращаем ошибку - основной статус уже обновлен
-		return fmt.Errorf("failed to save attempt: %w", err)
+	if insertErr != nil {
+		// Возвращаем ошибку, но она будет залогирована в service.go
+		// Основной статус уже обновлен, поэтому это не критично
+		return fmt.Errorf("failed to save attempt (status updated): %w", insertErr)
 	}
 
 	return nil
