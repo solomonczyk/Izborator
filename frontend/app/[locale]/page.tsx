@@ -78,16 +78,12 @@ export default async function HomePage({
     console.error('Failed to fetch categories:', err)
   }
 
-  // Преобразуем дерево категорий в плоский список для быстрого доступа
-  // Показываем только дочерние категории (level 2), чтобы избежать дублирования
-  // Например, не показываем "Еда и напитки" и "Молоко и молочные продукты" одновременно
-  const allCategories = categories.flatMap(cat => {
-    // Если у категории есть дети, показываем только детей (более специфичные категории)
-    if (cat.children && cat.children.length > 0) {
-      return cat.children
-    }
-    // Если детей нет, показываем саму категорию (это корневая категория без подкатегорий)
-    return [cat]
+  // Показываем только родительские категории (level 1) на главной странице
+  // Дочерние категории будут доступны при клике на родительскую или в каталоге
+  const allCategories = categories.filter(cat => {
+    // Показываем только корневые категории (без parent_id, level 1)
+    // children может быть пустым массивом или undefined - это нормально
+    return cat.level === 1 || !cat.children || cat.children.length === 0
   })
 
   return (
