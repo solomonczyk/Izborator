@@ -302,8 +302,8 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		}
 
 		// ÃËœÃÂ³ÃÂ½ÃÂ¾Ã‘â‚¬ÃÂ¸Ã‘â‚¬Ã‘Æ’ÃÂµÃÂ¼ ÃÂ¼Ã‘Æ’Ã‘ÂÃÂ¾Ã‘â‚¬
-		// Игнорируем служебные страницы (сербский + английский) - проверяем ДО подсчета очков
-		excludedPatterns := []string{
+		// Дублирующая проверка - переменная уже объявлена выше, используем =
+		excludedPatterns = []string{
 			"login", "cart", "korpa", "checkout", "kosarica",
 			"facebook", "twitter", "instagram", "linkedin",
 			"contact", "kontakt", "about", "o-nama", "onama",
