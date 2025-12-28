@@ -18,8 +18,8 @@ function QuickCategories({
   categories: CategoryNode[]
   title: string
 }) {
-  // Берем первые 8 категорий (или меньше, если их меньше)
-  const quickCategories = categories.slice(0, 8)
+  // Показываем все родительские категории (нет ограничения по количеству)
+  const quickCategories = categories
   
   if (quickCategories.length === 0) {
     return null
