@@ -361,6 +361,12 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		return "", fmt.Errorf("no product link found on %s", baseURL)
 	}
 
+	// Если лучшая ссылка имеет score = 0, это означает, что мы не нашли явных паттернов продуктов
+	// В этом случае лучше вернуть ошибку, чем пытаться парсить случайную страницу
+	if maxScore == 0 {
+		return "", fmt.Errorf("no product page found with explicit patterns (score=0) on %s", baseURL)
+	}
+
 	return bestLink, nil
 }
 
