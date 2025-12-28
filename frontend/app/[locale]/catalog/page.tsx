@@ -45,6 +45,7 @@ async function fetchCatalog(params: {
   query?: string
   category?: string
   city?: string
+  type?: string
   minPrice?: string
   maxPrice?: string
   page?: string
@@ -57,6 +58,7 @@ async function fetchCatalog(params: {
   if (params.query) url.searchParams.set("query", params.query)
   if (params.category) url.searchParams.set("category", params.category)
   if (params.city) url.searchParams.set("city", params.city)
+  if (params.type) url.searchParams.set("type", params.type)
   if (params.minPrice) url.searchParams.set("min_price", params.minPrice)
   if (params.maxPrice) url.searchParams.set("max_price", params.maxPrice)
   if (params.sort) url.searchParams.set("sort", params.sort)
@@ -91,6 +93,7 @@ export default async function CatalogPage({
     q?: string
     category?: string
     city?: string
+    type?: string
     min_price?: string
     max_price?: string
     page?: string
@@ -105,6 +108,7 @@ export default async function CatalogPage({
   const query = resolvedSearchParams?.q || ""
   const category = resolvedSearchParams?.category || ""
   const city = resolvedSearchParams?.city || ""
+  const productType = resolvedSearchParams?.type || ""
   const minPrice = resolvedSearchParams?.min_price || ""
   const maxPrice = resolvedSearchParams?.max_price || ""
   const page = resolvedSearchParams?.page || "1"
@@ -148,6 +152,7 @@ export default async function CatalogPage({
       query,
       category,
       city,
+      type: productType,
       minPrice,
       maxPrice,
       page,
@@ -232,7 +237,33 @@ export default async function CatalogPage({
             </div>
 
             {/* Фильтры в одну строку */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+              {/* Тип (товар/услуга) */}
+              <div>
+                <label
+                  htmlFor="type"
+                  className="block text-sm font-medium mb-2 text-slate-900"
+                >
+                  {locale === 'sr' ? 'Тип' : 'Type'}
+                </label>
+                <select
+                  id="type"
+                  name="type"
+                  defaultValue={productType}
+                  className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
+                >
+                  <option value="" className="text-slate-400">
+                    {locale === 'sr' ? 'Све' : 'All'}
+                  </option>
+                  <option value="good" className="text-slate-900">
+                    {locale === 'sr' ? 'Производи' : 'Goods'}
+                  </option>
+                  <option value="service" className="text-slate-900">
+                    {locale === 'sr' ? 'Услуге' : 'Services'}
+                  </option>
+                </select>
+              </div>
+
               {/* Категория */}
               <div>
                 <label
@@ -367,7 +398,7 @@ export default async function CatalogPage({
               >
                 {t('catalog.apply_filters')}
               </button>
-              {(query || category || city || minPrice || maxPrice || sort !== "price_asc") && (
+              {(query || category || city || productType || minPrice || maxPrice || sort !== "price_asc") && (
                 <Link
                   href="catalog"
                   className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500"
