@@ -7,8 +7,6 @@ import { useTranslations } from 'next-intl'
 
 export function SearchForm() {
   const t = useTranslations('home')
-  const locale = useLocale()
-  const pathname = usePathname()
 
   return (
     <form 
