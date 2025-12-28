@@ -182,11 +182,35 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		}
 
 		// ÃÅ¡ÃÂ»Ã‘Å½Ã‘â€¡ÃÂµÃÂ²Ã‘â€¹ÃÂµ Ã‘ÂÃÂ»ÃÂ¾ÃÂ²ÃÂ° ÃÂ´ÃÂ»Ã‘Â Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€  Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ÃÂ¾ÃÂ²
+		// Специальная проверка для /proizvodi/ - это может быть категория или товар
+		// Если URL содержит /proizvodi/XXX/ и XXX короткое (1-2 слова) - это категория
+		if strings.Contains(linkLower, "/proizvodi/") {
+			// Извлекаем часть после /proizvodi/
+			idx := strings.Index(linkLower, "/proizvodi/")
+			if idx != -1 {
+				afterProizvodi := linkLower[idx+len("/proizvodi/"):]
+				// Убираем trailing slash и параметры
+				if slashIdx := strings.Index(afterProizvodi, "/"); slashIdx != -1 {
+					afterProizvodi = afterProizvodi[:slashIdx]
+				}
+				if paramIdx := strings.Index(afterProizvodi, "?"); paramIdx != -1 {
+					afterProizvodi = afterProizvodi[:paramIdx]
+				}
+				// Если короткое название (меньше 20 символов) - это категория
+				if len(afterProizvodi) < 20 && afterProizvodi != "" {
+					return // Это категория, пропускаем
+				}
+			}
+		}
+
 		if siteType == "ecommerce" {
 			if strings.Contains(linkLower, "/proizvod/") || strings.Contains(linkLower, "/p/") ||
-				strings.Contains(linkLower, "/product/") || strings.Contains(linkLower, "/artikal/") ||
-				strings.Contains(linkLower, "/products/") || strings.Contains(linkLower, "/proizvodi/") {
+				strings.Contains(linkLower, "/product/") || strings.Contains(linkLower, "/artikal/") {
 				score += 50
+			}
+			// /proizvodi/ только если длинное название (товар, не категория)
+			if strings.Contains(linkLower, "/proizvodi/") && len(link) > len(baseURL)+30 {
+				score += 30
 			}
 		}
 
