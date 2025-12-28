@@ -33,7 +33,11 @@
     "no_results_hint": "Próbálja meg módosítani a keresési paramétereket vagy szűrőket.",
     "shops_count": "Üzlet",
     "error_load": "Katalógus betöltési hiba",
-    "error_api_hint": "Győződjön meg arról, hogy az API szerver fut a {apiBase} címen"
+    "error_api_hint": "Győződjön meg arról, hogy az API szerver fut a {apiBase} címen",
+    "type": "Típus",
+    "type_all": "Összes",
+    "type_goods": "Termékek",
+    "type_services": "Szolgáltatások"
   },
   "product": {
     "title": "Termék",

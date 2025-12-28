@@ -33,7 +33,11 @@
     "no_results_hint": "Покушајте да промените параметре претраге или филтере.",
     "shops_count": "Продавница",
     "error_load": "Грешка при учитавању каталога",
-    "error_api_hint": "Уверите се да је API сервер покренут на {apiBase}"
+    "error_api_hint": "Уверите се да је API сервер покренут на {apiBase}",
+    "type": "Тип",
+    "type_all": "Све",
+    "type_goods": "Производи",
+    "type_services": "Услуге"
   },
   "product": {
     "title": "Производ",

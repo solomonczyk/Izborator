@@ -250,7 +250,7 @@ export default async function CatalogPage({
                   htmlFor="type"
                   className="block text-sm font-medium mb-2 text-slate-900"
                 >
-                  {locale === 'sr' ? 'Тип' : 'Type'}
+                  {t('catalog.type')}
                 </label>
                 <select
                   id="type"
@@ -259,13 +259,13 @@ export default async function CatalogPage({
                   className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
                 >
                   <option value="" className="text-slate-400">
-                    {locale === 'sr' ? 'Све' : 'All'}
+                    {t('catalog.type_all')}
                   </option>
                   <option value="good" className="text-slate-900">
-                    {locale === 'sr' ? 'Производи' : 'Goods'}
+                    {t('catalog.type_goods')}
                   </option>
                   <option value="service" className="text-slate-900">
-                    {locale === 'sr' ? 'Услуге' : 'Services'}
+                    {t('catalog.type_services')}
                   </option>
                 </select>
               </div>

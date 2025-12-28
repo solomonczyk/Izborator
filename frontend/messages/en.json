@@ -33,7 +33,11 @@
     "no_results_hint": "Try changing search parameters or filters.",
     "shops_count": "Shops",
     "error_load": "Error loading catalog",
-    "error_api_hint": "Make sure the API server is running on {apiBase}"
+    "error_api_hint": "Make sure the API server is running on {apiBase}",
+    "type": "Type",
+    "type_all": "All",
+    "type_goods": "Goods",
+    "type_services": "Services"
   },
   "product": {
     "title": "Product",

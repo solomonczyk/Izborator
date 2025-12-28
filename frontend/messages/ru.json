@@ -33,7 +33,11 @@
     "no_results_hint": "Попробуйте изменить параметры поиска или фильтры.",
     "shops_count": "Магазинов",
     "error_load": "Ошибка загрузки каталога",
-    "error_api_hint": "Убедитесь, что API сервер запущен на {apiBase}"
+    "error_api_hint": "Убедитесь, что API сервер запущен на {apiBase}",
+    "type": "Тип",
+    "type_all": "Все",
+    "type_goods": "Товары",
+    "type_services": "Услуги"
   },
   "product": {
     "title": "Товар",

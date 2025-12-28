@@ -33,7 +33,11 @@
     "no_results_hint": "请尝试更改搜索参数或筛选条件。",
     "shops_count": "商店",
     "error_load": "加载目录错误",
-    "error_api_hint": "请确保API服务器在 {apiBase} 上运行"
+    "error_api_hint": "请确保API服务器在 {apiBase} 上运行",
+    "type": "类型",
+    "type_all": "全部",
+    "type_goods": "商品",
+    "type_services": "服务"
   },
   "product": {
     "title": "商品",
