@@ -76,11 +76,25 @@ EXAMPLES for div-based lists:
 IMPORTANT: The selectors MUST allow extracting multiple services from the same page.`
 	} else {
 		pageTypeDesc = "e-commerce product page"
-		extractionInstructions = `For e-commerce pages, extract:
-1. Name: Product Title
-2. Price: Current price value
-3. Image: Main product image URL
-4. Description: Product details text`
+		extractionInstructions = `For e-commerce pages, extract CSS selectors for:
+1. Name: Product Title (usually in h1, h2, or div with class containing "title", "name", "product")
+   - Try: "h1", "h1.product-title", ".product-name", "h2.title", "[itemprop='name']"
+   - Must be specific enough to find ONLY the product title, not other headings
+2. Price: Current price value (usually in span, div, or strong with class containing "price", "cost", "amount")
+   - Try: ".price", ".product-price", ".current-price", "[itemprop='price']", ".price-value"
+   - Look for elements containing currency symbols (RSD, €, $) or numbers
+3. Image: Main product image URL (usually img tag with class containing "image", "photo", "picture")
+   - Try: "img.product-image", "img.main-image", ".product-gallery img", "[itemprop='image']"
+   - Prefer the main product image, not thumbnails
+4. Description: Product details text (usually in div, p, or section with class containing "description", "details", "info")
+   - Try: ".product-description", ".description", ".product-details", "[itemprop='description']"
+
+IMPORTANT:
+- Selectors must work with real HTML structure (not just ideal examples)
+- Prefer more general selectors that are likely to work across different shop systems
+- Avoid overly specific selectors like "h1.product-title" if the page doesn't use that exact class
+- Try common patterns first: "h1", ".price", "img.product-image"
+- If multiple elements match, choose the most specific one that still works`
 	}
 
 	var nameFieldDesc string
