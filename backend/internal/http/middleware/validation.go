@@ -121,7 +121,10 @@ func validateQueryParam(name, value, rule string) *ValidationErrorDetail {
 
 		if strings.HasPrefix(r, "min=") {
 			minStr := strings.TrimPrefix(r, "min=")
-			minLen, _ := strconv.Atoi(minStr)
+			minLen, err := strconv.Atoi(minStr)
+			if err != nil {
+				continue
+			}
 			if len(value) < minLen {
 				return &ValidationErrorDetail{
 					Field:   name,
@@ -133,7 +136,10 @@ func validateQueryParam(name, value, rule string) *ValidationErrorDetail {
 
 		if strings.HasPrefix(r, "max=") {
 			maxStr := strings.TrimPrefix(r, "max=")
-			maxLen, _ := strconv.Atoi(maxStr)
+			maxLen, err := strconv.Atoi(maxStr)
+			if err != nil {
+				continue
+			}
 			if len(value) > maxLen {
 				return &ValidationErrorDetail{
 					Field:   name,
