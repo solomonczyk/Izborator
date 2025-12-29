@@ -109,4 +109,3 @@ func (a *BaseAdapter) GetLogger() *logger.Logger {
 func (a *BaseAdapter) GetPostgres() *Postgres {
 	return a.pg
 }
-
