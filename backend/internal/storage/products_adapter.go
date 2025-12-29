@@ -49,7 +49,7 @@ func (a *ProductsAdapter) GetProduct(id string) (*products.Product, error) {
 	var createdAt, updatedAt time.Time
 	var categoryID *uuid.UUID
 
-	err = a.pg.DB().QueryRow(a.ctx, query, productUUID).Scan(
+	err = a.pg.DB().QueryRow(a.GetContext(), query, productUUID).Scan(
 		&product.ID,
 		&product.Name,
 		&product.Description,
@@ -263,7 +263,7 @@ func (a *ProductsAdapter) searchViaPostgres(query string, limit, offset int) ([]
 		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, querySQL, searchQuery, limit, offset)
+	rows, err := a.pg.DB().Query(a.GetContext(), querySQL, searchQuery, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to search products: %w", err)
 	}
@@ -412,7 +412,7 @@ func (a *ProductsAdapter) SaveProduct(product *products.Product) error {
 	}
 	product.UpdatedAt = now
 
-	_, err = a.pg.DB().Exec(a.ctx, query,
+	_, err = a.pg.DB().Exec(a.GetContext(), query,
 		productUUID,
 		product.Name,
 		product.Description,
@@ -450,7 +450,7 @@ func (a *ProductsAdapter) GetProductPrices(productID string) ([]*products.Produc
 		ORDER BY price ASC, updated_at DESC
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, productUUID)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, productUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get product prices: %w", err)
 	}
@@ -527,7 +527,7 @@ func (a *ProductsAdapter) GetProductPricesByCity(productID string, cityID string
 		ORDER BY price ASC, updated_at DESC
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, productUUID, cityUUID)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, productUUID, cityUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get product prices by city: %w", err)
 	}
@@ -948,7 +948,7 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		querySQL += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIndex, argIndex+1)
 		args = append(args, params.PerPage, offset)
 		
-		rows, err := a.pg.DB().Query(a.ctx, querySQL, args...)
+		rows, err := a.pg.DB().Query(a.GetContext(), querySQL, args...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get products: %w", err)
 		}
@@ -1332,7 +1332,7 @@ func (a *ProductsAdapter) SaveProductPrice(price *products.ProductPrice) error {
 
 	price.UpdatedAt = time.Now()
 
-	_, err = a.pg.DB().Exec(a.ctx, query,
+	_, err = a.pg.DB().Exec(a.GetContext(), query,
 		productUUID,
 		price.ShopID,
 		price.ShopName,
@@ -1399,3 +1399,5 @@ func (a *ProductsAdapter) GetURLsForRescrape(ctx context.Context, olderThan time
 
 	return results, nil
 }
+
+

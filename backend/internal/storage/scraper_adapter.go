@@ -92,7 +92,7 @@ func (a *ScraperAdapter) SaveRawProduct(data *scraper.RawProduct) error {
 			processed_at = NULL
 	`
 
-	_, err = a.pg.DB().Exec(a.ctx, query,
+	_, err = a.pg.DB().Exec(a.GetContext(), query,
 		data.ShopID,
 		data.ShopName,
 		data.ExternalID,
@@ -137,7 +137,7 @@ func (a *ScraperAdapter) GetShopConfig(shopID string) (*scraper.ShopConfig, erro
 	var selectorsJSON []byte
 	var isActive bool
 
-	err := a.pg.DB().QueryRow(a.ctx, query, shopID).Scan(
+	err := a.pg.DB().QueryRow(a.GetContext(), query, shopID).Scan(
 		&config.ID,
 		&config.Name,
 		&config.BaseURL,
@@ -185,7 +185,7 @@ func (a *ScraperAdapter) ListShops() ([]*scraper.ShopConfig, error) {
 		ORDER BY name
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query)
+	rows, err := a.pg.DB().Query(a.GetContext(), query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list shops: %w", err)
 	}
@@ -259,7 +259,7 @@ func (a *ScraperAdapter) GetUnprocessedRawProducts(limit int) ([]*scraper.RawPro
 		LIMIT $1
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, limit)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get unprocessed raw products: %w", err)
 	}
@@ -363,7 +363,7 @@ func (a *ScraperAdapter) MarkRawProductAsProcessed(shopID, externalID string) er
 		  AND external_id = $2
 	`
 
-	result, err := a.pg.DB().Exec(a.ctx, query, shopID, externalID)
+	result, err := a.pg.DB().Exec(a.GetContext(), query, shopID, externalID)
 	if err != nil {
 		return fmt.Errorf("failed to mark raw product as processed: %w", err)
 	}
@@ -375,3 +375,4 @@ func (a *ScraperAdapter) MarkRawProductAsProcessed(shopID, externalID string) er
 
 	return nil
 }
+

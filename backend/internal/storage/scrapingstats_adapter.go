@@ -39,7 +39,7 @@ func (a *ScrapingStatsAdapter) SaveStat(stat *scrapingstats.ScrapingStat) error 
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 	`
 
-	_, err := a.pg.DB().Exec(a.ctx, query,
+	_, err := a.pg.DB().Exec(a.GetContext(), query,
 		statID, stat.ShopID, stat.ShopName, stat.ScrapedAt, stat.Status,
 		stat.ProductsFound, stat.ProductsSaved, stat.ErrorsCount,
 		stat.ErrorMessage, stat.DurationMs, stat.CreatedAt,
@@ -71,7 +71,7 @@ func (a *ScrapingStatsAdapter) GetShopStats(shopID string, days int) (*scrapings
 	var stats scrapingstats.ShopStats
 	stats.ShopID = shopID
 
-	err := a.pg.DB().QueryRow(a.ctx, query, shopID, fromDate).Scan(
+	err := a.pg.DB().QueryRow(a.GetContext(), query, shopID, fromDate).Scan(
 		&stats.TotalScrapes,
 		&stats.SuccessCount,
 		&stats.ErrorCount,
@@ -90,7 +90,7 @@ func (a *ScrapingStatsAdapter) GetShopStats(shopID string, days int) (*scrapings
 	`
 
 	var lastScrapedAt *time.Time
-	err = a.pg.DB().QueryRow(a.ctx, shopQuery, shopID).Scan(
+	err = a.pg.DB().QueryRow(a.GetContext(), shopQuery, shopID).Scan(
 		&stats.ShopName,
 		&lastScrapedAt,
 		&stats.ScrapingEnabled,
@@ -125,7 +125,7 @@ func (a *ScrapingStatsAdapter) GetOverallStats(days int) (*scrapingstats.Overall
 	var successCount int
 	var lastScrapeAt *time.Time
 
-	err := a.pg.DB().QueryRow(a.ctx, query, fromDate).Scan(
+	err := a.pg.DB().QueryRow(a.GetContext(), query, fromDate).Scan(
 		&stats.TotalShops,
 		&stats.TotalScrapes,
 		&successCount,
@@ -149,7 +149,7 @@ func (a *ScrapingStatsAdapter) GetOverallStats(days int) (*scrapingstats.Overall
 		FROM shops 
 		WHERE is_active = true
 	`
-	err = a.pg.DB().QueryRow(a.ctx, activeQuery).Scan(&stats.ActiveShops)
+	err = a.pg.DB().QueryRow(a.GetContext(), activeQuery).Scan(&stats.ActiveShops)
 	if err != nil {
 		stats.ActiveShops = 0
 	}
@@ -172,7 +172,7 @@ func (a *ScrapingStatsAdapter) GetRecentStats(limit int) ([]*scrapingstats.Scrap
 		LIMIT $1
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, limit)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recent stats: %w", err)
 	}
@@ -218,10 +218,11 @@ func (a *ScrapingStatsAdapter) UpdateShopLastScraped(shopID string) error {
 		WHERE id = $1
 	`
 
-	_, err := a.pg.DB().Exec(a.ctx, query, shopID)
+	_, err := a.pg.DB().Exec(a.GetContext(), query, shopID)
 	if err != nil {
 		return fmt.Errorf("failed to update shop last_scraped_at: %w", err)
 	}
 
 	return nil
 }
+

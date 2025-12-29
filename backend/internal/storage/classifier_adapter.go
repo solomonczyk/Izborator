@@ -51,7 +51,7 @@ func (a *classifierAdapter) SavePotentialShop(shop *classifier.PotentialShop) er
 		discoveredAt = time.Now()
 	}
 
-	_, err := a.pg.DB().Exec(a.ctx, query,
+	_, err := a.pg.DB().Exec(a.GetContext(), query,
 		shop.ID,
 		shop.Domain,
 		shop.Source,
@@ -77,7 +77,7 @@ func (a *classifierAdapter) GetPotentialShopByDomain(domain string) (*classifier
 	var classifiedAt *time.Time
 	var metadataJSON []byte
 
-	err := a.pg.DB().QueryRow(a.ctx, query, domain).Scan(
+	err := a.pg.DB().QueryRow(a.GetContext(), query, domain).Scan(
 		&shop.ID,
 		&shop.Domain,
 		&shop.Source,
@@ -118,7 +118,7 @@ func (a *classifierAdapter) ListPotentialShopsByStatus(status string, limit int)
 		LIMIT $2
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, status, limit)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, status, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 	// $2 = shop.Status (string)
 	// $3 = shop.ConfidenceScore (float)
 	// $4 = metadataJSON (jsonb)
-	result, err := a.pg.DB().Exec(a.ctx, query,
+	result, err := a.pg.DB().Exec(a.GetContext(), query,
 		shop.Domain,
 		shop.Status,
 		shop.ConfidenceScore,
@@ -213,7 +213,7 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 		// Проверяем, существует ли запись с таким domain
 		var exists bool
 		checkQuery := `SELECT EXISTS(SELECT 1 FROM potential_shops WHERE domain = $1)`
-		err := a.pg.DB().QueryRow(a.ctx, checkQuery, shop.Domain).Scan(&exists)
+		err := a.pg.DB().QueryRow(a.GetContext(), checkQuery, shop.Domain).Scan(&exists)
 		if err != nil {
 			return fmt.Errorf("no rows updated for potential_shop (domain=%s) - failed to check existence: %w", shop.Domain, err)
 		}
@@ -225,3 +225,4 @@ func (a *classifierAdapter) UpdatePotentialShop(shop *classifier.PotentialShop) 
 
 	return nil
 }
+

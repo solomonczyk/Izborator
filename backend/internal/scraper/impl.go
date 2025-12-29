@@ -1016,6 +1016,15 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 	visitedPages := make(map[string]bool)
 	pageCount := 0
 	productURLsMap := make(map[string]bool) // Для дедупликации
+	totalLinksFound := 0                    // Всего найдено ссылок
+	filteredOutCount := 0                   // Отфильтровано isProductURL
+	duplicateCount := 0                     // Дубликатов
+
+	s.logger.Info("Using catalog selectors", map[string]interface{}{
+		"product_link_selector": productLinkSelector,
+		"next_page_selector":     nextPageSelector,
+		"catalog_url":            catalogURL,
+	})
 
 	// Обработчик ссылок на товары
 	c.OnHTML(productLinkSelector, func(e *colly.HTMLElement) {
@@ -1023,6 +1032,8 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 		if href == "" {
 			return
 		}
+
+		totalLinksFound++
 
 		// Преобразуем относительные URL в абсолютные
 		productURL := href
@@ -1032,11 +1043,20 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 			productURL = shopConfig.BaseURL + "/" + href
 		}
 
-		// Проверяем, что это URL товара (не категории или другой страницы)
-		if s.isProductURL(productURL, shopConfig) && !productURLsMap[productURL] {
-			productURLsMap[productURL] = true
-			result.ProductURLs = append(result.ProductURLs, productURL)
+		// Проверяем на дубликаты
+		if productURLsMap[productURL] {
+			duplicateCount++
+			return
 		}
+
+		// Проверяем, что это URL товара (не категории или другой страницы)
+		if !s.isProductURL(productURL, shopConfig) {
+			filteredOutCount++
+			return
+		}
+
+		productURLsMap[productURL] = true
+		result.ProductURLs = append(result.ProductURLs, productURL)
 	})
 
 	// Обработчик ссылки на следующую страницу
@@ -1082,10 +1102,13 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 		pageCount++
 		nextPageURL = "" // Сбрасываем перед каждой страницей
 
+		// Сохраняем количество найденных ссылок до обработки страницы
+		linksBeforePage := len(result.ProductURLs)
+		
 		s.logger.Info("Parsing catalog page", map[string]interface{}{
 			"url":          currentURL,
 			"page":         pageCount,
-			"found_so_far": len(result.ProductURLs),
+			"found_so_far": linksBeforePage,
 		})
 
 		err := c.Visit(currentURL)
@@ -1096,6 +1119,16 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 			})
 			break
 		}
+
+		// Логируем результаты обработки страницы
+		linksAfterPage := len(result.ProductURLs)
+		linksOnThisPage := linksAfterPage - linksBeforePage
+		s.logger.Info("Page processed", map[string]interface{}{
+			"page":            pageCount,
+			"links_on_page":   linksOnThisPage,
+			"total_links":     linksAfterPage,
+			"next_page_found": nextPageURL != "",
+		})
 
 		// Если есть следующая страница, переходим к ней
 		if nextPageURL != "" && !visitedPages[nextPageURL] {
@@ -1109,10 +1142,35 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 	}
 
 	result.TotalFound = len(result.ProductURLs)
+	
+	// Детальная статистика для диагностики
 	s.logger.Info("Catalog parsing completed", map[string]interface{}{
-		"total_urls": result.TotalFound,
-		"pages":      pageCount,
+		"total_urls":        result.TotalFound,
+		"pages":            pageCount,
+		"total_links_found": totalLinksFound,
+		"filtered_out":     filteredOutCount,
+		"duplicates":       duplicateCount,
+		"shop_id":          shopConfig.ID,
+		"shop_name":        shopConfig.Name,
 	})
+
+	// Логируем примеры найденных URL (первые 3) для диагностики
+	if len(result.ProductURLs) > 0 {
+		examples := result.ProductURLs
+		if len(examples) > 3 {
+			examples = examples[:3]
+		}
+		s.logger.Info("Example product URLs found", map[string]interface{}{
+			"examples": examples,
+		})
+	} else {
+		s.logger.Warn("No product URLs found - possible issues", map[string]interface{}{
+			"total_links_found": totalLinksFound,
+			"filtered_out":     filteredOutCount,
+			"product_selector": productLinkSelector,
+			"catalog_url":      catalogURL,
+		})
+	}
 
 	return result, nil
 }
@@ -1121,38 +1179,102 @@ func (s *Service) ParseCatalog(ctx context.Context, catalogURL string, shopConfi
 func (s *Service) isProductURL(url string, shopConfig *ShopConfig) bool {
 	urlLower := strings.ToLower(url)
 
-	if shopConfig != nil && strings.Contains(strings.ToLower(shopConfig.BaseURL), "gigatron.rs") {
+	// Проверка на главную страницу
+	if shopConfig != nil {
 		baseURL := strings.TrimSuffix(strings.ToLower(shopConfig.BaseURL), "/")
 		if urlLower == baseURL || urlLower == baseURL+"/" {
 			return false
 		}
+	}
+
+	// Специальная обработка для Gigatron
+	if shopConfig != nil && strings.Contains(strings.ToLower(shopConfig.BaseURL), "gigatron.rs") {
+		baseURL := strings.TrimSuffix(strings.ToLower(shopConfig.BaseURL), "/")
 		if strings.Contains(urlLower, "/kategorija/") {
 			path := strings.TrimPrefix(urlLower, baseURL)
 			parts := filterEmpty(strings.Split(path, "/"))
+			// Для Gigatron товары обычно имеют минимум 3 части пути после /kategorija/
 			return len(parts) >= 3
 		}
 	}
 
-	// Исключаем URL категорий и других страниц
+	// Расширенный список паттернов категорий (из AutoConfig)
+	categoryPatterns := []string{
+		"/kategorija/", "/kategorije/", "/category/", "/categories/",
+		"/product-category/", "/product_category/",
+		"/kategorija-proizvoda/", "/oznaka-proizvoda/",
+		"/tag/", "/tags/", "/brend/", "/brand/",
+		"/proizvodjac/", "/proizvodaci/", "/manufacturer/",
+		"/shop/", "/store/", "/online-prodavnica/", "/prodavnica/",
+		"/collections/", "/collection/",
+	}
+
+	for _, pattern := range categoryPatterns {
+		if strings.Contains(urlLower, pattern) {
+			// Дополнительная проверка: если после паттерна категории идет длинное название (товар)
+			// Например: /kategorija/mobilni-telefoni/samsung-galaxy-s23-ultra-256gb
+			idx := strings.Index(urlLower, pattern)
+			if idx != -1 {
+				afterPattern := urlLower[idx+len(pattern):]
+				// Убираем параметры и якоря
+				if paramIdx := strings.Index(afterPattern, "?"); paramIdx != -1 {
+					afterPattern = afterPattern[:paramIdx]
+				}
+				if anchorIdx := strings.Index(afterPattern, "#"); anchorIdx != -1 {
+					afterPattern = afterPattern[:anchorIdx]
+				}
+				// Убираем trailing slash
+				afterPattern = strings.TrimSuffix(afterPattern, "/")
+				
+				// Если после паттерна категории идет длинное название (больше 20 символов) - это может быть товар
+				if len(afterPattern) > 20 {
+					// Проверяем количество слов (товары обычно имеют больше слов)
+					words := strings.Split(afterPattern, "-")
+					if len(words) > 3 {
+						return true // Вероятно товар
+					}
+				}
+			}
+			return false
+		}
+	}
+
+	// Исключаем служебные страницы
 	excludePatterns := []string{
-		"/kategorija/",
-		"/category/",
-		"/kategorije/",
-		"/categories/",
-		"/pretraga",
-		"/search",
-		"/kontakt",
-		"/contact",
-		"/o-nama",
-		"/about",
-		"/stranica/",
-		"/page/",
+		"/pretraga", "/search", "/kontakt", "/contact",
+		"/o-nama", "/about", "/stranica/", "/page/",
+		"/login", "/cart", "/korpa", "/checkout", "/kosarica",
+		"/account", "/nalog", "/profile", "/profil",
+		"/register", "/registracija", "/signup",
+		"/help", "/pomoc", "/support", "/podrska",
+		"/faq", "/cesto-postavljana-pitanja",
+		"/servis", "/service", "/reklamacije", "/warranty",
+		"/delivery", "/dostava", "/shipping", "/isporuka",
+		"/payment", "/placanje", "/naplata",
 	}
 
 	for _, pattern := range excludePatterns {
 		if strings.Contains(urlLower, pattern) {
 			return false
 		}
+	}
+
+	// Проверка на явные паттерны товаров (даем приоритет)
+	productPatterns := []string{
+		"/proizvod/", "/product/", "/p/", "/artikal/",
+		"/item/", "/goods/", "/roba/",
+	}
+
+	for _, pattern := range productPatterns {
+		if strings.Contains(urlLower, pattern) {
+			return true
+		}
+	}
+
+	// Если URL достаточно длинный (вероятно товар с полным названием)
+	// и не содержит явных паттернов категорий - считаем товаром
+	if len(url) > 50 {
+		return true
 	}
 
 	return true

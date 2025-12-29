@@ -45,7 +45,7 @@ func (a *PriceHistoryAdapter) GetHistory(productID string, from, to time.Time) (
 		ORDER BY updated_at ASC, shop_id
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, productUUID, from, to)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, productUUID, from, to)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query price history: %w", err)
 	}
@@ -119,7 +119,7 @@ func (a *PriceHistoryAdapter) GetPriceChart(productID string, period string, sho
 
 	query += " ORDER BY pp.updated_at ASC, pp.shop_id"
 
-	rows, err := a.pg.DB().Query(a.ctx, query, args...)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query price chart: %w", err)
 	}
@@ -171,3 +171,4 @@ func (a *PriceHistoryAdapter) CleanupOldData(before time.Time) error {
 	// TODO: реализовать очистку старых данных из отдельной таблицы истории
 	return nil
 }
+

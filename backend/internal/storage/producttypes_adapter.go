@@ -33,7 +33,7 @@ func (a *ProductTypesAdapter) GetByID(id string) (*producttypes.ProductType, err
 	`
 
 	var pt producttypes.ProductType
-	err = a.pg.DB().QueryRow(a.ctx, query, ptUUID).Scan(
+	err = a.pg.DB().QueryRow(a.GetContext(), query, ptUUID).Scan(
 		&pt.ID,
 		&pt.Code,
 		&pt.NameSr,
@@ -59,7 +59,7 @@ func (a *ProductTypesAdapter) GetByCode(code string) (*producttypes.ProductType,
 	`
 
 	var pt producttypes.ProductType
-	err := a.pg.DB().QueryRow(a.ctx, query, code).Scan(
+	err := a.pg.DB().QueryRow(a.GetContext(), query, code).Scan(
 		&pt.ID,
 		&pt.Code,
 		&pt.NameSr,
@@ -85,7 +85,7 @@ func (a *ProductTypesAdapter) GetAllActive() ([]*producttypes.ProductType, error
 		ORDER BY code
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query)
+	rows, err := a.pg.DB().Query(a.GetContext(), query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all active product types: %w", err)
 	}
@@ -123,7 +123,7 @@ func (a *ProductTypesAdapter) GetByCategoryID(categoryID string) ([]*producttype
 		ORDER BY pt.code
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, categoryUUID)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, categoryUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get product types by category: %w", err)
 	}
@@ -145,3 +145,4 @@ func (a *ProductTypesAdapter) GetByCategoryID(categoryID string) ([]*producttype
 
 	return result, nil
 }
+

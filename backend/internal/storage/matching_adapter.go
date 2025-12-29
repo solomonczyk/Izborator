@@ -131,7 +131,7 @@ func (a *MatchingAdapter) FindSimilarProducts(name, brand string, productType st
 		}
 	}
 
-	rows, err := a.pg.DB().Query(a.ctx, query, args...)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find similar products: %w", err)
 	}
@@ -190,7 +190,7 @@ func (a *MatchingAdapter) GetProductByID(id string) (*matching.Product, error) {
 	var product matching.Product
 	var specsJSON []byte
 
-	err = a.pg.DB().QueryRow(a.ctx, query, productUUID).Scan(
+	err = a.pg.DB().QueryRow(a.GetContext(), query, productUUID).Scan(
 		&product.ID,
 		&product.Name,
 		&product.Brand,
@@ -244,7 +244,7 @@ func (a *MatchingAdapter) SaveMatch(match *matching.ProductMatch) error {
 		match.Confidence = "medium"
 	}
 
-	_, err = a.pg.DB().Exec(a.ctx, query,
+	_, err = a.pg.DB().Exec(a.GetContext(), query,
 		productUUID,
 		matchedUUID,
 		match.Similarity,
@@ -275,7 +275,7 @@ func (a *MatchingAdapter) GetMatches(productID string) ([]*matching.ProductMatch
 		LIMIT 100
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, productUUID)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, productUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get matches: %w", err)
 	}
@@ -309,3 +309,4 @@ func (a *MatchingAdapter) GetMatches(productID string) ([]*matching.ProductMatch
 
 	return matches, nil
 }
+

@@ -77,7 +77,7 @@ func (a *ProcessorAdapter) SaveProduct(product *products.Product) error {
 	}
 	product.UpdatedAt = now
 
-	_, err = a.pg.DB().Exec(a.ctx, query,
+	_, err = a.pg.DB().Exec(a.GetContext(), query,
 		productUUID,
 		product.Name,
 		product.Description,
@@ -117,7 +117,7 @@ func (a *ProcessorAdapter) SavePrice(price *products.ProductPrice) error {
 
 	price.UpdatedAt = time.Now()
 
-	_, err = a.pg.DB().Exec(a.ctx, query,
+	_, err = a.pg.DB().Exec(a.GetContext(), query,
 		productUUID,
 		price.ShopID,
 		price.ShopName,
@@ -150,7 +150,7 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 		WHERE pp.product_id = $1
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, product.ID)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, product.ID)
 	if err != nil {
 		// Не прерываем индексацию, просто будет без имен
 	} else {
@@ -208,3 +208,4 @@ func (a *ProcessorAdapter) IndexProduct(product *products.Product) error {
 
 	return nil
 }
+

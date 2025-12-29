@@ -33,7 +33,7 @@ func (a *CitiesAdapter) GetByID(id string) (*cities.City, error) {
 	`
 
 	var city cities.City
-	err = a.pg.DB().QueryRow(a.ctx, query, cityUUID).Scan(
+	err = a.pg.DB().QueryRow(a.GetContext(), query, cityUUID).Scan(
 		&city.ID,
 		&city.Slug,
 		&city.NameSr,
@@ -61,7 +61,7 @@ func (a *CitiesAdapter) GetBySlug(slug string) (*cities.City, error) {
 	`
 
 	var city cities.City
-	err := a.pg.DB().QueryRow(a.ctx, query, slug).Scan(
+	err := a.pg.DB().QueryRow(a.GetContext(), query, slug).Scan(
 		&city.ID,
 		&city.Slug,
 		&city.NameSr,
@@ -89,7 +89,7 @@ func (a *CitiesAdapter) GetAllActive() ([]*cities.City, error) {
 		ORDER BY sort_order, name_sr
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query)
+	rows, err := a.pg.DB().Query(a.GetContext(), query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all active cities: %w", err)
 	}
@@ -113,3 +113,5 @@ func (a *CitiesAdapter) GetAllActive() ([]*cities.City, error) {
 
 	return result, nil
 }
+
+

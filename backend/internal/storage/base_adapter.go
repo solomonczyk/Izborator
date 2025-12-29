@@ -97,10 +97,16 @@ func (a *BaseAdapter) LogError(operation string, err error, details map[string]i
 
 // GetContext возвращает контекст адаптера
 func (a *BaseAdapter) GetContext() context.Context {
-	return a.ctx
+	return a.GetContext()
 }
 
 // GetLogger возвращает логгер адаптера
 func (a *BaseAdapter) GetLogger() *logger.Logger {
 	return a.logger
 }
+
+// GetPostgres возвращает экземпляр Postgres для доступа к БД
+func (a *BaseAdapter) GetPostgres() *Postgres {
+	return a.pg
+}
+

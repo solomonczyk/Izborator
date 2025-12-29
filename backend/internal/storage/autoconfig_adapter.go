@@ -44,7 +44,7 @@ func (a *autoconfigAdapter) GetClassifiedCandidates(limit int) ([]autoconfig.Can
 		LIMIT $1
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, limit)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query candidates: %w", err)
 	}
@@ -77,18 +77,18 @@ func (a *autoconfigAdapter) GetClassifiedCandidates(limit int) ([]autoconfig.Can
 // MarkAsConfigured создает магазин в таблице shops и обновляет статус в potential_shops
 func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopConfig) error {
 	// Начинаем транзакцию
-	tx, err := a.pg.DB().Begin(a.ctx)
+	tx, err := a.pg.DB().Begin(a.GetContext())
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		_ = tx.Rollback(a.ctx)
+		_ = tx.Rollback(a.GetContext())
 	}()
 
 	// Получаем данные кандидата
 	var domain string
 	var metadataJSON []byte
-	err = tx.QueryRow(a.ctx, `
+	err = tx.QueryRow(a.GetContext(), `
 		SELECT domain, metadata
 		FROM potential_shops
 		WHERE id = $1
@@ -134,7 +134,7 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 	}
 
 	// Создаем магазин в таблице shops
-	_, err = tx.Exec(a.ctx, `
+	_, err = tx.Exec(a.GetContext(), `
 		INSERT INTO shops (id, name, code, base_url, selectors, rate_limit, is_active, is_auto_configured, ai_config_model, discovery_source, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
 	`, shopID, shopName, shopCode, baseURL, selectorsJSON, 1, true, true, "gpt-4o-mini", "google_search")
@@ -143,7 +143,7 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 	}
 
 	// Обновляем статус в potential_shops
-	_, err = tx.Exec(a.ctx, `
+	_, err = tx.Exec(a.GetContext(), `
 		UPDATE potential_shops
 		SET status = 'configured',
 		    updated_at = NOW()
@@ -155,13 +155,13 @@ func (a *autoconfigAdapter) MarkAsConfigured(id string, config autoconfig.ShopCo
 
 	// Сохраняем попытку конфигурации в shop_config_attempts
 	// Игнорируем ошибку, так как это не критично для основной операции
-	_, _ = tx.Exec(a.ctx, `
+	_, _ = tx.Exec(a.GetContext(), `
 		INSERT INTO shop_config_attempts (potential_shop_id, shop_id, ai_response, validation_result, status, created_at)
 		VALUES ($1, $2, $3, $4, 'success', NOW())
 	`, id, shopID, selectorsJSON, json.RawMessage(`{"validated": true}`))
 
 	// Коммитим транзакцию
-	if err := tx.Commit(a.ctx); err != nil {
+	if err := tx.Commit(a.GetContext()); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
@@ -180,14 +180,14 @@ func (a *autoconfigAdapter) MarkAsFailed(id string, reason string) error {
 		WHERE id = $1
 	`
 
-	_, err := a.pg.DB().Exec(a.ctx, query, id, reason, time.Now().Format(time.RFC3339))
+	_, err := a.pg.DB().Exec(a.GetContext(), query, id, reason, time.Now().Format(time.RFC3339))
 	if err != nil {
 		return fmt.Errorf("failed to mark as failed: %w", err)
 	}
 
 	// Сохраняем попытку конфигурации в shop_config_attempts
 	// Игнорируем ошибку INSERT - основной статус уже обновлен, попытка - это дополнительная информация
-	_, insertErr := a.pg.DB().Exec(a.ctx, `
+	_, insertErr := a.pg.DB().Exec(a.GetContext(), `
 		INSERT INTO shop_config_attempts (potential_shop_id, status, error_message, created_at)
 		VALUES ($1, 'failed', $2, NOW())
 	`, id, reason)
@@ -199,3 +199,4 @@ func (a *autoconfigAdapter) MarkAsFailed(id string, reason string) error {
 
 	return nil
 }
+

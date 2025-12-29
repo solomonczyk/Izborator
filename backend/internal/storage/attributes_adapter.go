@@ -33,7 +33,7 @@ func (a *AttributesAdapter) GetByID(id string) (*attributes.Attribute, error) {
 	`
 
 	var attr attributes.Attribute
-	err = a.pg.DB().QueryRow(a.ctx, query, attrUUID).Scan(
+	err = a.pg.DB().QueryRow(a.GetContext(), query, attrUUID).Scan(
 		&attr.ID,
 		&attr.Code,
 		&attr.NameSr,
@@ -62,7 +62,7 @@ func (a *AttributesAdapter) GetByCode(code string) (*attributes.Attribute, error
 	`
 
 	var attr attributes.Attribute
-	err := a.pg.DB().QueryRow(a.ctx, query, code).Scan(
+	err := a.pg.DB().QueryRow(a.GetContext(), query, code).Scan(
 		&attr.ID,
 		&attr.Code,
 		&attr.NameSr,
@@ -90,7 +90,7 @@ func (a *AttributesAdapter) GetAllActive() ([]*attributes.Attribute, error) {
 		ORDER BY code
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query)
+	rows, err := a.pg.DB().Query(a.GetContext(), query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get all attributes: %w", err)
 	}
@@ -130,7 +130,7 @@ func (a *AttributesAdapter) GetByProductTypeID(productTypeID string) ([]*attribu
 		ORDER BY sort_order
 	`
 
-	rows, err := a.pg.DB().Query(a.ctx, query, ptUUID)
+	rows, err := a.pg.DB().Query(a.GetContext(), query, ptUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attributes by product type: %w", err)
 	}
@@ -152,3 +152,4 @@ func (a *AttributesAdapter) GetByProductTypeID(productTypeID string) ([]*attribu
 
 	return result, nil
 }
+
