@@ -244,10 +244,17 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		score := 0
 
 		// ÃËœÃÂ³ÃÂ½ÃÂ¾Ã‘â‚¬ÃÂ¸Ã‘â‚¬Ã‘Æ’ÃÂµÃÂ¼ Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€ Ã‘â€¹ ÃÂºÃÂ¾ÃÂ»ÃÂ»ÃÂµÃÂºÃ‘â€ ÃÂ¸ÃÂ¹/ÃÂºÃÂ°Ã‘â€šÃÂµÃÂ³ÃÂ¾Ã‘â‚¬ÃÂ¸ÃÂ¹ (ÃÂ½ÃÂµ Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬Ã‘â€¹)
-		if strings.Contains(linkLower, "/collections/") || strings.Contains(linkLower, "/collection/") ||
-			strings.Contains(linkLower, "/category/") || strings.Contains(linkLower, "/kategorija/") ||
-			strings.Contains(linkLower, "/kategorije/") || strings.Contains(linkLower, "/categories/") {
-			return
+		// Проверяем паттерны категорий
+		categoryPatterns := []string{
+			"/collections/", "/collection/", "/category/", "/kategorija/",
+			"/kategorije/", "/categories/", "/product-category/", "/product_category/",
+			"/oznaka-proizvoda/", "/tag/", "/tags/", "/brend/", "/brand/",
+			"/proizvodjac/", "/manufacturer/", "/shop/", "/store/",
+		}
+		for _, pattern := range categoryPatterns {
+			if strings.Contains(linkLower, pattern) {
+				return // Это категория, пропускаем
+			}
 		}
 
 		// ÃÅ¡ÃÂ»Ã‘Å½Ã‘â€¡ÃÂµÃÂ²Ã‘â€¹ÃÂµ Ã‘ÂÃÂ»ÃÂ¾ÃÂ²ÃÂ° ÃÂ´ÃÂ»Ã‘Â Ã‘ÂÃ‘â€šÃ‘â‚¬ÃÂ°ÃÂ½ÃÂ¸Ã‘â€  Ã‘â€šÃÂ¾ÃÂ²ÃÂ°Ã‘â‚¬ÃÂ¾ÃÂ²
