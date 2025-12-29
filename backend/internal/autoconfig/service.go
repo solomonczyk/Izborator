@@ -248,8 +248,9 @@ func (s *Service) findProductPage(domain string, siteType string) (string, error
 		categoryPatterns := []string{
 			"/collections/", "/collection/", "/category/", "/kategorija/",
 			"/kategorije/", "/categories/", "/product-category/", "/product_category/",
-			"/oznaka-proizvoda/", "/tag/", "/tags/", "/brend/", "/brand/",
-			"/proizvodjac/", "/manufacturer/", "/shop/", "/store/",
+			"/kategorija-proizvoda/", "/oznaka-proizvoda/", "/tag/", "/tags/",
+			"/brend/", "/brand/", "/proizvodjac/", "/proizvodaci/", "/manufacturer/",
+			"/shop/", "/store/", "/online-prodavnica/", "/prodavnica/",
 		}
 		for _, pattern := range categoryPatterns {
 			if strings.Contains(linkLower, pattern) {
