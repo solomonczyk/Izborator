@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
@@ -18,6 +19,7 @@ import (
 	"github.com/solomonczyk/izborator/internal/pricehistory"
 	"github.com/solomonczyk/izborator/internal/products"
 	"github.com/solomonczyk/izborator/internal/scrapingstats"
+	"github.com/solomonczyk/izborator/internal/storage"
 )
 
 // Router обёртка над HTTP роутером
@@ -37,7 +39,7 @@ type Handlers struct {
 }
 
 // New создаёт новый роутер
-func New(log *logger.Logger, productsService *products.Service, priceHistoryService *pricehistory.Service, scrapingStatsService *scrapingstats.Service, categoriesService *categories.Service, citiesService *cities.Service, translator *i18n.Translator, redisClient *redis.Client) *Router {
+func New(log *logger.Logger, productsService *products.Service, priceHistoryService *pricehistory.Service, scrapingStatsService *scrapingstats.Service, categoriesService *categories.Service, citiesService *cities.Service, translator *i18n.Translator, db *storage.Postgres, redisClient *redis.Client) *Router {
 	r := chi.NewRouter()
 
 	// Базовые middleware
@@ -50,8 +52,18 @@ func New(log *logger.Logger, productsService *products.Service, priceHistoryServ
 	r.Use(middleware.Compress(5))
 
 	// Инициализация handlers
+	var pgPool *pgxpool.Pool
+	if db != nil {
+		pgPool = db.DB()
+	}
+
+	var redisPool *redis.Client
+	if redisClient != nil {
+		redisPool = redisClient
+	}
+
 	handlers := &Handlers{
-		Health:     handlers.NewHealthHandler(),
+		Health:     handlers.NewHealthHandler(pgPool, redisPool, log),
 		Products:   handlers.NewProductsHandler(productsService, priceHistoryService, categoriesService, citiesService, log, translator),
 		Stats:      handlers.NewStatsHandler(scrapingStatsService, log, translator),
 		Categories: handlers.NewCategoriesHandler(categoriesService, log, translator),
@@ -70,8 +82,11 @@ func New(log *logger.Logger, productsService *products.Service, priceHistoryServ
 
 // setupRoutes настраивает все роуты приложения
 func setupRoutes(r *chi.Mux, h *Handlers, translator *i18n.Translator, redisClient *redis.Client, log *logger.Logger) {
-	// Health check (не кэшируем)
+	// Health check endpoints
 	r.Get("/api/health", h.Health.Check)
+	r.Get("/api/health/live", h.Health.Alive)
+	r.Get("/api/health/ready", h.Health.Ready)
+	r.Get("/api/health/full", h.Health.Full)
 
 	// API v1 роуты
 	r.Route("/api/v1", func(api chi.Router) {

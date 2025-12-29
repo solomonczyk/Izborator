@@ -39,7 +39,7 @@ func main() {
 	if application.Redis() != nil {
 		redisClient = application.Redis().Client()
 	}
-	r := router.New(application.Logger(), application.ProductsService, application.PriceHistoryService, application.ScrapingStatsService, application.CategoriesService, application.CitiesService, application.GetTranslator(), redisClient)
+	r := router.New(application.Logger(), application.ProductsService, application.PriceHistoryService, application.ScrapingStatsService, application.CategoriesService, application.CitiesService, application.GetTranslator(), application.Postgres(), redisClient)
 
 	// Настройка HTTP сервера
 	srv := &http.Server{

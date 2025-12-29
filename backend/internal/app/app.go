@@ -80,6 +80,11 @@ func (a *App) Redis() *storage.Redis {
 	return a.redis
 }
 
+// Postgres возвращает PostgreSQL хранилище (может быть nil)
+func (a *App) Postgres() *storage.Postgres {
+	return a.pg
+}
+
 // GetTranslator возвращает переводчик
 func (a *App) GetTranslator() *i18n.Translator {
 	return a.Translator
