@@ -43,6 +43,7 @@ func main() {
 	processRaw := flag.Bool("process", false, "Run processor once")
 	batchSize := flag.Int("batch-size", 100, "Batch size for processing")
 	reindex := flag.Bool("reindex", false, "Run full reindex once")
+	discover := flag.Bool("discover", false, "Run catalog discovery once")
 
 	flag.Parse()
 
@@ -66,6 +67,11 @@ func main() {
 
 	if *reindex {
 		runReindex(ctx, application, log)
+		return
+	}
+
+	if *discover {
+		runCatalogDiscovery(ctx, application, log)
 		return
 	}
 
