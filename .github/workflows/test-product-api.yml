@@ -1,0 +1,59 @@
+name: Test Product API
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-api:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Test Product API Endpoints
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd /root/Izborator
+            
+            echo "=== 1. Get first Samsung product ID from DB ==="
+            PRODUCT_ID=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT id FROM products WHERE name ILIKE '%Samsung%' LIMIT 1;" | xargs)
+            echo "Product ID: $PRODUCT_ID"
+            
+            if [ -z "$PRODUCT_ID" ]; then
+              echo "❌ No Samsung products found!"
+              exit 1
+            fi
+            
+            echo ""
+            echo "=== 2. Backend health check ==="
+            docker-compose exec -T backend sh -c 'wget -q -O- http://localhost:8080/api/health 2>&1' || echo "Health check failed"
+            
+            echo ""
+            echo "=== 3. Test GET /api/v1/products/{id} ==="
+            echo "Testing: /api/v1/products/$PRODUCT_ID"
+            docker-compose exec -T backend sh -c "wget -q -O- http://localhost:8080/api/v1/products/$PRODUCT_ID 2>&1 | head -500" || echo "API call failed"
+            
+            echo ""
+            echo "=== 4. Backend logs (last 30 lines) ==="
+            docker-compose logs --tail=30 backend
+            
+            echo ""
+            echo "=== 5. Check if products have prices ==="
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "
+              SELECT p.id, p.name, COUNT(pr.id) as price_count 
+              FROM products p 
+              LEFT JOIN product_prices pr ON p.id = pr.product_id 
+              WHERE p.name ILIKE '%Samsung%'
+              GROUP BY p.id, p.name
+              LIMIT 5;
+            "
+            
+          EOF
