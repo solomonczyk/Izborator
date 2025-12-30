@@ -1,0 +1,45 @@
+name: Check Backend Logs
+
+on:
+  workflow_dispatch:  # Ручной запуск
+
+jobs:
+  check-logs:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Check backend logs and health
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd /root/Izborator
+            
+            echo "=== Backend Container Status ==="
+            docker-compose ps backend
+            
+            echo ""
+            echo "=== Last 100 Backend Logs ==="
+            docker-compose logs --tail=100 backend
+            
+            echo ""
+            echo "=== Testing API Health ==="
+            curl -v http://localhost:8080/api/health 2>&1 | head -30
+            
+            echo ""
+            echo "=== Testing Search API ==="
+            curl -v "http://localhost:8080/api/v1/products/search?q=Samsung" 2>&1 | head -50
+            
+            echo ""
+            echo "=== Checking Database Connection ==="
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "SELECT COUNT(*) as product_count FROM products;"
+            
+          EOF
