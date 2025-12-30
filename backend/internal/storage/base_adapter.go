@@ -97,7 +97,7 @@ func (a *BaseAdapter) LogError(operation string, err error, details map[string]i
 
 // GetContext возвращает контекст адаптера
 func (a *BaseAdapter) GetContext() context.Context {
-	return a.GetContext()
+	return a.ctx
 }
 
 // GetLogger возвращает логгер адаптера
