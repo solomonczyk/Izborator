@@ -63,12 +63,13 @@ jobs:
             echo "🛑 Stopping old containers..."
             docker-compose down || true
             
-            # Явно удаляем старый nginx контейнер (классика деплоя!)
-            echo "🔍 Removing old nginx container..."
-            docker rm -f izborator_nginx || true
+            # Явно удаляем все контейнеры приложения
+            echo "🔍 Removing all app containers..."
+            docker rm -f izborator_backend izborator_frontend izborator_nginx izborator_postgres izborator_meilisearch izborator_redis izborator_influx || true
             
-            # Удаляем любые другие nginx контейнеры
-            docker ps -a --filter "name=nginx" --format "{{.ID}}" | xargs -r docker rm -f || true
+            # Проверяем что контейнеры удалены
+            echo "Verifying containers removed..."
+            docker ps -a | grep izborator || echo "All izborator containers removed"
             
             # Останавливаем системный Nginx (если запущен), чтобы освободить порты 80/443
             echo "🔍 Checking system nginx..."
