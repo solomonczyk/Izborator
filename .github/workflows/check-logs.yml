@@ -27,19 +27,27 @@ jobs:
             docker-compose ps backend
             
             echo ""
-            echo "=== Last 100 Backend Logs ==="
-            docker-compose logs --tail=100 backend
+            echo "=== Last 200 Backend Logs ==="
+            docker-compose logs --tail=200 backend | tail -100
             
             echo ""
-            echo "=== Testing API Health ==="
-            curl -v http://localhost:8080/api/health 2>&1 | head -30
+            echo "=== Testing API Health (via docker) ==="
+            docker-compose exec -T backend curl -s http://localhost:8080/api/health | jq . 2>/dev/null || docker-compose exec -T backend curl -s http://localhost:8080/api/health
             
             echo ""
-            echo "=== Testing Search API ==="
-            curl -v "http://localhost:8080/api/v1/products/search?q=Samsung" 2>&1 | head -50
+            echo "=== Testing Search API (via docker) ==="
+            docker-compose exec -T backend curl -s "http://localhost:8080/api/v1/products/search?q=Samsung" | jq . 2>/dev/null || docker-compose exec -T backend curl -s "http://localhost:8080/api/v1/products/search?q=Samsung"
             
             echo ""
-            echo "=== Checking Database Connection ==="
+            echo "=== Testing Get Product by ID (first Samsung product) ==="
+            FIRST_PRODUCT_ID=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT id FROM products WHERE name ILIKE '%Samsung%' LIMIT 1;")
+            echo "First Samsung product ID: $FIRST_PRODUCT_ID"
+            if [ ! -z "$FIRST_PRODUCT_ID" ]; then
+              docker-compose exec -T backend curl -s "http://localhost:8080/api/v1/products/$FIRST_PRODUCT_ID" | jq . 2>/dev/null || docker-compose exec -T backend curl -s "http://localhost:8080/api/v1/products/$FIRST_PRODUCT_ID"
+            fi
+            
+            echo ""
+            echo "=== Database Stats ==="
             docker-compose exec -T postgres psql -U postgres -d izborator -c "SELECT COUNT(*) as product_count FROM products;"
             
           EOF
