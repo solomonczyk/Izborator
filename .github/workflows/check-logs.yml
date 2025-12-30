@@ -27,27 +27,15 @@ jobs:
             docker-compose ps backend
             
             echo ""
-            echo "=== Last 200 Backend Logs ==="
-            docker-compose logs --tail=200 backend | tail -100
-            
-            echo ""
-            echo "=== Testing API Health (via docker) ==="
-            docker-compose exec -T backend curl -s http://localhost:8080/api/health | jq . 2>/dev/null || docker-compose exec -T backend curl -s http://localhost:8080/api/health
-            
-            echo ""
-            echo "=== Testing Search API (via docker) ==="
-            docker-compose exec -T backend curl -s "http://localhost:8080/api/v1/products/search?q=Samsung" | jq . 2>/dev/null || docker-compose exec -T backend curl -s "http://localhost:8080/api/v1/products/search?q=Samsung"
-            
-            echo ""
-            echo "=== Testing Get Product by ID (first Samsung product) ==="
-            FIRST_PRODUCT_ID=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -c "SELECT id FROM products WHERE name ILIKE '%Samsung%' LIMIT 1;")
-            echo "First Samsung product ID: $FIRST_PRODUCT_ID"
-            if [ ! -z "$FIRST_PRODUCT_ID" ]; then
-              docker-compose exec -T backend curl -s "http://localhost:8080/api/v1/products/$FIRST_PRODUCT_ID" | jq . 2>/dev/null || docker-compose exec -T backend curl -s "http://localhost:8080/api/v1/products/$FIRST_PRODUCT_ID"
-            fi
+            echo "=== Last 100 Backend Logs ==="
+            docker-compose logs --tail=100 backend
             
             echo ""
             echo "=== Database Stats ==="
             docker-compose exec -T postgres psql -U postgres -d izborator -c "SELECT COUNT(*) as product_count FROM products;"
+            
+            echo ""
+            echo "=== Meilisearch Index Stats ==="
+            docker-compose exec -T meilisearch curl -s http://localhost:7700/indexes/products/stats | jq . 2>/dev/null || echo "Meilisearch check skipped"
             
           EOF
