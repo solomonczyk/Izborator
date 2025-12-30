@@ -1,0 +1,101 @@
+name: Load Test Products
+
+on:
+  workflow_dispatch:  # Ручной запуск
+
+jobs:
+  load-products:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Load test products and reindex
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            set -e
+            cd /root/Izborator
+            
+            echo "📦 Loading test products to production database..."
+            
+            # 1. Загружаем тестовые товары в PostgreSQL
+            echo "1️⃣  Loading test data into PostgreSQL..."
+            docker-compose exec -T postgres psql -U postgres -d izborator << 'SQLEOF'
+            
+            -- Очищаем старые тестовые товары (если есть)
+            DELETE FROM products WHERE id LIKE 'aaaaaaaa%' OR id LIKE 'bbbbbbbb%' OR id LIKE 'cccccccc%' OR id LIKE 'dddddddd%';
+            
+            -- Загружаем новые тестовые товары
+            INSERT INTO products (id, name, description, brand, category, category_id, image_url, specs, created_at, updated_at)
+            VALUES
+              ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Nike Air Max 90', 'Классические кроссовки Nike Air Max 90 с амортизацией Air', 'Nike', 'Sport i rekreacija', '55555555-5555-5555-5555-555555555555', 'https://placehold.co/400x400/000000/FFFFFF?text=Nike+Air+Max+90', '{"size": "42", "color": "Black/White"}'::jsonb, NOW(), NOW()),
+              ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Samsung Galaxy S24', 'Флагманский смартфон Samsung с камерой 200MP', 'Samsung', 'Mobilni telefoni', '11111111-1111-1111-1111-111111111201', 'https://placehold.co/400x400/000000/FFFFFF.png?text=Samsung+Galaxy+S24', '{"storage": "256GB", "ram": "8GB"}'::jsonb, NOW(), NOW()),
+              ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'Lenovo IdeaPad 3', 'Ноутбук Lenovo IdeaPad 3 с процессором AMD Ryzen 5', 'Lenovo', 'Laptopovi', '11111111-1111-1111-1111-111111111202', 'https://placehold.co/400x400/000000/FFFFFF.png?text=Lenovo+IdeaPad+3', '{"cpu": "AMD Ryzen 5", "ram": "8GB"}'::jsonb, NOW(), NOW()),
+              ('dddddddd-dddd-dddd-dddd-dddddddddddd', 'Samsung 55\" QLED TV', 'Телевизор Samsung 55 дюймов с технологией QLED', 'Samsung', 'Televizori', '11111111-1111-1111-1111-111111111203', 'https://placehold.co/400x400/000000/FFFFFF.png?text=Samsung+55+QLED', '{"size": "55 inch", "resolution": "4K UHD"}'::jsonb, NOW(), NOW())
+            ON CONFLICT (id) DO UPDATE SET updated_at = NOW();
+            
+            SQLEOF
+            
+            echo "✅ Test products loaded!"
+            
+            # 2. Проверяем что товары в БД
+            echo ""
+            echo "2️⃣  Verifying products in PostgreSQL..."
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "SELECT COUNT(*) as product_count FROM products WHERE id LIKE '%aaaa%' OR id LIKE '%bbbb%' OR id LIKE '%cccc%' OR id LIKE '%dddd%';"
+            
+            # 3. Переиндексируем Meilisearch
+            echo ""
+            echo "3️⃣  Re-indexing Meilisearch..."
+            cd /root/Izborator/backend
+            go run cmd/indexer/main.go -reindex
+            
+            if [ $? -eq 0 ]; then
+              echo "✅ Re-indexing completed!"
+            else
+              echo "⚠️ Re-indexing failed"
+              exit 1
+            fi
+            
+            # 4. Проверяем Meilisearch индекс
+            echo ""
+            echo "4️⃣  Checking Meilisearch index..."
+            curl -s http://meilisearch:7700/indexes/products/stats | jq . || echo "Could not reach Meilisearch"
+            
+            # 5. Тестируем поиск
+            echo ""
+            echo "5️⃣  Testing search..."
+            RESULT=$(curl -s "http://backend:8080/api/v1/products/search?q=Samsung" | jq '.[] | length' 2>/dev/null || echo "0")
+            echo "Search result count: $RESULT"
+            
+            if [ "$RESULT" -gt "0" ]; then
+              echo "✅ Search is working! Found Samsung products."
+            else
+              echo "⚠️ Search returned no results"
+            fi
+            
+            echo ""
+            echo "🎉 Test data loading completed!"
+          
+          EOF
+
+      - name: Verify on production
+        run: |
+          ssh root@${{ secrets.SERVER_HOST }} << 'EOF'
+            echo ""
+            echo "🔍 Final verification:"
+            echo ""
+            echo "Products in database:"
+            docker-compose exec -T postgres psql -U postgres -d izborator -c "SELECT id, name FROM products WHERE id LIKE '%aaaa%' LIMIT 5;"
+            echo ""
+            echo "Try searching at: https://152.53.227.37/en/catalog?q=Samsung"
+          EOF
