@@ -36,7 +36,11 @@ func (h *HealthHandler) Check(w http.ResponseWriter, r *http.Request) {
 		"timestamp": time.Now().Unix(),
 	}
 
-	response.WriteSuccess(w, status)
+	if err := response.WriteSuccess(w, status); err != nil {
+		h.log.Error("Failed to write health check response", map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
 }
 
 // Alive обрабатывает liveness probe (быстрая проверка что сервис живой)
@@ -47,7 +51,11 @@ func (h *HealthHandler) Alive(w http.ResponseWriter, r *http.Request) {
 		"timestamp": time.Now().Unix(),
 	}
 
-	response.WriteSuccess(w, status)
+	if err := response.WriteSuccess(w, status); err != nil {
+		h.log.Error("Failed to write liveness response", map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
 }
 
 // Ready обрабатывает readiness probe (проверка готовности к принятию трафика)
