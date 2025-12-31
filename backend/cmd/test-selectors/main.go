@@ -2,105 +2,197 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gocolly/colly/v2"
 	"github.com/gocolly/colly/v2/extensions"
+	"github.com/joho/godotenv"
+	"github.com/solomonczyk/izborator/internal/config"
+	"github.com/solomonczyk/izborator/internal/logger"
 )
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("Usage: go run main.go <URL>")
+		fmt.Println("Использование: go run cmd/test-selectors/main.go <URL> [selector]")
+		fmt.Println("Пример: go run cmd/test-selectors/main.go https://gigatron.rs/mobilni-telefoni-tableti-i-oprema/mobilni-telefoni")
+		os.Exit(1)
 	}
+
 	url := os.Args[1]
+	selector := ".product-box a, .product-item a, .product-card a, .product-title a, article a, .item a"
+	if len(os.Args) > 2 {
+		selector = os.Args[2]
+	}
+
+	_ = godotenv.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		fmt.Printf("❌ Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+
+	log := logger.New(cfg.LogLevel)
+
+	fmt.Println("=" + strings.Repeat("=", 80))
+	fmt.Printf("🔍 ТЕСТИРОВАНИЕ СЕЛЕКТОРОВ\n")
+	fmt.Println("=" + strings.Repeat("=", 80))
+	fmt.Printf("URL: %s\n", url)
+	fmt.Printf("Selector: %s\n", selector)
+	fmt.Println()
+
+	var foundLinks []string
+	var foundTexts []string
+	var statusCode int
+	var errorMsg string
 
 	c := colly.NewCollector(
 		colly.UserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
 		colly.IgnoreRobotsTxt(),
 	)
-
-	c.SetRequestTimeout(60)
-
+	c.SetRequestTimeout(30 * time.Second)
 	extensions.RandomUserAgent(c)
 	extensions.Referer(c)
 
-	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8")
-		r.Headers.Set("Accept-Language", "sr-RS,sr;q=0.9,en-US;q=0.8,en;q=0.7")
-		r.Headers.Set("Accept-Encoding", "gzip, deflate, br")
-		r.Headers.Set("Connection", "keep-alive")
-		r.Headers.Set("Upgrade-Insecure-Requests", "1")
-	})
-
-	c.OnHTML("h1", func(e *colly.HTMLElement) {
-		fmt.Printf("H1 found: %s\n", strings.TrimSpace(e.Text))
-		fmt.Printf("  Classes: %s\n", e.Attr("class"))
-	})
-
-	c.OnHTML(".price", func(e *colly.HTMLElement) {
-		fmt.Printf("Price (.price): %s\n", strings.TrimSpace(e.Text))
-	})
-
-	c.OnHTML("[data-price-type]", func(e *colly.HTMLElement) {
-		fmt.Printf("Price (data-price-type): %s, type: %s\n", strings.TrimSpace(e.Text), e.Attr("data-price-type"))
-	})
-
-	c.OnHTML("script[type='application/ld+json']", func(e *colly.HTMLElement) {
-		fmt.Printf("JSON-LD found (length: %d)\n", len(e.Text))
-		if strings.Contains(e.Text, "price") {
-			fmt.Printf("  Contains 'price': YES\n")
-			// Ищем цену в JSON
-			idx := strings.Index(e.Text, `"price"`)
-			if idx > 0 {
-				start := idx - 50
-				if start < 0 {
-					start = 0
-				}
-				end := idx + 100
-				if end > len(e.Text) {
-					end = len(e.Text)
-				}
-				fmt.Printf("  Context: %s\n", e.Text[start:end])
-			}
-		}
-	})
-
 	c.OnResponse(func(r *colly.Response) {
-		html := string(r.Body)
-		fmt.Printf("\n=== HTML Analysis ===\n")
-		fmt.Printf("Status: %d\n", r.StatusCode)
-		fmt.Printf("HTML Length: %d\n", len(html))
+		statusCode = r.StatusCode
+		log.Info("Response received", map[string]interface{}{
+			"status_code": statusCode,
+			"content_length": len(r.Body),
+		})
+	})
 
-		// Ищем название
-		if strings.Contains(html, "Dell Laptop XPS") {
-			fmt.Printf("Found 'Dell Laptop XPS' in HTML\n")
-			idx := strings.Index(html, "Dell Laptop XPS")
-			start := idx - 100
-			if start < 0 {
-				start = 0
+	c.OnHTML(selector, func(e *colly.HTMLElement) {
+		href := e.Attr("href")
+		text := strings.TrimSpace(e.Text)
+		
+		if href != "" {
+			// Преобразуем относительные URL в абсолютные
+			if strings.HasPrefix(href, "/") {
+				baseURL := strings.Split(url, "/")[0] + "//" + strings.Split(url, "/")[2]
+				href = baseURL + href
+			} else if !strings.HasPrefix(href, "http") {
+				baseURL := strings.TrimSuffix(url, "/")
+				href = baseURL + "/" + href
 			}
-			end := idx + 200
-			if end > len(html) {
-				end = len(html)
-			}
-			fmt.Printf("Context: %s\n", html[start:end])
+			foundLinks = append(foundLinks, href)
 		}
-
-		// Ищем цену
-		if strings.Contains(html, "RSD") || strings.Contains(html, "din") {
-			fmt.Printf("Found price indicators (RSD/din)\n")
+		
+		if text != "" {
+			foundTexts = append(foundTexts, text)
 		}
 	})
 
 	c.OnError(func(r *colly.Response, err error) {
-		fmt.Printf("Error: %v (Status: %d)\n", err, r.StatusCode)
+		errorMsg = err.Error()
+		log.Error("Request failed", map[string]interface{}{
+			"url": r.Request.URL.String(),
+			"error": err.Error(),
+			"status_code": r.StatusCode,
+		})
 	})
 
-	fmt.Printf("Fetching: %s\n\n", url)
-	if err := c.Visit(url); err != nil {
-		log.Fatal(err)
+	// Собираем все ссылки для анализа структуры
+	var allLinks []string
+	c.OnHTML("a[href]", func(e *colly.HTMLElement) {
+		href := e.Attr("href")
+		if href != "" && !strings.HasPrefix(href, "#") && !strings.HasPrefix(href, "javascript:") {
+			if strings.HasPrefix(href, "/") {
+				baseURL := strings.Split(url, "/")[0] + "//" + strings.Split(url, "/")[2]
+				href = baseURL + href
+			} else if !strings.HasPrefix(href, "http") {
+				baseURL := strings.TrimSuffix(url, "/")
+				href = baseURL + "/" + href
+			}
+			allLinks = append(allLinks, href)
+		}
+	})
+
+	err = c.Visit(url)
+	if err != nil {
+		fmt.Printf("❌ Ошибка при загрузке страницы: %v\n", err)
+		if errorMsg != "" {
+			fmt.Printf("   Детали: %s\n", errorMsg)
+		}
+		os.Exit(1)
+	}
+
+	fmt.Println("📊 РЕЗУЛЬТАТЫ:")
+	fmt.Printf("   HTTP Status: %d\n", statusCode)
+	if statusCode == 403 {
+		fmt.Println("   ⚠️  Forbidden - сайт блокирует запросы")
+		fmt.Println("   💡 Возможные решения:")
+		fmt.Println("      - Добавить больше заголовков (Accept, Accept-Language)")
+		fmt.Println("      - Использовать прокси")
+		fmt.Println("      - Увеличить задержку между запросами")
+	}
+	fmt.Printf("   Найдено ссылок по селектору: %d\n", len(foundLinks))
+	fmt.Printf("   Найдено текстов: %d\n", len(foundTexts))
+	fmt.Println()
+
+	if len(foundLinks) > 0 {
+		fmt.Println("✅ НАЙДЕННЫЕ ССЫЛКИ (первые 10):")
+		max := 10
+		if len(foundLinks) < max {
+			max = len(foundLinks)
+		}
+		for i, link := range foundLinks[:max] {
+			fmt.Printf("   %d. %s\n", i+1, link)
+		}
+		if len(foundLinks) > max {
+			fmt.Printf("   ... и еще %d ссылок\n", len(foundLinks)-max)
+		}
+		fmt.Println()
+	} else {
+		fmt.Println("❌ Ссылки не найдены!")
+		fmt.Println()
+		fmt.Println("💡 ВОЗМОЖНЫЕ ПРИЧИНЫ:")
+		fmt.Println("   1. Селектор не соответствует структуре HTML")
+		fmt.Println("   2. Страница загружается динамически (JavaScript)")
+		fmt.Println("   3. Сайт блокирует запросы (403 Forbidden)")
+		fmt.Println("   4. Неправильный URL")
+		fmt.Println()
+		fmt.Println("🔧 РЕКОМЕНДАЦИИ:")
+		fmt.Println("   1. Проверьте HTML страницы в браузере (F12)")
+		fmt.Println("   2. Попробуйте другие селекторы:")
+		fmt.Println("      - 'a[href*=\"/product/\"]'")
+		fmt.Println("      - '.product a'")
+		fmt.Println("      - 'article a'")
+		fmt.Println("      - '.item a'")
+		fmt.Println("   3. Используйте более общие селекторы для начала")
+	}
+
+	if len(foundTexts) > 0 {
+		fmt.Println("📝 НАЙДЕННЫЕ ТЕКСТЫ (первые 5):")
+		max := 5
+		if len(foundTexts) < max {
+			max = len(foundTexts)
+		}
+		for i, text := range foundTexts[:max] {
+			if len(text) > 60 {
+				text = text[:60] + "..."
+			}
+			fmt.Printf("   %d. %s\n", i+1, text)
+		}
+		fmt.Println()
+	}
+
+	// Показываем примеры всех ссылок для анализа структуры
+	if len(foundLinks) == 0 && len(allLinks) > 0 {
+		fmt.Println("🔍 АНАЛИЗ: Селектор не нашел ссылки, но на странице есть ссылки:")
+		fmt.Printf("   Всего ссылок на странице: %d\n", len(allLinks))
+		fmt.Println("   Примеры ссылок (первые 10):")
+		max := 10
+		if len(allLinks) < max {
+			max = len(allLinks)
+		}
+		for i, link := range allLinks[:max] {
+			// Показываем только ссылки, которые могут быть товарами
+			if strings.Contains(link, "mobilni-telefoni") || strings.Contains(link, "product") || strings.Contains(link, "proizvod") {
+				fmt.Printf("   %d. %s\n", i+1, link)
+			}
+		}
+		fmt.Println()
 	}
 }
-

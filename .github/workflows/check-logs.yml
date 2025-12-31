@@ -27,8 +27,21 @@ jobs:
             docker-compose ps backend
             
             echo ""
-            echo "=== Last 100 Backend Logs ==="
-            docker-compose logs --tail=100 backend
+            echo "=== Get first available product ==="
+            PRODUCT_ID=$(docker-compose exec -T postgres psql -U postgres -d izborator -t -A -c "SELECT id FROM products ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST, id LIMIT 1;" | xargs)
+            echo "Product ID: $PRODUCT_ID"
+            
+            if [ -z "$PRODUCT_ID" ]; then
+              echo "No products found. Skipping API check."
+            else
+              echo ""
+              echo "=== Testing GET /api/v1/products/{id} ==="
+              docker-compose exec -T backend sh -c "if command -v wget >/dev/null 2>&1; then wget -q -O- http://localhost:8080/api/v1/products/$PRODUCT_ID 2>&1 | head -1000; elif command -v curl >/dev/null 2>&1; then curl -fsS http://localhost:8080/api/v1/products/$PRODUCT_ID | head -1000; else echo 'No HTTP client (wget/curl) in backend container'; exit 2; fi" || echo "Request failed"
+            fi
+            
+            echo ""
+            echo "=== Last 50 Backend Logs ==="
+            docker-compose logs --tail=50 backend
             
             echo ""
             echo "=== Database Stats ==="
@@ -36,6 +49,6 @@ jobs:
             
             echo ""
             echo "=== Meilisearch Index Stats ==="
-            docker-compose exec -T meilisearch curl -s http://localhost:7700/indexes/products/stats | jq . 2>/dev/null || echo "Meilisearch check skipped"
+            docker-compose exec -T meilisearch sh -c "if command -v wget >/dev/null 2>&1; then wget -q -O- http://localhost:7700/indexes/products/stats 2>&1 | head -1000; elif command -v curl >/dev/null 2>&1; then curl -s http://localhost:7700/indexes/products/stats | head -1000; else echo 'No HTTP client (wget/curl) in meilisearch container'; exit 2; fi" || echo "Meilisearch check skipped"
             
           EOF
