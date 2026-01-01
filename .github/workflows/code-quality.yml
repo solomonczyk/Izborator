@@ -75,8 +75,16 @@ jobs:
         working-directory: ./backend
         run: |
           echo "🧪 Running tests..."
-          go test -v -race -coverprofile=coverage.out ./...
+          set -o pipefail
+          go test -v -race -coverprofile=coverage.out ./... | tee test-output.log
           echo "✅ Tests passed"
+      - name: Check quality gates in test output
+        working-directory: ./backend
+        run: |
+          if grep -n "scrapingstats: quality gate failed" test-output.log; then
+            echo "Quality gate failed"
+            exit 1
+          fi
 
       - name: Upload coverage
         if: always()

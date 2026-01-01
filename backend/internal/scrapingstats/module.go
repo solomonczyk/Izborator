@@ -1,6 +1,9 @@
 package scrapingstats
 
 import (
+	"sync"
+
+	"github.com/solomonczyk/izborator/internal/config"
 	"github.com/solomonczyk/izborator/internal/logger"
 )
 
@@ -24,15 +27,22 @@ type Storage interface {
 
 // Service сервис для работы со статистикой парсинга
 type Service struct {
-	storage Storage
-	logger  *logger.Logger
+	storage          Storage
+	logger           *logger.Logger
+	semanticMu        sync.Mutex
+	semanticAgg       map[string]*semanticAggregate
+	semanticLogEvery int64
+	qualityGates      config.QualityGatesConfig
 }
 
 // New создаёт новый сервис статистики
-func New(storage Storage, log *logger.Logger) *Service {
+func New(storage Storage, log *logger.Logger, gates config.QualityGatesConfig) *Service {
 	return &Service{
-		storage: storage,
-		logger:  log,
+		storage:          storage,
+		logger:           log,
+		semanticAgg:       make(map[string]*semanticAggregate),
+		semanticLogEvery: 100,
+		qualityGates:      gates,
 	}
 }
 

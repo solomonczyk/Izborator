@@ -113,6 +113,7 @@ func setupRoutes(r *chi.Mux, h *Handlers, translator *i18n.Translator, redisClie
 		api.Route("/products", func(pr chi.Router) {
 			// Кэширование для популярных endpoints
 			// Browse - 5 минут (часто меняется)
+			pr.With(httpMiddleware.CacheMiddleware(redisClient, log, 5*time.Minute)).Get("/facets", h.Products.Facets)
 			pr.With(httpMiddleware.CacheMiddleware(redisClient, log, 5*time.Minute)).Get("/browse", h.Products.Browse)
 			// Search - 5 минут
 			pr.With(httpMiddleware.CacheMiddleware(redisClient, log, 5*time.Minute)).Get("/search", h.Products.Search)

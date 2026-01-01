@@ -26,6 +26,10 @@ func (m *mockRawStorage) MarkRawProductAsProcessed(shopID, externalID string) er
 	return nil
 }
 
+func (m *mockRawStorage) GetShopDefaultCityID(shopID string) (*string, error) {
+	return nil, nil
+}
+
 type mockProcessedStorage struct {
 	products []*products.Product
 }
@@ -141,7 +145,7 @@ func TestProcessRawProducts_NoMatches(t *testing.T) {
 		},
 	}
 
-	service := New(rawStorage, processedStorage, matching, nil)
+	service := New(rawStorage, processedStorage, matching, nil, nil)
 
 	ctx := context.Background()
 	count, err := service.ProcessRawProducts(ctx, 10)
@@ -189,7 +193,7 @@ func TestProcessRawProducts_WithMatches(t *testing.T) {
 		},
 	}
 
-	service := New(rawStorage, processedStorage, matching, nil)
+	service := New(rawStorage, processedStorage, matching, nil, nil)
 
 	ctx := context.Background()
 	count, err := service.ProcessRawProducts(ctx, 10)
@@ -210,7 +214,7 @@ func TestProcessRawProducts_EmptyBatch(t *testing.T) {
 	processedStorage := &mockProcessedStorage{}
 	matching := &mockMatching{}
 
-	service := New(rawStorage, processedStorage, matching, nil)
+	service := New(rawStorage, processedStorage, matching, nil, nil)
 
 	ctx := context.Background()
 	count, err := service.ProcessRawProducts(ctx, 10)
@@ -240,7 +244,7 @@ func TestProcessRawProducts_BatchSizeLimit(t *testing.T) {
 	processedStorage := &mockProcessedStorage{}
 	matching := &mockMatching{}
 
-	service := New(rawStorage, processedStorage, matching, nil)
+	service := New(rawStorage, processedStorage, matching, nil, nil)
 
 	ctx := context.Background()
 	// Запрос с batchSize > 100 должен быть ограничен до 100
@@ -271,7 +275,7 @@ func TestProcessRawProducts_InvalidBatchSize(t *testing.T) {
 	processedStorage := &mockProcessedStorage{}
 	matching := &mockMatching{}
 
-	service := New(rawStorage, processedStorage, matching, nil)
+	service := New(rawStorage, processedStorage, matching, nil, nil)
 
 	ctx := context.Background()
 	// Отрицательный batchSize должен быть заменен на 10
@@ -304,7 +308,7 @@ func TestProcessRawProducts_MatchingError(t *testing.T) {
 		matchError: fmt.Errorf("matching service unavailable"),
 	}
 
-	service := New(rawStorage, processedStorage, matching, nil)
+	service := New(rawStorage, processedStorage, matching, nil, nil)
 
 	ctx := context.Background()
 	// Должен создать новый товар при ошибке matching
@@ -346,7 +350,7 @@ func TestProcessRawProducts_LowSimilarity(t *testing.T) {
 		},
 	}
 
-	service := New(rawStorage, processedStorage, matching, nil)
+	service := New(rawStorage, processedStorage, matching, nil, nil)
 
 	ctx := context.Background()
 	count, err := service.ProcessRawProducts(ctx, 10)

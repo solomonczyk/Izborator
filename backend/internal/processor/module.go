@@ -11,6 +11,7 @@ import (
 type RawStorage interface {
 	GetUnprocessedRawProducts(limit int) ([]*scraper.RawProduct, error)
 	MarkRawProductAsProcessed(shopID, externalID string) error
+	GetShopDefaultCityID(shopID string) (*string, error)
 }
 
 // ProcessedStorage интерфейс для записи обработанных данных
@@ -25,11 +26,16 @@ type Matching interface {
 	MatchProduct(req *matching.MatchRequest) (*matching.MatchResult, error)
 }
 
+type SemanticValidationRecorder interface {
+	RecordSemanticValidation(result SemanticValidationResult)
+}
+
 // Service сервис для обработки сырых данных
 type Service struct {
 	rawStorage       RawStorage
 	processedStorage ProcessedStorage
 	matching         Matching
+	semanticRecorder SemanticValidationRecorder
 	logger           *logger.Logger
 }
 
@@ -38,6 +44,7 @@ func New(
 	rawStorage RawStorage,
 	processedStorage ProcessedStorage,
 	matching Matching,
+	semanticRecorder SemanticValidationRecorder,
 	log *logger.Logger,
 ) *Service {
 	if log == nil {
@@ -47,6 +54,7 @@ func New(
 		rawStorage:       rawStorage,
 		processedStorage: processedStorage,
 		matching:         matching,
+		semanticRecorder: semanticRecorder,
 		logger:           log,
 	}
 }

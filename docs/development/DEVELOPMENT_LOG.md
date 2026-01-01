@@ -7,6 +7,25 @@
 
 
 ---
+### 2026-01-01 - Critical Path: semantic validation + quality gates + facet schema
+
+**Date:** 2026-01-01  
+**Time:** 17:30
+
+**What changed:**
+- Processor: present_semantic[] + SemanticValidationResult with goods/services split.
+- Scrapingstats: valid_rate, semantic_coverage, quality_score + in-memory gating.
+- Config: QualityGates defaults for goods/services.
+- CI: hard-fail on "scrapingstats: quality gate failed".
+- New endpoint `/api/v1/products/facets?type=goods|services` (schema-only).
+- Added QUALITY_CONTRACT_v1.md.
+
+**Result:**
+- Critical Path (validation + metrics + CI gates) closed.
+- UI can move to facet schema without string-match.
+
+---
+
 
 ### 2026-01-01 - Проверка /browse с категориями (Шаг 2)
 

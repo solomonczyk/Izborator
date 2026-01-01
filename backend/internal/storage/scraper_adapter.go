@@ -234,6 +234,27 @@ func (a *ScraperAdapter) ListShops() ([]*scraper.ShopConfig, error) {
 	return shops, nil
 }
 
+// GetShopDefaultCityID returns default city id for a shop.
+func (a *ScraperAdapter) GetShopDefaultCityID(shopID string) (*string, error) {
+	query := `
+		SELECT
+			default_city_id
+		FROM shops
+		WHERE id = $1
+	`
+
+	var cityID *string
+	err := a.pg.DB().QueryRow(a.GetContext(), query, shopID).Scan(&cityID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("shop not found: %w", err)
+		}
+		return nil, fmt.Errorf("failed to get shop default city id: %w", err)
+	}
+
+	return cityID, nil
+}
+
 // GetUnprocessedRawProducts возвращает батч необработанных сырых товаров
 func (a *ScraperAdapter) GetUnprocessedRawProducts(limit int) ([]*scraper.RawProduct, error) {
 	query := `

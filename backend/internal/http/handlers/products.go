@@ -34,6 +34,16 @@ type BrowseRequest struct {
 	Sort     string   `json:"sort" validate:"omitempty,oneof=price_asc price_desc name_asc name_desc newest"`
 }
 
+type FacetDefinition struct {
+	SemanticType string `json:"semantic_type"`
+	FacetType    string `json:"facet_type"`
+}
+
+type FacetSchemaResponse struct {
+	Domain string            `json:"domain"`
+	Facets []FacetDefinition `json:"facets"`
+}
+
 // ProductsHandler обработчик для работы с товарами
 type ProductsHandler struct {
 	*BaseHandler
@@ -360,6 +370,44 @@ func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 
 // Browse обрабатывает каталог товаров с фильтрами
 // GET /api/v1/products/browse?query=motorola&category=phones&min_price=10000&max_price=30000&shop_id=...&page=1&per_page=20&sort=price_asc
+// Facets returns facet schema for a domain.
+// GET /api/v1/products/facets?type=goods|services
+func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
+	domain := validation.SanitizeString(r.URL.Query().Get("type"))
+	if domain == "" {
+		appErr := appErrors.NewValidationError("type is required", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+	if domain != "goods" && domain != "services" {
+		appErr := appErrors.NewValidationError("type must be goods or services", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+
+	var facets []FacetDefinition
+	if domain == "goods" {
+		facets = []FacetDefinition{
+			{SemanticType: "price", FacetType: "range"},
+			{SemanticType: "category", FacetType: "enum"},
+			{SemanticType: "location", FacetType: "enum"},
+		}
+	} else {
+		facets = []FacetDefinition{
+			{SemanticType: "category", FacetType: "enum"},
+			{SemanticType: "location", FacetType: "enum"},
+			{SemanticType: "duration", FacetType: "range"},
+			{SemanticType: "price", FacetType: "range"},
+		}
+	}
+
+	resp := FacetSchemaResponse{
+		Domain: domain,
+		Facets: facets,
+	}
+	h.RespondJSON(w, http.StatusOK, resp)
+}
+
 func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 

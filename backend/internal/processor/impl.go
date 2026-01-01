@@ -84,6 +84,82 @@ func (s *Service) processRawProduct(ctx context.Context, raw *scraper.RawProduct
 	// Нормализуем данные
 	normalized := s.normalizeRawProduct(raw)
 
+	cityID, err := s.rawStorage.GetShopDefaultCityID(raw.ShopID)
+	logFields := map[string]interface{}{
+		"shop_id":                  raw.ShopID,
+		"default_city_id_resolved": cityID != nil,
+	}
+	if err != nil {
+		logFields["error"] = err.Error()
+	}
+	s.logger.Debug("processor: default city id lookup", logFields)
+	presentSemantic := make([]string, 0, 10)
+	if normalized.Name != "" {
+		presentSemantic = append(presentSemantic, "title")
+	}
+	if normalized.Description != "" {
+		presentSemantic = append(presentSemantic, "description")
+	}
+	if normalized.Brand != "" {
+		presentSemantic = append(presentSemantic, "brand")
+	}
+	if normalized.ImageURL != "" || len(raw.ImageURLs) > 0 {
+		presentSemantic = append(presentSemantic, "image")
+	}
+	if len(normalized.Specs) > 0 {
+		presentSemantic = append(presentSemantic, "specs")
+	}
+	if raw.Price > 0 {
+		presentSemantic = append(presentSemantic, "price")
+	}
+	if raw.Currency != "" {
+		presentSemantic = append(presentSemantic, "currency")
+	}
+	if raw.InStock {
+		presentSemantic = append(presentSemantic, "availability")
+	}
+	if cityID != nil {
+		presentSemantic = append(presentSemantic, "location")
+	}
+	s.logger.Debug("processor: present semantic computed", map[string]interface{}{"shop_id": raw.ShopID, "external_id": raw.ExternalID, "present_semantic": presentSemantic, "present_semantic_count": len(presentSemantic)})
+	domain := "goods"
+	if normalized.Type == products.ProductTypeService || normalized.ServiceMetadata != nil {
+		domain = "services"
+	}
+	hasDuration := false
+	if normalized.ServiceMetadata != nil && normalized.ServiceMetadata.Duration != "" {
+		presentSemantic = append(presentSemantic, "duration")
+		hasDuration = true
+	}
+	missingSemantic := make([]string, 0, 2)
+	valid := true
+	if normalized.Name == "" {
+		missingSemantic = append(missingSemantic, "title")
+		valid = false
+	}
+	if domain == "goods" {
+		if raw.Price <= 0 {
+			missingSemantic = append(missingSemantic, "price")
+			valid = false
+		}
+	} else {
+		if raw.Price <= 0 && !hasDuration {
+			missingSemantic = append(missingSemantic, "duration|price")
+			valid = false
+		}
+	}
+	validationResult := SemanticValidationResult{
+		Domain: domain,
+		Valid: valid,
+		MissingSemantic: missingSemantic,
+		PresentSemantic: presentSemantic,
+		Notes: "",
+	}
+	s.logger.Debug("processor: semantic validation result", validationResult)
+	if s.semanticRecorder != nil {
+		s.semanticRecorder.RecordSemanticValidation(validationResult)
+	}
+
 	// 1. Ищем кандидатов через matching
 	matchReq := &matching.MatchRequest{
 		Name:  normalized.Name,

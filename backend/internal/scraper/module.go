@@ -23,6 +23,9 @@ type Storage interface {
 	// ListShops получает список всех магазинов
 	ListShops() ([]*ShopConfig, error)
 
+	// GetShopDefaultCityID returns default city id for a shop.
+	GetShopDefaultCityID(shopID string) (*string, error)
+
 	// GetUnprocessedRawProducts получает необработанные сырые данные товаров
 	GetUnprocessedRawProducts(limit int) ([]*RawProduct, error)
 

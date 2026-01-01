@@ -19,6 +19,7 @@ type Config struct {
 	Queue  QueueConfig
 	Google GoogleConfig
 	OpenAI OpenAIConfig
+	QualityGates QualityGatesConfig
 }
 
 // ServerConfig конфигурация HTTP сервера
@@ -78,6 +79,16 @@ type OpenAIConfig struct {
 	Model  string // Модель для использования (по умолчанию gpt-4o-mini)
 }
 
+type QualityGateThresholds struct {
+	ValidRateMin    float64
+	QualityScoreMin float64
+}
+
+type QualityGatesConfig struct {
+	Goods    QualityGateThresholds
+	Services QualityGateThresholds
+}
+
 // Load загружает конфигурацию из переменных окружения
 func Load() (*Config, error) {
 	cfg := &Config{
@@ -133,6 +144,17 @@ func Load() (*Config, error) {
 			APIKey: getEnv("OPENAI_API_KEY", ""),
 			Model:  getEnv("OPENAI_MODEL", ""), // Пустое = gpt-4o-mini по умолчанию
 		},
+		QualityGates: QualityGatesConfig{
+			Goods: QualityGateThresholds{
+				ValidRateMin:    0.95,
+				QualityScoreMin: 0.85,
+			},
+			Services: QualityGateThresholds{
+				ValidRateMin:    0.80,
+				QualityScoreMin: 0.70,
+			},
+		},
+
 	}
 
 	return cfg, nil

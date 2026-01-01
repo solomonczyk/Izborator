@@ -290,6 +290,9 @@ func (a *App) initAdapters() {
 
 // initServices инициализирует доменные сервисы
 func (a *App) initServices() {
+	// Scraping stats service
+	a.ScrapingStatsService = scrapingstats.New(a.scrapingStatsStorage, a.logger, a.config.QualityGates)
+
 	// Scraper service (queue пока nil)
 	a.ScraperService = scraper.New(a.scraperStorage, nil, a.ScrapingStatsService, a.logger)
 
@@ -304,14 +307,12 @@ func (a *App) initServices() {
 		a.scraperStorage,   // как processor.RawStorage
 		a.processorStorage, // как processor.ProcessedStorage
 		a.MatchingService,  // как processor.Matching
+		a.ScrapingStatsService, // semantic validation recorder
 		a.logger,
 	)
 
 	// Price history service
 	a.PriceHistoryService = pricehistory.New(a.priceHistoryStorage, a.logger)
-
-	// Scraping stats service
-	a.ScrapingStatsService = scrapingstats.New(a.scrapingStatsStorage, a.logger)
 
 	// Categories service
 	a.CategoriesService = categories.New(a.categoriesStorage, a.logger)
@@ -421,7 +422,7 @@ func NewAPIApp(cfg *config.Config) (*App, error) {
 	app.ProductsService = products.New(app.productsStorage, app.logger)
 	app.MatchingService = matching.New(app.matchingStorage, app.logger)
 	app.PriceHistoryService = pricehistory.New(app.priceHistoryStorage, app.logger)
-	app.ScrapingStatsService = scrapingstats.New(app.scrapingStatsStorage, app.logger)
+	app.ScrapingStatsService = scrapingstats.New(app.scrapingStatsStorage, app.logger, app.config.QualityGates)
 	app.CategoriesService = categories.New(app.categoriesStorage, app.logger)
 	app.ProductTypesService = producttypes.New(app.productTypesStorage, app.logger)
 	app.AttributesService = attributes.New(app.attributesStorage, app.logger)
