@@ -8,6 +8,28 @@
 
 ---
 
+### 2026-01-01 - Проверка /browse с категориями (Шаг 2)
+
+**Дата:** 2026-01-01  
+**Время:** 09:20-09:35 (сервер)
+
+**Выполнено:**
+- ✅ GET /api/v1/products/browse (без фильтра)
+- ✅ GET /api/v1/products/browse?category=mobilni-telefoni
+- ✅ GET /api/v1/products/browse?category=laptopovi
+- ✅ Проверка fallback при несуществующем slug
+
+**Результаты:**
+- Все запросы вернули 200 OK.
+- Fallback slug вернул пустой список: `items: []`, `total: 0`.
+- Категории моб. телефонов и ноутбуков вернули тестовые позиции (Samsung Galaxy S24, Lenovo IdeaPad 3).
+
+**Следующие шаги:**
+- Закрыть Шаг 2 в ROADMAP_CURRENT_STEP.md.
+- Перейти к следующему шагу, если нет блокеров.
+
+---
+
 
 
 ## 2025 - Старт проекта

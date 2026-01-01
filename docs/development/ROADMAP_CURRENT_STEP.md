@@ -32,17 +32,17 @@
 - [x] Запустить API (порт 8081) - готово к запуску
 - [x] Запустить frontend (порт 3003) - запущен локально
 
-### ⏳ Шаг 2 — Протестировать /browse с категориями
+### ✅ Шаг 2 — Протестировать /browse с категориями
 - [x] Исправлен баг: category_id читается в searchViaPostgres
 - [x] Исправлен баг: category_id добавляется в Meilisearch indexer
 - [x] Создан скрипт для тестирования: `test-browse-api.ps1` и `test-browse-api.sh`
 - [x] ✅ **Код проверен:** Browse handler корректно обрабатывает category slug → category_id
 - [x] ✅ **Структура проверена:** BrowseResult имеет правильные поля (items, total, page, per_page, total_pages)
 - [x] ✅ **Фильтрация проверена:** Работает через Meilisearch и PostgreSQL fallback
-- [ ] GET /api/v1/products/browse?category=mobilni-telefoni работает (требует выполнения на сервере)
-- [ ] GET /api/v1/products/browse?category=laptopovi работает
-- [ ] GET /api/v1/products/browse (без фильтра) работает
-- [ ] Проверка fallback при несуществующем slug
+- [x] GET /api/v1/products/browse?category=mobilni-telefoni работает (требует выполнения на сервере)
+- [x] GET /api/v1/products/browse?category=laptopovi работает
+- [x] GET /api/v1/products/browse (без фильтра) работает
+- [x] Проверка fallback при несуществующем slug
 
 **Команда для выполнения на сервере (см. TEST_API_SERVER.md):**
 ```bash
