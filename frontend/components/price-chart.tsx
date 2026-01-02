@@ -142,7 +142,12 @@ export function PriceChart({ data, locale = 'en' }: PriceChartProps) {
                   border: '1px solid #e2e8f0',
                   borderRadius: '8px',
                 }}
-                formatter={(value: number) => [`${value.toLocaleString(dateLocale)} RSD`, t('price')]}
+                formatter={(value?: number) => {
+                  if (typeof value !== 'number') {
+                    return ['', t('price')]
+                  }
+                  return [`${value.toLocaleString(dateLocale)} RSD`, t('price')]
+                }}
               />
               <Legend />
               {shopIds.map((shopId, index) => (
