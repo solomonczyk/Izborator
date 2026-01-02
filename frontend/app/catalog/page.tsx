@@ -13,7 +13,6 @@ type BrowseProduct = {
   max_price?: number;
   currency?: string;
   shops_count?: number;
-  shop_names?: string[];
   type?: 'good' | 'service';
   service_metadata?: {
     duration?: string;
@@ -396,7 +395,6 @@ export default async function CatalogPage({
                   max_price={p.max_price}
                   currency={p.currency}
                   shops_count={p.shops_count}
-                  shop_names={p.shop_names}
                   type={p.type}
                   service_metadata={p.service_metadata}
                   is_deliverable={p.is_deliverable}

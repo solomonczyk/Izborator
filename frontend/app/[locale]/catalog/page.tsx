@@ -17,7 +17,6 @@ type BrowseProduct = {
   max_price?: number
   currency?: string
   shops_count?: number
-  shop_names?: string[]
   type?: 'good' | 'service'
   service_metadata?: {
     duration?: string
@@ -238,7 +237,7 @@ export default async function CatalogPage({
       itemsCount: data.items.length,
       page: data.page,
       perPage: data.per_page,
-      items: data.items.map(i => ({ name: i.name, shops_count: i.shops_count, shop_names: i.shop_names }))
+      items: data.items.map(i => ({ name: i.name, shops_count: i.shops_count }))
     })
   } catch (err) {
     error = err instanceof Error ? err.message : t('common.error_unknown')
@@ -627,7 +626,6 @@ export default async function CatalogPage({
                   max_price={p.max_price}
                   currency={p.currency}
                   shops_count={p.shops_count}
-                  shop_names={p.shop_names}
                   type={p.type}
                   service_metadata={p.service_metadata}
                   is_deliverable={p.is_deliverable}

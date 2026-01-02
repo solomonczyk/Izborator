@@ -14,6 +14,11 @@
 - Updated processor and scraping stats to use the shared type.
 - Adjusted the processor debug log to pass a structured map payload.
 
+### 2026-01-02 - Frontend build fixes (eslint config + product card props)
+
+- Updated flat ESLint config to import `eslint-config-next/typescript.js`.
+- Removed the `shop_names` prop from catalog product card usage.
+
 ### 2026-01-02 - Error taxonomy v1 (details payload)
 
 **What changed:**

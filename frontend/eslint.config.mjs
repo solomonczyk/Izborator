@@ -1,5 +1,5 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextTs from "eslint-config-next/typescript";
+import nextTs from "eslint-config-next/typescript.js";
 import next from "@next/eslint-plugin-next";
 
 // В Next.js 15 конфиги могут быть объектами, а не массивами
