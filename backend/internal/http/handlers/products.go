@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -67,6 +68,67 @@ func envInt(key string, fallback int) int {
 	}
 	return parsed
 }
+
+type rateEntry struct {
+	tokens float64
+	last   time.Time
+}
+
+type tenantRateLimiter struct {
+	mu         sync.Mutex
+	ratePerSec float64
+	burst      float64
+	entries    map[string]*rateEntry
+	disabled   bool
+}
+
+func newTenantRateLimiter(perMinute int, burst int) *tenantRateLimiter {
+	if perMinute <= 0 || burst <= 0 {
+		return &tenantRateLimiter{disabled: true}
+	}
+	return &tenantRateLimiter{
+		ratePerSec: float64(perMinute) / 60,
+		burst:      float64(burst),
+		entries:    make(map[string]*rateEntry),
+	}
+}
+
+func (l *tenantRateLimiter) Allow(key string) bool {
+	if l == nil || l.disabled {
+		return true
+	}
+	now := time.Now()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	entry := l.entries[key]
+	if entry == nil {
+		entry = &rateEntry{tokens: l.burst, last: now}
+		l.entries[key] = entry
+	} else {
+		elapsed := now.Sub(entry.last).Seconds()
+		entry.tokens = minFloat(l.burst, entry.tokens+elapsed*l.ratePerSec)
+		entry.last = now
+	}
+
+	if entry.tokens < 1 {
+		return false
+	}
+	entry.tokens -= 1
+	return true
+}
+
+func minFloat(a float64, b float64) float64 {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+var tenantLimiter = newTenantRateLimiter(
+	envInt("TENANT_RATE_LIMIT_PER_MIN", 60),
+	envInt("TENANT_RATE_LIMIT_BURST", 30),
+)
 
 type tenantLimitConfig struct {
 	MaxFacets int `json:"max_facets"`
@@ -523,6 +585,16 @@ func (h *ProductsHandler) TenantHealth(w http.ResponseWriter, r *http.Request) {
 		h.RespondAppError(w, r, appErr)
 		return
 	}
+	if !tenantLimiter.Allow(tenantID + ":facets") {
+		h.logger.Warn("tenant rate limited", map[string]interface{}{
+			"event":     "rate_limited",
+			"tenant_id": tenantID,
+			"endpoint":  "facets",
+		})
+		appErr := appErrors.NewAppError("RATE_LIMITED", "rate limit exceeded", http.StatusTooManyRequests, nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
 
 	facets, err := domainpack.Facets(domain)
 	if err != nil {
@@ -580,6 +652,16 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	// Валидация типа продукта
 	if productType != "" && productType != "good" && productType != "service" {
 		appErr := appErrors.NewValidationError("type must be 'good' or 'service'", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+	if !tenantLimiter.Allow(tenantID + ":browse") {
+		h.logger.Warn("tenant rate limited", map[string]interface{}{
+			"event":     "rate_limited",
+			"tenant_id": tenantID,
+			"endpoint":  "browse",
+		})
+		appErr := appErrors.NewAppError("RATE_LIMITED", "rate limit exceeded", http.StatusTooManyRequests, nil)
 		h.RespondAppError(w, r, appErr)
 		return
 	}

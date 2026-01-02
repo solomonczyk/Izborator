@@ -7,6 +7,15 @@
 
 
 ---
+### 2026-01-02 - Rate limiting v1 (tenant token bucket)
+
+**What changed:**
+- Added in-memory per-tenant rate limiter for facets and browse (429 on limit).
+- Logged rate_limited warnings with tenant_id and endpoint.
+
+**Next:**
+- Add per-tenant cache strategy and performance budgets.
+
 ### 2026-01-02 - Hard limits v1 (tenant facets/brands)
 
 **What changed:**
