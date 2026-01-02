@@ -24,6 +24,11 @@
 - Added `@typescript-eslint` deps and aligned `eslint-config-next` with Next 15.5.9.
 - Fixed price chart tooltip formatter to handle undefined values.
 
+### 2026-01-02 - Frontend build fixes (eslint config + next config)
+
+- Simplified flat ESLint config to only use Next core-web-vitals rules.
+- Removed `allowedDevOrigins` from `next.config.ts` to satisfy NextConfig typing.
+
 ### 2026-01-02 - Error taxonomy v1 (details payload)
 
 **What changed:**
