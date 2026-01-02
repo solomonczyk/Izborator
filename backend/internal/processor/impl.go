@@ -156,7 +156,9 @@ func (s *Service) processRawProduct(ctx context.Context, raw *scraper.RawProduct
 		PresentSemantic: presentSemantic,
 		Notes: "",
 	}
-	s.logger.Debug("processor: semantic validation result", validationResult)
+	s.logger.Debug("processor: semantic validation result", map[string]interface{}{
+		"result": validationResult,
+	})
 	if s.semanticRecorder != nil {
 		s.semanticRecorder.RecordSemanticValidation(validationResult)
 	}
