@@ -49,7 +49,7 @@ func (h *BaseHandler) RespondAppError(w http.ResponseWriter, r *http.Request, er
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(err.HTTPStatus)
-	if err := json.NewEncoder(w).Encode(appErrors.NewErrorResponse(err.Code, message)); err != nil {
+	if err := json.NewEncoder(w).Encode(appErrors.NewErrorResponse(err.Code, message, err.Details)); err != nil {
 		h.logger.Error("Failed to encode error response", map[string]interface{}{
 			"error": err,
 		})

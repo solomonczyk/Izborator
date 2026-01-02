@@ -7,6 +7,22 @@
 
 
 ---
+### 2026-01-02 - Error taxonomy v1 (details payload)
+
+**What changed:**
+- Error responses now support a details payload; rate-limit errors include endpoint details.
+
+**Next:**
+- Add per-tenant cache strategy and performance budgets.
+
+### 2026-01-02 - Sections prototype page
+
+**What changed:**
+- Added /[locale]/sections scroll-snap prototype with category slides linking to catalog.
+
+**Next:**
+- Review scroll-snap UX and decide whether to adapt the main landing page.
+
 ### 2026-01-02 - Rate limiting v1 (tenant token bucket)
 
 **What changed:**

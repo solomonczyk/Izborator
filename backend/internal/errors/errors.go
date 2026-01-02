@@ -11,6 +11,7 @@ type AppError struct {
 	Message    string `json:"message"`
 	HTTPStatus int    `json:"-"` // Не сериализуется в JSON
 	Err        error  `json:"-"` // Оригинальная ошибка для логирования
+	Details    map[string]interface{} `json:"-"`
 }
 
 // Error реализует интерфейс error
@@ -45,6 +46,7 @@ const (
 	CodeSearchFailed = "SEARCH_FAILED"
 	CodeInvalidQuery = "INVALID_QUERY"
 	CodeBrowseFailed = "BROWSE_FAILED"
+	CodeRateLimited  = "RATE_LIMITED"
 
 	// Ошибки цен
 	CodePriceHistoryFailed = "PRICE_HISTORY_FAILED"
@@ -66,6 +68,18 @@ func NewAppError(code, message string, httpStatus int, err error) *AppError {
 		Err:        err,
 	}
 }
+
+// NewAppErrorWithDetails creates an AppError with optional details payload.
+func NewAppErrorWithDetails(code, message string, httpStatus int, err error, details map[string]interface{}) *AppError {
+	return &AppError{
+		Code:       code,
+		Message:    message,
+		HTTPStatus: httpStatus,
+		Err:        err,
+		Details:    details,
+	}
+}
+
 
 // NewInternalError создает ошибку внутренней ошибки сервера
 func NewInternalError(message string, err error) *AppError {

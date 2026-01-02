@@ -591,7 +591,9 @@ func (h *ProductsHandler) TenantHealth(w http.ResponseWriter, r *http.Request) {
 			"tenant_id": tenantID,
 			"endpoint":  "facets",
 		})
-		appErr := appErrors.NewAppError("RATE_LIMITED", "rate limit exceeded", http.StatusTooManyRequests, nil)
+		appErr := appErrors.NewAppErrorWithDetails(appErrors.CodeRateLimited, "rate limit exceeded", http.StatusTooManyRequests, nil, map[string]interface{}{
+			"endpoint": "facets",
+		})
 		h.RespondAppError(w, r, appErr)
 		return
 	}
@@ -661,7 +663,9 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 			"tenant_id": tenantID,
 			"endpoint":  "browse",
 		})
-		appErr := appErrors.NewAppError("RATE_LIMITED", "rate limit exceeded", http.StatusTooManyRequests, nil)
+		appErr := appErrors.NewAppErrorWithDetails(appErrors.CodeRateLimited, "rate limit exceeded", http.StatusTooManyRequests, nil, map[string]interface{}{
+			"endpoint": "browse",
+		})
 		h.RespondAppError(w, r, appErr)
 		return
 	}
