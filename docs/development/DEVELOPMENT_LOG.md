@@ -7,6 +7,14 @@
 
 
 ---
+### 2026-01-02 - Hard limits v1 (tenant facets/brands)
+
+**What changed:**
+- Facets endpoint truncates facets/brands to tenant hard limits and logs warn on truncation.
+
+**Next:**
+- Wire tenant_id into frontend browse/categories/cities requests to avoid 400s.
+
 ### 2026-01-02 - Tenant isolation + limits + health snapshot
 
 **What changed:**

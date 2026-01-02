@@ -459,13 +459,15 @@ func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
 	maxFacetsDefault := envInt("TENANT_MAX_FACETS_COUNT", 20)
 	maxBrandsDefault := envInt("TENANT_MAX_BRANDS_COUNT", 200)
 	maxFacets, maxBrands := resolveTenantLimits(tenantID, maxFacetsDefault, maxBrandsDefault, h.logger)
-	if len(facets) > maxFacets {
-		h.logger.Warn("tenant facet count exceeded soft limit", map[string]interface{}{
+	facetsCount := len(facets)
+	if maxFacets > 0 && facetsCount > maxFacets {
+		h.logger.Warn("tenant facet count exceeded hard limit; truncating", map[string]interface{}{
 			"tenant_id": tenantID,
 			"domain":    domain,
-			"count":     len(facets),
+			"count":     facetsCount,
 			"limit":     maxFacets,
 		})
+		facets = facets[:maxFacets]
 	}
 
 	if domain == "goods" {
@@ -475,13 +477,15 @@ func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
 			h.RespondAppError(w, r, appErr)
 			return
 		}
-		if len(brands) > maxBrands {
-			h.logger.Warn("tenant brand count exceeded soft limit", map[string]interface{}{
+		brandsCount := len(brands)
+		if maxBrands > 0 && brandsCount > maxBrands {
+			h.logger.Warn("tenant brand count exceeded hard limit; truncating", map[string]interface{}{
 				"tenant_id": tenantID,
 				"domain":    domain,
-				"count":     len(brands),
+				"count":     brandsCount,
 				"limit":     maxBrands,
 			})
+			brands = brands[:maxBrands]
 		}
 		for i := range facets {
 			if facets[i].SemanticType == "brand" {
