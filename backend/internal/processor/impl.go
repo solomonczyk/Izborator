@@ -8,6 +8,7 @@ import (
 	"github.com/solomonczyk/izborator/internal/matching"
 	"github.com/solomonczyk/izborator/internal/products"
 	"github.com/solomonczyk/izborator/internal/scraper"
+	"github.com/solomonczyk/izborator/internal/semantic"
 )
 
 // ProcessRawProducts обрабатывает необработанные сырые данные
@@ -148,7 +149,7 @@ func (s *Service) processRawProduct(ctx context.Context, raw *scraper.RawProduct
 			valid = false
 		}
 	}
-	validationResult := SemanticValidationResult{
+	validationResult := semantic.SemanticValidationResult{
 		Domain: domain,
 		Valid: valid,
 		MissingSemantic: missingSemantic,

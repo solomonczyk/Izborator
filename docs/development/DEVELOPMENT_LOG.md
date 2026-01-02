@@ -7,6 +7,11 @@
 
 
 ---
+
+### 2026-01-02 - Fix semantic validation import cycle
+
+- Moved semantic validation result type to `internal/semantic` to break the `processor -> scraper -> scrapingstats` import cycle.
+- Updated processor and scraping stats to use the shared type.
 ### 2026-01-02 - Error taxonomy v1 (details payload)
 
 **What changed:**

@@ -1,6 +1,6 @@
 package scrapingstats
 
-import "github.com/solomonczyk/izborator/internal/processor"
+import "github.com/solomonczyk/izborator/internal/semantic"
 
 type semanticAggregate struct {
 	total      int64
@@ -9,7 +9,7 @@ type semanticAggregate struct {
 }
 
 // RecordSemanticValidation captures semantic validation results for later metrics.
-func (s *Service) RecordSemanticValidation(result processor.SemanticValidationResult) {
+func (s *Service) RecordSemanticValidation(result semantic.SemanticValidationResult) {
 	if s == nil || s.logger == nil {
 		return
 	}

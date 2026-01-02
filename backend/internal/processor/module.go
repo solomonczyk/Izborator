@@ -5,6 +5,7 @@ import (
 	"github.com/solomonczyk/izborator/internal/matching"
 	"github.com/solomonczyk/izborator/internal/products"
 	"github.com/solomonczyk/izborator/internal/scraper"
+	"github.com/solomonczyk/izborator/internal/semantic"
 )
 
 // RawStorage интерфейс для чтения сырых данных
@@ -27,7 +28,7 @@ type Matching interface {
 }
 
 type SemanticValidationRecorder interface {
-	RecordSemanticValidation(result SemanticValidationResult)
+	RecordSemanticValidation(result semantic.SemanticValidationResult)
 }
 
 // Service сервис для обработки сырых данных

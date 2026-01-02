@@ -1,4 +1,4 @@
-package processor
+package semantic
 
 type SemanticValidationResult struct {
 	Domain          string   `json:"domain"`
