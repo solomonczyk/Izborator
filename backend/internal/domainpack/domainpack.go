@@ -3,6 +3,7 @@ package domainpack
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"sync"
 
 	_ "embed"
@@ -21,10 +22,7 @@ type DomainPack struct {
 	Facets []FacetDefinition `json:"facets"`
 }
 
-type PackConfig struct {
-	Goods    DomainPack `json:"goods"`
-	Services DomainPack `json:"services"`
-}
+type PackConfig map[string]DomainPack
 
 var (
 	loadedConfig PackConfig
@@ -43,14 +41,33 @@ func Facets(domain string) ([]FacetDefinition, error) {
 	if loadErr != nil {
 		return nil, loadErr
 	}
-	switch domain {
-	case "goods":
-		return cloneFacets(loadedConfig.Goods.Facets), nil
-	case "services":
-		return cloneFacets(loadedConfig.Services.Facets), nil
-	default:
+	pack, ok := loadedConfig[domain]
+	if !ok {
 		return nil, fmt.Errorf("unknown domain: %s", domain)
 	}
+	return cloneFacets(pack.Facets), nil
+}
+
+func HasDomain(domain string) bool {
+	loadOnce.Do(loadConfig)
+	if loadErr != nil {
+		return false
+	}
+	_, ok := loadedConfig[domain]
+	return ok
+}
+
+func Domains() []string {
+	loadOnce.Do(loadConfig)
+	if loadErr != nil {
+		return nil
+	}
+	domains := make([]string, 0, len(loadedConfig))
+	for domain := range loadedConfig {
+		domains = append(domains, domain)
+	}
+	sort.Strings(domains)
+	return domains
 }
 
 func cloneFacets(source []FacetDefinition) []FacetDefinition {

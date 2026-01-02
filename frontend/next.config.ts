@@ -1,10 +1,14 @@
-import type { NextConfig } from "next";
+﻿import type { NextConfig } from "next";
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./i18n.ts');
 
 const nextConfig: NextConfig = {
-  output: "standalone", // Для Docker-сборки (уменьшает размер образа)
+  output: "standalone", // Docker standalone output
+  experimental: {
+    allowedDevOrigins: ["http://127.0.0.1:3000"],
+  },
 };
 
 export default withNextIntl(nextConfig);
+

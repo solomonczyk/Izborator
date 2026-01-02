@@ -98,6 +98,8 @@ jobs:
   frontend-check:
     name: Frontend Code Quality
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_BASE: http://127.0.0.1:8081
     
     steps:
       - name: Checkout code
@@ -172,4 +174,12 @@ jobs:
           else
             echo "⚠️  No build script found, skipping build check"
           fi
+
+      - name: Install Playwright browsers
+        working-directory: ./frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright tests
+        working-directory: ./frontend
+        run: npx playwright test
 

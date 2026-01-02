@@ -100,8 +100,7 @@ async function fetchFacets(params: { type: "goods" | "services" }): Promise<Face
   url.searchParams.set("type", params.type)
 
   const res = await fetch(url.toString(), {
-    next: { revalidate: 0 },
-    cache: 'no-store',
+    next: { revalidate: 300 },
   })
 
   if (!res.ok) {
@@ -151,11 +150,28 @@ export default async function CatalogPage({
   const sort = resolvedSearchParams?.sort || "price_asc"
 
   const facetsType = productType === "service" ? "services" : "goods"
+  const catalogPromise = fetchCatalog({
+    query,
+    category,
+    brand,
+    city,
+    type: productType,
+    minPrice,
+    maxPrice,
+    minDuration,
+    maxDuration,
+    page,
+    perPage,
+    sort,
+    lang: locale,
+  })
+  const facetsPromise = fetchFacets({ type: facetsType })
+
   let facetSet = new Set<string>()
   let brandOptions: string[] = []
 
   try {
-    const facetsResponse = await fetchFacets({ type: facetsType })
+    const facetsResponse = await facetsPromise
     const facets = Array.isArray(facetsResponse.facets) ? facetsResponse.facets : []
     facetSet = new Set(facets.map((facet) => facet.semantic_type))
     const brandFacet = facets.find((facet) => facet.semantic_type === "brand")
@@ -166,53 +182,50 @@ export default async function CatalogPage({
   }
 
   // Загружаем категории и города
+  const shouldShowCategory = facetSet.has("category")
+  const shouldShowLocation = facetSet.has("location")
   let categories: CategoryNode[] = []
   let cities: City[] = []
   let categoriesError: string | null = null
   let citiesError: string | null = null
 
-  try {
-    const categoriesData = await fetchCategoriesTree(locale)
-    categories = Array.isArray(categoriesData) ? categoriesData : []
-    console.log('Categories loaded:', categories.length, categories)
-  } catch (err) {
-    categoriesError = err instanceof Error ? err.message : "Failed to load categories"
-    categories = [] // Убеждаемся, что это массив
-    console.error('Categories error:', err)
+  const [categoriesResult, citiesResult] = await Promise.allSettled([
+    shouldShowCategory ? fetchCategoriesTree(locale) : Promise.resolve([]),
+    shouldShowLocation ? fetchCities() : Promise.resolve([]),
+  ])
+
+  if (shouldShowCategory) {
+    if (categoriesResult.status === "fulfilled") {
+      categories = Array.isArray(categoriesResult.value) ? categoriesResult.value : []
+      console.log('Categories loaded:', categories.length, categories)
+    } else {
+      categoriesError = categoriesResult.reason instanceof Error ? categoriesResult.reason.message : "Failed to load categories"
+      categories = [] // Убеждаемся, что это массив
+      console.error('Categories error:', categoriesResult.reason)
+    }
   }
 
-  try {
-    const citiesData = await fetchCities()
-    cities = Array.isArray(citiesData) ? citiesData : []
-    console.log('Cities loaded:', cities.length, cities)
-  } catch (err) {
-    citiesError = err instanceof Error ? err.message : "Failed to load cities"
-    cities = [] // Убеждаемся, что это массив
-    console.error('Cities error:', err)
+  if (shouldShowLocation) {
+    if (citiesResult.status === "fulfilled") {
+      cities = Array.isArray(citiesResult.value) ? citiesResult.value : []
+      console.log('Cities loaded:', cities.length, cities)
+    } else {
+      citiesError = citiesResult.reason instanceof Error ? citiesResult.reason.message : "Failed to load cities"
+      cities = [] // Убеждаемся, что это массив
+      console.error('Cities error:', citiesResult.reason)
+    }
   }
 
-  const flatCategories = flattenCategories(categories)
-  console.log('Flat categories:', flatCategories.length, flatCategories)
+  const flatCategories = shouldShowCategory ? flattenCategories(categories) : []
+  if (shouldShowCategory) {
+    console.log('Flat categories:', flatCategories.length, flatCategories)
+  }
 
   let data: BrowseResponse
   let error: string | null = null
 
   try {
-    data = await fetchCatalog({
-      query,
-      category,
-      brand,
-      city,
-      type: productType,
-      minPrice,
-      maxPrice,
-      minDuration,
-      maxDuration,
-      page,
-      perPage,
-      sort,
-      lang: locale,
-    })
+    data = await catalogPromise
     console.log('Catalog data loaded:', {
       total: data.total,
       itemsCount: data.items.length,

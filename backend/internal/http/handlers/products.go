@@ -368,7 +368,7 @@ func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 // Browse обрабатывает каталог товаров с фильтрами
 // GET /api/v1/products/browse?query=motorola&category=phones&min_price=10000&max_price=30000&shop_id=...&page=1&per_page=20&sort=price_asc
 // Facets returns facet schema for a domain.
-// GET /api/v1/products/facets?type=goods|services
+// GET /api/v1/products/facets?type=<domain>
 func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
 	domain := validation.SanitizeString(r.URL.Query().Get("type"))
 	if domain == "" {
@@ -376,8 +376,9 @@ func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
 		h.RespondAppError(w, r, appErr)
 		return
 	}
-	if domain != "goods" && domain != "services" {
-		appErr := appErrors.NewValidationError("type must be goods or services", nil)
+	if !domainpack.HasDomain(domain) {
+		allowed := strings.Join(domainpack.Domains(), ", ")
+		appErr := appErrors.NewValidationError("type must be one of: "+allowed, nil)
 		h.RespondAppError(w, r, appErr)
 		return
 	}

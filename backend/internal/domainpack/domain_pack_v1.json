@@ -14,5 +14,12 @@
       { "semantic_type": "duration", "facet_type": "range" },
       { "semantic_type": "price", "facet_type": "range" }
     ]
+  },
+  "marketplace": {
+    "facets": [
+      { "semantic_type": "price", "facet_type": "range" },
+      { "semantic_type": "category", "facet_type": "enum" },
+      { "semantic_type": "location", "facet_type": "enum" }
+    ]
   }
 }

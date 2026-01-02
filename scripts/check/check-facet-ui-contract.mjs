@@ -27,8 +27,14 @@ if (!fs.existsSync(uiPath)) {
 const schema = readJson(schemaPath)
 const uiSource = fs.readFileSync(uiPath, "utf8")
 
+const domains = Object.keys(schema || {})
+if (domains.length === 0) {
+  console.error("Facet schema is empty or invalid.")
+  process.exit(1)
+}
+
 const facetTypes = new Set()
-for (const domain of ["goods", "services"]) {
+for (const domain of domains) {
   const facets = schema?.[domain]?.facets
   if (!Array.isArray(facets)) {
     console.error(`Facet schema is missing facets array for ${domain}`)

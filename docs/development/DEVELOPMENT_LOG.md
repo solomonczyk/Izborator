@@ -7,6 +7,27 @@
 
 
 ---
+### 2026-01-02 - Facets perf + domain scaling + CI e2e
+
+**What changed:**
+- Catalog SSR: prefetch facets + catalog, parallel category/city fetch, skip category/city fetch when facets missing.
+- Domain pack: add marketplace domain; domainpack now accepts dynamic domains.
+- Facet schema contract check now reads all domains from config.
+- CI: Playwright install + test in frontend job; NEXT_PUBLIC_API_BASE set in workflow.
+
+**Next:**
+- Monitor Playwright runtime in CI and adjust timeouts if needed.
+
+### 2026-01-02 - Frontend deps reset + Next patch
+
+**What changed:**
+- Clean reinstall of frontend deps; npm cache clean hit ENOTEMPTY (Windows tmp) but install succeeded.
+- Updated next to 15.1.9 after removing node_modules/next.
+- npm warns next@15.1.9 still vulnerable; follow-up upgrade pending.
+
+**Next:**
+- Restart PowerShell to release locks, then retry Playwright setup.
+
 ### 2026-01-01 - Critical Path: semantic validation + quality gates + facet schema
 
 **Date:** 2026-01-01  
