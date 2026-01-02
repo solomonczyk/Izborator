@@ -27,6 +27,12 @@ if (!fs.existsSync(uiPath)) {
 const schema = readJson(schemaPath)
 const uiSource = fs.readFileSync(uiPath, "utf8")
 
+if (!uiSource.includes("tenant_id")) {
+  console.error("Facet/UI contract check failed.")
+  console.error("UI is missing tenant_id in facet schema requests.")
+  process.exit(1)
+}
+
 const domains = Object.keys(schema || {})
 if (domains.length === 0) {
   console.error("Facet schema is empty or invalid.")

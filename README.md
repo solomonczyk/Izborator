@@ -81,3 +81,4 @@ go run cmd/worker/main.go -process
 ✅ **Тесты:** Базовое покрытие добавлено
 
 Подробнее: [STATUS.md](./STATUS.md)
+TENANT_LIMITS_JSON={"tenant-a":{"max_facets":30,"max_brands":500},"tenant-b":{"max_facets":15}}

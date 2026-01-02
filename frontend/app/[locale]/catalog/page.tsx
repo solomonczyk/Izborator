@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server'
 import { fetchCategoriesTree, fetchCities, flattenCategories, type CategoryNode, type City } from '@/lib/api'
 import { ProductCard } from '@/components/product-card'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { TypeSelect } from "./type-select"
 
 type BrowseProduct = {
   id: string
@@ -43,6 +44,7 @@ type FacetDefinition = {
 
 type FacetSchemaResponse = {
   domain: string
+  tenant_id?: string
   facets: FacetDefinition[]
 }
 
@@ -95,9 +97,10 @@ async function fetchCatalog(params: {
   return res.json()
 }
 
-async function fetchFacets(params: { type: "goods" | "services" }): Promise<FacetSchemaResponse> {
+async function fetchFacets(params: { type: "goods" | "services"; tenantId: string }): Promise<FacetSchemaResponse> {
   const url = new URL("/api/v1/products/facets", API_BASE)
   url.searchParams.set("type", params.type)
+  url.searchParams.set("tenant_id", params.tenantId)
 
   const res = await fetch(url.toString(), {
     next: { revalidate: 300 },
@@ -132,6 +135,7 @@ export default async function CatalogPage({
     sort?: string
   }>
 }) {
+  const ssrStart = Date.now()
   const { locale } = await params
   const resolvedSearchParams = await searchParams
   const t = await getTranslations({ locale })
@@ -141,6 +145,7 @@ export default async function CatalogPage({
   const brand = resolvedSearchParams?.brand || ""
   const city = resolvedSearchParams?.city || ""
   const productType = resolvedSearchParams?.type || ""
+  const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || process.env.TENANT_ID || "default"
   const minPrice = resolvedSearchParams?.min_price || ""
   const maxPrice = resolvedSearchParams?.max_price || ""
   const minDuration = resolvedSearchParams?.min_duration || ""
@@ -165,14 +170,16 @@ export default async function CatalogPage({
     sort,
     lang: locale,
   })
-  const facetsPromise = fetchFacets({ type: facetsType })
+  const facetsPromise = fetchFacets({ type: facetsType, tenantId })
 
   let facetSet = new Set<string>()
+  let facetsCount = 0
   let brandOptions: string[] = []
 
   try {
     const facetsResponse = await facetsPromise
     const facets = Array.isArray(facetsResponse.facets) ? facetsResponse.facets : []
+    facetsCount = facets.length
     facetSet = new Set(facets.map((facet) => facet.semantic_type))
     const brandFacet = facets.find((facet) => facet.semantic_type === "brand")
     brandOptions = Array.isArray(brandFacet?.values) ? brandFacet.values : []
@@ -246,6 +253,27 @@ export default async function CatalogPage({
   }
 
   // Создаём базовые параметры для URL (без page, чтобы пагинация могла менять только страницу)
+  const ssrMs = Date.now() - ssrStart
+  const warnMs = Number(process.env.CATALOG_SSR_WARN_MS ?? 1500)
+  const warnFacets = Number(process.env.CATALOG_FACETS_WARN_COUNT ?? 20)
+  const isWarn = ssrMs > warnMs || facetsCount > warnFacets
+  const logPayload = {
+    event: "catalog_ssr",
+    level: isWarn ? "warn" : "info",
+    path: "/catalog",
+    locale,
+    type: productType || "all",
+    facets_type: facetsType,
+    tenant_id: tenantId,
+    facets_count: facetsCount,
+    ms: ssrMs,
+  }
+  if (isWarn) {
+    console.warn(JSON.stringify(logPayload))
+  } else {
+    console.log(JSON.stringify(logPayload))
+  }
+
   const baseParams = new URLSearchParams()
   if (query) baseParams.set("q", query)
   if (category) baseParams.set("category", category)
@@ -320,22 +348,18 @@ export default async function CatalogPage({
                 >
                   {t('catalog.type')}
                 </label>
-                <select
+                <TypeSelect
                   id="type"
                   name="type"
                   defaultValue={productType}
+                  tenantId={tenantId}
                   className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
-                >
-                  <option value="" className="text-slate-400">
-                    {t('catalog.type_all')}
-                  </option>
-                  <option value="good" className="text-slate-900">
-                    {t('catalog.type_goods')}
-                  </option>
-                  <option value="service" className="text-slate-900">
-                    {t('catalog.type_services')}
-                  </option>
-                </select>
+                  options={[
+                    { value: "", label: t('catalog.type_all'), className: "text-slate-400" },
+                    { value: "good", label: t('catalog.type_goods'), className: "text-slate-900" },
+                    { value: "service", label: t('catalog.type_services'), className: "text-slate-900" },
+                  ]}
+                />
               </div>
 
               {/* Категория */}

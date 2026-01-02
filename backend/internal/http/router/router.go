@@ -88,6 +88,11 @@ func setupRoutes(r *chi.Mux, h *Handlers, translator *i18n.Translator, redisClie
 	r.Get("/api/health/ready", h.Health.Ready)
 	r.Get("/api/health/full", h.Health.Full)
 
+	// Internal tenant health snapshot
+	r.Route("/api/internal", func(ir chi.Router) {
+		ir.Get("/tenant/health", h.Products.TenantHealth)
+	})
+
 	// API v1 роуты
 	r.Route("/api/v1", func(api chi.Router) {
 		// Статистика парсинга

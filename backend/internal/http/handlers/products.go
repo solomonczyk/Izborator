@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +26,7 @@ type SearchRequest struct {
 
 type BrowseRequest struct {
 	Query    string   `json:"query" validate:"omitempty,max=200"`
+	TenantID string   `json:"tenant_id" validate:"required"`
 	Category string   `json:"category" validate:"omitempty"`
 	Brand    string   `json:"brand" validate:"omitempty"`
 	City     string   `json:"city" validate:"omitempty"`
@@ -37,8 +40,66 @@ type BrowseRequest struct {
 }
 
 type FacetSchemaResponse struct {
-	Domain string                      `json:"domain"`
-	Facets []domainpack.FacetDefinition `json:"facets"`
+	Domain   string                      `json:"domain"`
+	TenantID string                      `json:"tenant_id"`
+	Facets   []domainpack.FacetDefinition `json:"facets"`
+}
+
+type TenantHealthResponse struct {
+	TenantID        string `json:"tenant_id"`
+	Domain          string `json:"domain"`
+	FacetsCount     int    `json:"facets_count"`
+	FacetsLimit     int    `json:"facets_limit"`
+	FacetsOverLimit bool   `json:"facets_over_limit"`
+	BrandsCount     int    `json:"brands_count"`
+	BrandsLimit     int    `json:"brands_limit"`
+	BrandsOverLimit bool   `json:"brands_over_limit"`
+}
+
+func envInt(key string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+type tenantLimitConfig struct {
+	MaxFacets int `json:"max_facets"`
+	MaxBrands int `json:"max_brands"`
+}
+
+func resolveTenantLimits(tenantID string, defaultFacets int, defaultBrands int, log *logger.Logger) (int, int) {
+	raw := strings.TrimSpace(os.Getenv("TENANT_LIMITS_JSON"))
+	if raw == "" || tenantID == "" {
+		return defaultFacets, defaultBrands
+	}
+	limits := map[string]tenantLimitConfig{}
+	if err := json.Unmarshal([]byte(raw), &limits); err != nil {
+		if log != nil {
+			log.Warn("tenant limits json parse failed", map[string]interface{}{
+				"event":     "tenant_limits_parse_failed",
+				"tenant_id": tenantID,
+				"error":     err.Error(),
+			})
+		}
+		return defaultFacets, defaultBrands
+	}
+	tenantLimits, ok := limits[tenantID]
+	if !ok {
+		return defaultFacets, defaultBrands
+	}
+	if tenantLimits.MaxFacets > 0 {
+		defaultFacets = tenantLimits.MaxFacets
+	}
+	if tenantLimits.MaxBrands > 0 {
+		defaultBrands = tenantLimits.MaxBrands
+	}
+	return defaultFacets, defaultBrands
 }
 
 // ProductsHandler обработчик для работы с товарами
@@ -368,11 +429,17 @@ func calculatePriceStats(chart *pricehistory.PriceChart) PriceStats {
 // Browse обрабатывает каталог товаров с фильтрами
 // GET /api/v1/products/browse?query=motorola&category=phones&min_price=10000&max_price=30000&shop_id=...&page=1&per_page=20&sort=price_asc
 // Facets returns facet schema for a domain.
-// GET /api/v1/products/facets?type=<domain>
+// GET /api/v1/products/facets?type=<domain>&tenant_id=<tenant>
 func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
 	domain := validation.SanitizeString(r.URL.Query().Get("type"))
 	if domain == "" {
 		appErr := appErrors.NewValidationError("type is required", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+	tenantID := validation.SanitizeString(r.URL.Query().Get("tenant_id"))
+	if tenantID == "" {
+		appErr := appErrors.NewValidationError("tenant_id is required", nil)
 		h.RespondAppError(w, r, appErr)
 		return
 	}
@@ -389,6 +456,17 @@ func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
 		h.RespondAppError(w, r, appErr)
 		return
 	}
+	maxFacetsDefault := envInt("TENANT_MAX_FACETS_COUNT", 20)
+	maxBrandsDefault := envInt("TENANT_MAX_BRANDS_COUNT", 200)
+	maxFacets, maxBrands := resolveTenantLimits(tenantID, maxFacetsDefault, maxBrandsDefault, h.logger)
+	if len(facets) > maxFacets {
+		h.logger.Warn("tenant facet count exceeded soft limit", map[string]interface{}{
+			"tenant_id": tenantID,
+			"domain":    domain,
+			"count":     len(facets),
+			"limit":     maxFacets,
+		})
+	}
 
 	if domain == "goods" {
 		brands, err := h.service.ListBrands(r.Context(), string(products.ProductTypeGood))
@@ -396,6 +474,14 @@ func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
 			appErr := appErrors.NewInternalError("failed to load brand facets", err)
 			h.RespondAppError(w, r, appErr)
 			return
+		}
+		if len(brands) > maxBrands {
+			h.logger.Warn("tenant brand count exceeded soft limit", map[string]interface{}{
+				"tenant_id": tenantID,
+				"domain":    domain,
+				"count":     len(brands),
+				"limit":     maxBrands,
+			})
 		}
 		for i := range facets {
 			if facets[i].SemanticType == "brand" {
@@ -406,8 +492,65 @@ func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := FacetSchemaResponse{
-		Domain: domain,
-		Facets: facets,
+		Domain:   domain,
+		TenantID: tenantID,
+		Facets:   facets,
+	}
+	h.RespondJSON(w, http.StatusOK, resp)
+}
+
+// TenantHealth returns a lightweight snapshot of tenant limits vs counts.
+// GET /api/internal/tenant/health?tenant_id=<tenant>&type=<domain>
+func (h *ProductsHandler) TenantHealth(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	tenantID := validation.SanitizeString(q.Get("tenant_id"))
+	if tenantID == "" {
+		appErr := appErrors.NewValidationError("tenant_id is required", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+	domain := validation.SanitizeString(q.Get("type"))
+	if domain == "" {
+		domain = "goods"
+	}
+	if !domainpack.HasDomain(domain) {
+		allowed := strings.Join(domainpack.Domains(), ", ")
+		appErr := appErrors.NewValidationError("type must be one of: "+allowed, nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+
+	facets, err := domainpack.Facets(domain)
+	if err != nil {
+		appErr := appErrors.NewInternalError("failed to load facet schema", err)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+
+	maxFacetsDefault := envInt("TENANT_MAX_FACETS_COUNT", 20)
+	maxBrandsDefault := envInt("TENANT_MAX_BRANDS_COUNT", 200)
+	maxFacets, maxBrands := resolveTenantLimits(tenantID, maxFacetsDefault, maxBrandsDefault, h.logger)
+
+	brandsCount := 0
+	if domain == "goods" {
+		brands, err := h.service.ListBrands(r.Context(), string(products.ProductTypeGood))
+		if err != nil {
+			appErr := appErrors.NewInternalError("failed to load brands", err)
+			h.RespondAppError(w, r, appErr)
+			return
+		}
+		brandsCount = len(brands)
+	}
+
+	resp := TenantHealthResponse{
+		TenantID:        tenantID,
+		Domain:          domain,
+		FacetsCount:     len(facets),
+		FacetsLimit:     maxFacets,
+		FacetsOverLimit: len(facets) > maxFacets,
+		BrandsCount:     brandsCount,
+		BrandsLimit:     maxBrands,
+		BrandsOverLimit: brandsCount > maxBrands,
 	}
 	h.RespondJSON(w, http.StatusOK, resp)
 }
@@ -416,12 +559,19 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	query := validation.SanitizeString(q.Get("query"))
+	tenantID := validation.SanitizeString(q.Get("tenant_id"))
 	category := validation.SanitizeString(q.Get("category"))
 	brand := validation.SanitizeString(q.Get("brand"))
 	city := validation.SanitizeString(q.Get("city"))
 	shopID := validation.SanitizeString(q.Get("shop_id"))
 	productType := validation.SanitizeString(q.Get("type")) // "good" | "service" | ""
 	sort := validation.SanitizeString(q.Get("sort"))
+
+	if tenantID == "" {
+		appErr := appErrors.NewValidationError("tenant_id is required", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
 
 	// Валидация типа продукта
 	if productType != "" && productType != "good" && productType != "service" {
@@ -528,6 +678,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 
 	req := BrowseRequest{
 		Query:    query,
+		TenantID: tenantID,
 		Category: category,
 		Brand:    brand,
 		City:     city,

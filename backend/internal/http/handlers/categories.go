@@ -8,6 +8,7 @@ import (
 	"github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
+	"github.com/solomonczyk/izborator/internal/http/validation"
 )
 
 // CategoriesHandler обработчик для работы с категориями
@@ -27,6 +28,13 @@ func NewCategoriesHandler(service *categories.Service, log *logger.Logger, trans
 // GetTree обрабатывает получение дерева категорий
 // GET /api/v1/categories/tree?lang=ru
 func (h *CategoriesHandler) GetTree(w http.ResponseWriter, r *http.Request) {
+	tenantID := validation.SanitizeString(r.URL.Query().Get("tenant_id"))
+	if tenantID == "" {
+		appErr := appErrors.NewValidationError("tenant_id is required", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+
 	// Определяем язык из запроса (query param или Accept-Language header)
 	locale := middleware.GetLangFromContext(r.Context())
 	

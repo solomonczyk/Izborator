@@ -7,6 +7,18 @@
 
 
 ---
+### 2026-01-02 - Tenant isolation + limits + health snapshot
+
+**What changed:**
+- Backend: require tenant_id for browse/categories/cities; add /api/internal/tenant/health.
+- Soft limits: per-tenant overrides via TENANT_LIMITS_JSON; warn on JSON parse failure.
+- Frontend: tenant_id wired into facets fetch and warm-up; SSR warn thresholds from env.
+- CI: facet/UI contract enforces tenant_id in schema requests.
+- Docs: added TENANT_LIMITS_JSON env example.
+
+**Next:**
+- Pass tenant_id in frontend browse/categories/cities requests to avoid 400s.
+
 ### 2026-01-02 - Facets perf + domain scaling + CI e2e
 
 **What changed:**

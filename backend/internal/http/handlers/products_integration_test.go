@@ -281,7 +281,7 @@ func TestProductsHandler_Browse_Integration(t *testing.T) {
 
 	// Тест 1: Browse без фильтров
 	t.Run("BrowseWithoutFilters", func(t *testing.T) {
-		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?page=1&per_page=10")
+		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?tenant_id=test-tenant&page=1&per_page=10")
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
@@ -303,7 +303,7 @@ func TestProductsHandler_Browse_Integration(t *testing.T) {
 
 	// Тест 2: Browse с фильтром по цене
 	t.Run("BrowseWithPriceFilter", func(t *testing.T) {
-		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?min_price=50&max_price=150&page=1&per_page=10")
+		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?tenant_id=test-tenant&min_price=50&max_price=150&page=1&per_page=10")
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
@@ -325,7 +325,7 @@ func TestProductsHandler_Browse_Integration(t *testing.T) {
 
 	// Тест 3: Невалидная пагинация
 	t.Run("InvalidPagination", func(t *testing.T) {
-		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?page=0&per_page=10")
+		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?tenant_id=test-tenant&page=0&per_page=10")
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusBadRequest {
@@ -515,7 +515,7 @@ func TestProductsHandler_Browse_WithCategoriesAndCities_Integration(t *testing.T
 
 	// Тест 1: Фильтрация по родительской категории (должна включать дочерние)
 	t.Run("FilterByParentCategory", func(t *testing.T) {
-		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?category="+parentSlug+"&page=1&per_page=10")
+		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?tenant_id=test-tenant&category="+parentSlug+"&page=1&per_page=10")
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
@@ -561,7 +561,7 @@ func TestProductsHandler_Browse_WithCategoriesAndCities_Integration(t *testing.T
 
 	// Тест 2: Фильтрация по дочерней категории
 	t.Run("FilterByChildCategory", func(t *testing.T) {
-		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?category="+childSlug+"&page=1&per_page=10")
+		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?tenant_id=test-tenant&category="+childSlug+"&page=1&per_page=10")
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
@@ -603,7 +603,7 @@ func TestProductsHandler_Browse_WithCategoriesAndCities_Integration(t *testing.T
 
 	// Тест 3: Фильтрация по городу
 	t.Run("FilterByCity", func(t *testing.T) {
-		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?city="+city1Slug+"&page=1&per_page=10")
+		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?tenant_id=test-tenant&city="+city1Slug+"&page=1&per_page=10")
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
@@ -645,7 +645,7 @@ func TestProductsHandler_Browse_WithCategoriesAndCities_Integration(t *testing.T
 
 	// Тест 4: Комбинированная фильтрация (категория + город)
 	t.Run("FilterByCategoryAndCity", func(t *testing.T) {
-		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?category="+childSlug+"&city="+city1Slug+"&page=1&per_page=10")
+		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?tenant_id=test-tenant&category="+childSlug+"&city="+city1Slug+"&page=1&per_page=10")
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
@@ -684,7 +684,7 @@ func TestProductsHandler_Browse_WithCategoriesAndCities_Integration(t *testing.T
 
 	// Тест 5: Комбинированная фильтрация (категория + город + цена)
 	t.Run("FilterByCategoryCityAndPrice", func(t *testing.T) {
-		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?category="+childSlug+"&city="+city1Slug+"&min_price=150&max_price=250&page=1&per_page=10")
+		resp := makeRequest(t, server, "GET", "/api/v1/products/browse?tenant_id=test-tenant&category="+childSlug+"&city="+city1Slug+"&min_price=150&max_price=250&page=1&per_page=10")
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {

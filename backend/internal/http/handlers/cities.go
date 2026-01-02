@@ -7,6 +7,7 @@ import (
 	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	"github.com/solomonczyk/izborator/internal/i18n"
 	"github.com/solomonczyk/izborator/internal/logger"
+	"github.com/solomonczyk/izborator/internal/http/validation"
 )
 
 // CitiesHandler обработчик для работы с городами
@@ -26,6 +27,13 @@ func NewCitiesHandler(service *cities.Service, log *logger.Logger, translator *i
 // GetAllActive обрабатывает получение всех активных городов
 // GET /api/v1/cities
 func (h *CitiesHandler) GetAllActive(w http.ResponseWriter, r *http.Request) {
+	tenantID := validation.SanitizeString(r.URL.Query().Get("tenant_id"))
+	if tenantID == "" {
+		appErr := appErrors.NewValidationError("tenant_id is required", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+
 	citiesList, err := h.service.GetAllActive()
 	if err != nil {
 		appErr := appErrors.NewInternalError("Failed to load cities", err)
