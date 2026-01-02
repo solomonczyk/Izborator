@@ -35,20 +35,29 @@ type BrowseResponse = {
   total_pages: number
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081"
-
-// Форматирование цены с разделителями тысяч
-function formatPrice(price: number): string {
-  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+type FacetDefinition = {
+  semantic_type: string
+  facet_type: string
+  values?: string[]
 }
+
+type FacetSchemaResponse = {
+  domain: string
+  facets: FacetDefinition[]
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081"
 
 async function fetchCatalog(params: {
   query?: string
   category?: string
+  brand?: string
   city?: string
   type?: string
   minPrice?: string
   maxPrice?: string
+  minDuration?: string
+  maxDuration?: string
   page?: string
   perPage?: string
   sort?: string
@@ -58,10 +67,13 @@ async function fetchCatalog(params: {
 
   if (params.query) url.searchParams.set("query", params.query)
   if (params.category) url.searchParams.set("category", params.category)
+  if (params.brand) url.searchParams.set("brand", params.brand)
   if (params.city) url.searchParams.set("city", params.city)
   if (params.type) url.searchParams.set("type", params.type)
   if (params.minPrice) url.searchParams.set("min_price", params.minPrice)
   if (params.maxPrice) url.searchParams.set("max_price", params.maxPrice)
+  if (params.minDuration) url.searchParams.set("min_duration", params.minDuration)
+  if (params.maxDuration) url.searchParams.set("max_duration", params.maxDuration)
   if (params.sort) url.searchParams.set("sort", params.sort)
   if (params.lang) url.searchParams.set("lang", params.lang)
 
@@ -83,6 +95,22 @@ async function fetchCatalog(params: {
   return res.json()
 }
 
+async function fetchFacets(params: { type: "goods" | "services" }): Promise<FacetSchemaResponse> {
+  const url = new URL("/api/v1/products/facets", API_BASE)
+  url.searchParams.set("type", params.type)
+
+  const res = await fetch(url.toString(), {
+    next: { revalidate: 0 },
+    cache: 'no-store',
+  })
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch facets: ${res.status}`)
+  }
+
+  return res.json()
+}
+
 import { Pagination } from './pagination'
 
 export default async function CatalogPage({
@@ -93,10 +121,13 @@ export default async function CatalogPage({
   searchParams?: Promise<{
     q?: string
     category?: string
+    brand?: string
     city?: string
     type?: string
     min_price?: string
     max_price?: string
+    min_duration?: string
+    max_duration?: string
     page?: string
     per_page?: string
     sort?: string
@@ -108,13 +139,31 @@ export default async function CatalogPage({
   
   const query = resolvedSearchParams?.q || ""
   const category = resolvedSearchParams?.category || ""
+  const brand = resolvedSearchParams?.brand || ""
   const city = resolvedSearchParams?.city || ""
   const productType = resolvedSearchParams?.type || ""
   const minPrice = resolvedSearchParams?.min_price || ""
   const maxPrice = resolvedSearchParams?.max_price || ""
+  const minDuration = resolvedSearchParams?.min_duration || ""
+  const maxDuration = resolvedSearchParams?.max_duration || ""
   const page = resolvedSearchParams?.page || "1"
   const perPage = resolvedSearchParams?.per_page || "20"
   const sort = resolvedSearchParams?.sort || "price_asc"
+
+  const facetsType = productType === "service" ? "services" : "goods"
+  let facetSet = new Set<string>()
+  let brandOptions: string[] = []
+
+  try {
+    const facetsResponse = await fetchFacets({ type: facetsType })
+    const facets = Array.isArray(facetsResponse.facets) ? facetsResponse.facets : []
+    facetSet = new Set(facets.map((facet) => facet.semantic_type))
+    const brandFacet = facets.find((facet) => facet.semantic_type === "brand")
+    brandOptions = Array.isArray(brandFacet?.values) ? brandFacet.values : []
+    console.log('Facets loaded:', facetsType, facets)
+  } catch (err) {
+    console.error('Facets error:', err)
+  }
 
   // Загружаем категории и города
   let categories: CategoryNode[] = []
@@ -152,10 +201,13 @@ export default async function CatalogPage({
     data = await fetchCatalog({
       query,
       category,
+      brand,
       city,
       type: productType,
       minPrice,
       maxPrice,
+      minDuration,
+      maxDuration,
       page,
       perPage,
       sort,
@@ -184,9 +236,12 @@ export default async function CatalogPage({
   const baseParams = new URLSearchParams()
   if (query) baseParams.set("q", query)
   if (category) baseParams.set("category", category)
+  if (brand) baseParams.set("brand", brand)
   if (city) baseParams.set("city", city)
   if (minPrice) baseParams.set("min_price", minPrice)
   if (maxPrice) baseParams.set("max_price", maxPrice)
+  if (minDuration) baseParams.set("min_duration", minDuration)
+  if (maxDuration) baseParams.set("max_duration", maxDuration)
   if (sort && sort !== "price_asc") baseParams.set("sort", sort)
   if (perPage !== "20") baseParams.set("per_page", perPage)
 
@@ -271,6 +326,7 @@ export default async function CatalogPage({
               </div>
 
               {/* Категория */}
+              {facetSet.has("category") && (
               <div>
                 <label
                   htmlFor="category"
@@ -297,9 +353,41 @@ export default async function CatalogPage({
                     </option>
                   )}
                 </select>
-              </div>
+                </div>
+              )}
 
               {/* Город */}
+              {facetSet.has("brand") && (
+              <div>
+                <label
+                  htmlFor="brand"
+                  className="block text-sm font-medium mb-2 text-slate-900"
+                >
+                  Brand
+                </label>
+                <select
+                  id="brand"
+                  name="brand"
+                  defaultValue={brand}
+                  className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-slate-900 bg-white"
+                >
+                  <option value="" className="text-slate-400">All brands</option>
+                  {brandOptions.length > 0 ? (
+                    brandOptions.map((brandOption) => (
+                      <option key={brandOption} value={brandOption} className="text-slate-900">
+                        {brandOption}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled className="text-slate-400">
+                      Loading...
+                    </option>
+                  )}
+                </select>
+                </div>
+              )}
+
+              {facetSet.has("location") && (
               <div>
                 <label
                   htmlFor="city"
@@ -329,10 +417,55 @@ export default async function CatalogPage({
                     </option>
                   )}
                 </select>
-              </div>
+                </div>
+              )}
 
               {/* Минимальная цена */}
-              <div>
+              {productType === "service" && facetSet.has("duration") && (
+                <>
+                  <div>
+                    <label
+                      htmlFor="min_duration"
+                      className="block text-sm font-medium mb-2 text-slate-900"
+                    >
+                      Duration from (min)
+                    </label>
+                    <input
+                      type="number"
+                      id="min_duration"
+                      name="min_duration"
+                      defaultValue={minDuration}
+                      placeholder="0"
+                      min="0"
+                      style={{ color: '#0f172a' }}
+                      className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-slate-400 text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="max_duration"
+                      className="block text-sm font-medium mb-2 text-slate-900"
+                    >
+                      Duration to (min)
+                    </label>
+                    <input
+                      type="number"
+                      id="max_duration"
+                      name="max_duration"
+                      defaultValue={maxDuration}
+                      placeholder="240"
+                      min="0"
+                      style={{ color: '#0f172a' }}
+                      className="w-full border-2 border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-slate-400 text-slate-900"
+                    />
+                  </div>
+                </>
+              )}
+
+              {facetSet.has("price") && (
+                <>
+                <div>
                 <label
                   htmlFor="min_price"
                   className="block text-sm font-medium mb-2 text-slate-900"
@@ -372,7 +505,9 @@ export default async function CatalogPage({
               </div>
 
               {/* Сортировка */}
-              <div>
+                </>
+              )}
+                <div>
                 <label htmlFor="sort" className="block text-sm font-medium mb-2 text-slate-900">
                   {t('catalog.sort')}
                 </label>
@@ -404,7 +539,7 @@ export default async function CatalogPage({
               >
                 {t('catalog.apply_filters')}
               </button>
-              {(query || category || city || productType || minPrice || maxPrice || sort !== "price_asc") && (
+              {(query || category || brand || city || productType || minPrice || maxPrice || minDuration || maxDuration || sort !== "price_asc") && (
                 <Link
                   href="catalog"
                   className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500"

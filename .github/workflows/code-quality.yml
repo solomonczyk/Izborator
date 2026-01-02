@@ -133,6 +133,9 @@ jobs:
             echo "⚠️  No lint script found, skipping ESLint"
           fi
 
+      - name: Check facet schema UI contract
+        run: node scripts/check/check-facet-ui-contract.mjs
+
       - name: Run TypeScript check
         working-directory: ./frontend
         run: |

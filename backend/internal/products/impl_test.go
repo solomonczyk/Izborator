@@ -13,6 +13,7 @@ type mockStorage struct {
 	searchProductsFunc func(query string, limit, offset int) ([]*Product, int, error)
 	getProductByIDFunc func(id string) (*Product, error)
 	browseProductsFunc func(params BrowseParams) (*BrowseResult, error)
+	listBrandsFunc     func(ctx context.Context, productType string) ([]string, error)
 	saveProductFunc    func(product *Product) error
 	savePriceFunc      func(productID string, price float64, currency string) error //nolint:unused
 }
@@ -42,6 +43,13 @@ func (m *mockStorage) Browse(ctx context.Context, params BrowseParams) (*BrowseR
 		PerPage:    10,
 		TotalPages: 0,
 	}, nil
+}
+
+func (m *mockStorage) ListBrands(ctx context.Context, productType string) ([]string, error) {
+	if m.listBrandsFunc != nil {
+		return m.listBrandsFunc(ctx, productType)
+	}
+	return []string{}, nil
 }
 
 func (m *mockStorage) SaveProduct(product *Product) error {

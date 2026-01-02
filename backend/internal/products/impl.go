@@ -80,6 +80,19 @@ func (s *Service) Browse(ctx context.Context, params BrowseParams) (*BrowseResul
 	return result, nil
 }
 
+func (s *Service) ListBrands(ctx context.Context, productType string) ([]string, error) {
+	brands, err := s.storage.ListBrands(ctx, productType)
+	if err != nil {
+		s.logger.Error("Failed to list brands", map[string]interface{}{
+			"error":        err,
+			"product_type": productType,
+		})
+		return nil, fmt.Errorf("list brands failed: %w", err)
+	}
+	return brands, nil
+}
+
+
 // GetByID получает товар по ID
 func (s *Service) GetByID(id string) (*Product, error) {
 	if id == "" {

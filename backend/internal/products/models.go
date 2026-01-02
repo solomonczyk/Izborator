@@ -83,10 +83,13 @@ type BrowseParams struct {
 	CategoryIDs []string // Список ID категорий (родитель + дочерние, для фильтрации)
 	City        string   // slug города (будет преобразован в city_id)
 	CityID      *string  // ID города (используется внутри)
+	Brand       string
 	ShopID      string
 	Type        string   // тип: "good" | "service" | "" (все)
 	MinPrice    *float64
 	MaxPrice    *float64
+	MinDuration *int
+	MaxDuration *int
 	Page        int
 	PerPage     int
 	Sort        string

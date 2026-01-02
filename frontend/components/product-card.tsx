@@ -21,7 +21,6 @@ export interface ProductCardProps {
   max_price?: number
   currency?: string
   shops_count?: number
-  shop_names?: string[]
   type?: 'good' | 'service'
   service_metadata?: ServiceMetadata
   is_deliverable?: boolean
@@ -98,7 +97,6 @@ export function ProductCard({
   max_price,
   currency = 'RSD',
   shops_count,
-  shop_names = [],
   type = 'good',
   service_metadata,
   is_deliverable = true,

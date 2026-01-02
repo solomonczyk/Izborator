@@ -17,6 +17,8 @@ type Storage interface {
 	// Browse возвращает каталог товаров с фильтрами
 	Browse(ctx context.Context, params BrowseParams) (*BrowseResult, error)
 
+	ListBrands(ctx context.Context, productType string) ([]string, error)
+
 	// SaveProduct сохраняет товар
 	SaveProduct(product *Product) error
 

@@ -582,6 +582,55 @@ func (a *ProductsAdapter) Browse(ctx context.Context, params products.BrowsePara
 	return a.browseViaPostgres(ctx, params)
 }
 
+func (a *ProductsAdapter) ListBrands(ctx context.Context, productType string) ([]string, error) {
+	if ctx == nil {
+		ctx = a.GetContext()
+	}
+
+	query := `
+		SELECT MIN(TRIM(brand)) AS brand
+		FROM products
+		WHERE brand IS NOT NULL
+		  AND TRIM(brand) <> ''
+	`
+	args := []interface{}{}
+	if productType != "" {
+		if productType == string(products.ProductTypeGood) {
+			query += " AND (type = $1 OR type IS NULL OR type = '')"
+		} else {
+			query += " AND type = $1"
+		}
+		args = append(args, productType)
+	}
+
+	query += `
+		GROUP BY LOWER(TRIM(brand))
+		ORDER BY LOWER(TRIM(brand))
+	`
+
+	rows, err := a.pg.DB().Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list brands: %w", err)
+	}
+	defer rows.Close()
+
+	brands := []string{}
+	for rows.Next() {
+		var brand string
+		if err := rows.Scan(&brand); err != nil {
+			return nil, fmt.Errorf("failed to scan brand: %w", err)
+		}
+		if brand != "" {
+			brands = append(brands, brand)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating brands: %w", err)
+	}
+
+	return brands, nil
+}
+
 // browseViaMeilisearch каталог через Meilisearch с фильтрами
 func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params products.BrowseParams) (*products.BrowseResult, error) {
 	// Логирование для отладки
@@ -619,6 +668,10 @@ func (a *ProductsAdapter) browseViaMeilisearch(ctx context.Context, params produ
 	// Фильтр по типу (good/service)
 	if params.Type != "" {
 		filters = append(filters, fmt.Sprintf("type = \"%s\"", params.Type))
+	}
+
+	if params.Brand != "" {
+		filters = append(filters, fmt.Sprintf("brand = \"%s\"", params.Brand))
 	}
 	
 	// Пока shop_id и price фильтры пропускаем, т.к. эти поля могут быть не в индексе
@@ -927,6 +980,11 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 			args = append(args, params.Type)
 			argIndex++
 		}
+		if params.Brand != "" {
+			querySQL += fmt.Sprintf(" AND LOWER(TRIM(brand)) = LOWER(TRIM($%d))", argIndex)
+			args = append(args, params.Brand)
+			argIndex++
+		}
 		
 		// Фильтр по brand (если нужен)
 		// Фильтр по shop_id будет применен позже через product_prices
@@ -1054,6 +1112,13 @@ func (a *ProductsAdapter) browseViaPostgres(ctx context.Context, params products
 		} else if params.Category != "" {
 			// Фильтр по категории (строка, для обратной совместимости)
 			if p.Category == "" || p.Category != params.Category {
+				continue
+			}
+		}
+
+		if params.Brand != "" {
+			brand := strings.TrimSpace(p.Brand)
+			if brand == "" || !strings.EqualFold(brand, strings.TrimSpace(params.Brand)) {
 				continue
 			}
 		}

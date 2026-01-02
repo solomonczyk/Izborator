@@ -34,11 +34,6 @@ type BrowseResponse = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081";
 
-// Форматирование цены с разделителями тысяч
-function formatPrice(price: number): string {
-  return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-}
-
 async function fetchCatalog(params: {
   query?: string;
   category?: string;

@@ -1,14 +1,18 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals.js";
-import nextTs from "eslint-config-next/typescript.js";
+import nextTs from "eslint-config-next/typescript";
+import next from "@next/eslint-plugin-next";
 
 // В Next.js 15 конфиги могут быть объектами, а не массивами
-const nextVitalsConfig = Array.isArray(nextVitals) ? nextVitals : [nextVitals];
 const nextTsConfig = Array.isArray(nextTs) ? nextTs : [nextTs];
 
 const eslintConfig = defineConfig([
-  ...nextVitalsConfig,
   ...nextTsConfig,
+  {
+    plugins: { "@next/next": next },
+    rules: {
+      ...next.configs["core-web-vitals"].rules,
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

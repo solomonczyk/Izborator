@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/solomonczyk/izborator/internal/categories"
 	"github.com/solomonczyk/izborator/internal/cities"
+	"github.com/solomonczyk/izborator/internal/domainpack"
 	appErrors "github.com/solomonczyk/izborator/internal/errors"
 	"github.com/solomonczyk/izborator/internal/http/validation"
 	"github.com/solomonczyk/izborator/internal/i18n"
@@ -24,6 +25,7 @@ type SearchRequest struct {
 type BrowseRequest struct {
 	Query    string   `json:"query" validate:"omitempty,max=200"`
 	Category string   `json:"category" validate:"omitempty"`
+	Brand    string   `json:"brand" validate:"omitempty"`
 	City     string   `json:"city" validate:"omitempty"`
 	ShopID   string   `json:"shop_id" validate:"omitempty,uuid4"`
 	Type     string   `json:"type" validate:"omitempty,oneof=good service"` // Фильтр по типу: "good" | "service" | ""
@@ -34,14 +36,9 @@ type BrowseRequest struct {
 	Sort     string   `json:"sort" validate:"omitempty,oneof=price_asc price_desc name_asc name_desc newest"`
 }
 
-type FacetDefinition struct {
-	SemanticType string `json:"semantic_type"`
-	FacetType    string `json:"facet_type"`
-}
-
 type FacetSchemaResponse struct {
-	Domain string            `json:"domain"`
-	Facets []FacetDefinition `json:"facets"`
+	Domain string                      `json:"domain"`
+	Facets []domainpack.FacetDefinition `json:"facets"`
 }
 
 // ProductsHandler обработчик для работы с товарами
@@ -385,19 +382,25 @@ func (h *ProductsHandler) Facets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var facets []FacetDefinition
+	facets, err := domainpack.Facets(domain)
+	if err != nil {
+		appErr := appErrors.NewInternalError("failed to load facet schema", err)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+
 	if domain == "goods" {
-		facets = []FacetDefinition{
-			{SemanticType: "price", FacetType: "range"},
-			{SemanticType: "category", FacetType: "enum"},
-			{SemanticType: "location", FacetType: "enum"},
+		brands, err := h.service.ListBrands(r.Context(), string(products.ProductTypeGood))
+		if err != nil {
+			appErr := appErrors.NewInternalError("failed to load brand facets", err)
+			h.RespondAppError(w, r, appErr)
+			return
 		}
-	} else {
-		facets = []FacetDefinition{
-			{SemanticType: "category", FacetType: "enum"},
-			{SemanticType: "location", FacetType: "enum"},
-			{SemanticType: "duration", FacetType: "range"},
-			{SemanticType: "price", FacetType: "range"},
+		for i := range facets {
+			if facets[i].SemanticType == "brand" {
+				facets[i].Values = brands
+				break
+			}
 		}
 	}
 
@@ -413,6 +416,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 
 	query := validation.SanitizeString(q.Get("query"))
 	category := validation.SanitizeString(q.Get("category"))
+	brand := validation.SanitizeString(q.Get("brand"))
 	city := validation.SanitizeString(q.Get("city"))
 	shopID := validation.SanitizeString(q.Get("shop_id"))
 	productType := validation.SanitizeString(q.Get("type")) // "good" | "service" | ""
@@ -427,6 +431,8 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 
 	minPriceStr := q.Get("min_price")
 	maxPriceStr := q.Get("max_price")
+	minDurationStr := q.Get("min_duration")
+	maxDurationStr := q.Get("max_duration")
 
 	page, err := validation.ParseIntParam(q, "page", 1)
 	if err != nil {
@@ -451,6 +457,8 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	var (
 		minPrice *float64
 		maxPrice *float64
+		minDuration *int
+		maxDuration *int
 	)
 
 	// ?????? ????
@@ -489,9 +497,38 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if productType == "service" {
+		if minDurationStr != "" {
+			if v, err := strconv.Atoi(minDurationStr); err == nil {
+				minDuration = &v
+			} else {
+				appErr := appErrors.NewValidationError("min_duration must be a number", err)
+				h.RespondAppError(w, r, appErr)
+				return
+			}
+		}
+		if maxDurationStr != "" {
+			if v, err := strconv.Atoi(maxDurationStr); err == nil {
+				maxDuration = &v
+			} else {
+				appErr := appErrors.NewValidationError("max_duration must be a number", err)
+				h.RespondAppError(w, r, appErr)
+				return
+			}
+		}
+		if minDuration != nil && maxDuration != nil && *minDuration > *maxDuration {
+			h.logger.Warn("min_duration greater than max_duration; swapping", map[string]interface{}{
+				"min_duration": *minDuration,
+				"max_duration": *maxDuration,
+			})
+			*minDuration, *maxDuration = *maxDuration, *minDuration
+		}
+	}
+
 	req := BrowseRequest{
 		Query:    query,
 		Category: category,
+		Brand:    brand,
 		City:     city,
 		ShopID:   shopID,
 		Type:     productType,
@@ -555,6 +592,7 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 	res, err := h.service.Browse(ctx, products.BrowseParams{
 		Query:       query,
 		Category:    category,
+		Brand:       brand,
 		Type:        productType,
 		CategoryID:  categoryID,
 		CategoryIDs: categoryIDs,
@@ -563,6 +601,8 @@ func (h *ProductsHandler) Browse(w http.ResponseWriter, r *http.Request) {
 		ShopID:      shopID,
 		MinPrice:    minPrice,
 		MaxPrice:    maxPrice,
+		MinDuration: minDuration,
+		MaxDuration: maxDuration,
 		Page:        page,
 		PerPage:     perPage,
 		Sort:        sort,
