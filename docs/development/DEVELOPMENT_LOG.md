@@ -11996,3 +11996,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 
 **Notes:**
 - Untracked reference video in frontend/public remains excluded.
+
+---
+
+### 2026-01-03 - Home/Discover H-01.3.1
+
+**Time:** 11:51
+
+**Changes:**
+- Added CategoryCard component (title, hint, link, hover/focus/active styles).
+
