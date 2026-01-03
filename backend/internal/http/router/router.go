@@ -98,6 +98,7 @@ func setupRoutes(r *chi.Mux, h *Handlers, translator *i18n.Translator, redisClie
 	// API v1 роуты
 	r.Route("/api/v1", func(api chi.Router) {
 		api.With(httpMiddleware.CacheMiddleware(redisClient, log, time.Minute)).Get("/home", h.Home.GetHome)
+		api.With(httpMiddleware.CacheMiddleware(redisClient, log, time.Minute)).Get("/home/meta", h.Home.GetHomeMeta)
 		// Статистика парсинга
 		api.Route("/stats", func(sr chi.Router) {
 			sr.Get("/overall", h.Stats.GetOverallStats)

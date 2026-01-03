@@ -12189,3 +12189,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Wired city options into HeroSearch when showCitySelect is enabled.
 
+
+---
+
+### 2026-01-03 - Home/Discover home meta
+
+**Time:** 14:57
+
+**Changes:**
+- Added /api/v1/home/meta endpoint for lightweight home prefetch.
+

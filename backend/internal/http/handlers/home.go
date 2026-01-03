@@ -37,6 +37,16 @@ type homeModel struct {
 	CategoryCards []homeCategoryCard `json:"categoryCards"`
 }
 
+type homeMeta struct {
+	Version        string `json:"version"`
+	TenantID       string `json:"tenant_id"`
+	Locale         string `json:"locale"`
+	CardsCount     int    `json:"cards_count"`
+	ShowTypeToggle bool   `json:"showTypeToggle"`
+	ShowCitySelect bool   `json:"showCitySelect"`
+	DefaultType    string `json:"defaultType"`
+}
+
 func (h *HomeHandler) GetHome(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	tenantID := validation.SanitizeString(r.URL.Query().Get("tenant_id"))
@@ -83,6 +93,48 @@ func (h *HomeHandler) GetHome(w http.ResponseWriter, r *http.Request) {
 	} else {
 		h.logger.Info("home model response", fields)
 	}
+}
+
+func (h *HomeHandler) GetHomeMeta(w http.ResponseWriter, r *http.Request) {
+	tenantID := validation.SanitizeString(r.URL.Query().Get("tenant_id"))
+	if tenantID == "" {
+		appErr := appErrors.NewValidationError("tenant_id is required", nil)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+
+	locale := validation.SanitizeString(r.URL.Query().Get("locale"))
+	if locale == "" {
+		locale = middleware.GetLangFromContext(r.Context())
+		if locale == "" {
+			locale = "en"
+		}
+	}
+
+	model, err := buildHomeModel(tenantID, locale)
+	if err != nil {
+		if errors.Is(err, homeconfig.ErrTenantNotFound) {
+			appErr := appErrors.NewNotFound("home config not found for tenant")
+			h.RespondAppError(w, r, appErr)
+			return
+		}
+		appErr := appErrors.NewInternalError("Failed to load home config", err)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+
+	meta := homeMeta{
+		Version:        model.Version,
+		TenantID:       model.TenantID,
+		Locale:         model.Locale,
+		CardsCount:     len(model.CategoryCards),
+		ShowTypeToggle: model.Hero.ShowTypeToggle,
+		ShowCitySelect: model.Hero.ShowCitySelect,
+		DefaultType:    model.Hero.DefaultType,
+	}
+
+	w.Header().Set("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600")
+	h.RespondJSON(w, http.StatusOK, meta)
 }
 
 func buildHomeModel(tenantID, locale string) (homeModel, error) {
