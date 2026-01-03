@@ -16,6 +16,7 @@ export default async function HomePage({
   const t = await getTranslations({ locale, namespace: 'home' })
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || process.env.TENANT_ID || 'default'
   const homeModel = await fetchHomeModel({ tenantId, locale })
+  const isLoading = !homeModel
   const hero = homeModel?.hero ?? {
     title: t('title'),
     subtitle: t('subtitle'),
@@ -60,7 +61,7 @@ export default async function HomePage({
                 />
               </div>
             </div>
-            <FloatingCategoryCloud categories={categoryCards} />
+            <FloatingCategoryCloud categories={categoryCards} isLoading={isLoading} />
           </div>
         </div>
       </main>

@@ -6,6 +6,7 @@ import { CategoryCard, type CategoryCardProps } from '@/components/category-card
 type FloatingCategoryCloudProps = {
   categories: CategoryCardProps[]
   maxVisible?: number
+  isLoading?: boolean
 }
 
 const positions = [
@@ -22,8 +23,13 @@ const positions = [
 export function FloatingCategoryCloud({
   categories,
   maxVisible = 8,
+  isLoading = false,
 }: FloatingCategoryCloudProps) {
   const visible = categories.slice(0, maxVisible)
+  const skeletons = Array.from({ length: maxVisible }, (_, index) => ({
+    id: `skeleton-${index}`,
+  }))
+  const items = isLoading ? skeletons : visible
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
 
   useEffect(() => {
@@ -109,19 +115,25 @@ export function FloatingCategoryCloud({
     }
   }, [])
 
-  if (visible.length === 0) {
+  if (!isLoading && visible.length === 0) {
     return null
   }
 
   return (
     <>
       <div className="mt-10 grid grid-cols-2 gap-4 md:hidden">
-        {visible.map((category) => (
-          <CategoryCard key={category.id} {...category} />
-        ))}
+        {isLoading
+          ? skeletons.map((skeleton) => (
+              <div
+                key={skeleton.id}
+                className="h-[96px] rounded-2xl border border-slate-200 bg-white/80 shadow-sm animate-pulse"
+                aria-hidden="true"
+              />
+            ))
+          : visible.map((category) => <CategoryCard key={category.id} {...category} />)}
       </div>
       <div className="absolute inset-0 hidden md:block">
-        {visible.map((category, index) => (
+        {items.map((category, index) => (
           <div
             key={category.id}
             ref={(node) => {
@@ -135,7 +147,14 @@ export function FloatingCategoryCloud({
               willChange: 'transform',
             }}
           >
-            <CategoryCard {...category} />
+            {isLoading ? (
+              <div
+                className="h-[112px] rounded-2xl border border-slate-200 bg-white/80 shadow-sm animate-pulse"
+                aria-hidden="true"
+              />
+            ) : (
+              <CategoryCard {...category} />
+            )}
           </div>
         ))}
       </div>

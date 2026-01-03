@@ -12092,3 +12092,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Wired Home page to fetch HomeModel (tenant/locale) and render hero + cards from data.
 - Added HomeModel types to frontend API utilities.
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.6.2
+
+**Time:** 13:46
+
+**Changes:**
+- Added skeleton cards for Home category cloud when HomeModel is unavailable.
+- Preserved layout stability for mobile grid and desktop ring.
+
