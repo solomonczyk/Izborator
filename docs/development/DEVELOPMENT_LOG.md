@@ -12179,3 +12179,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Forced card scale to 1 when NEXT_PUBLIC_DISABLE_MOTION is enabled.
 
+
+---
+
+### 2026-01-03 - Home/Discover city select wiring
+
+**Time:** 14:51
+
+**Changes:**
+- Wired city options into HeroSearch when showCitySelect is enabled.
+

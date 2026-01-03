@@ -3,7 +3,7 @@ import type { CategoryCardProps } from '@/components/category-card'
 import { FloatingCategoryCloud } from '@/components/floating-category-cloud'
 import { HeroSearch } from '@/components/hero-search'
 import { LanguageSwitcher } from '@/components/language-switcher'
-import { fetchHomeModel } from '@/lib/api'
+import { fetchCities, fetchHomeModel } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,6 +25,12 @@ export default async function HomePage({
     showCitySelect: false,
     defaultType: 'all' as const,
   }
+  const cityOptions = hero.showCitySelect
+    ? (await fetchCities()).map((city) => ({
+        value: city.slug,
+        label: city.name_sr,
+      }))
+    : []
   const categoryCards: CategoryCardProps[] =
     homeModel?.categoryCards.map((card) => ({
       id: card.id,
@@ -58,6 +64,7 @@ export default async function HomePage({
                   showTypeToggle={hero.showTypeToggle}
                   defaultType={hero.defaultType}
                   showCitySelect={hero.showCitySelect}
+                  cityOptions={cityOptions}
                   searchPlaceholder={hero.searchPlaceholder}
                 />
               </div>
