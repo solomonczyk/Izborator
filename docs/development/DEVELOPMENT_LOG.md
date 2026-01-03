@@ -12038,3 +12038,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Wired mock category cards into Home page and removed placeholder.
 - Exported CategoryCardProps type for reuse.
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.4.2
+
+**Time:** 12:23
+
+**Changes:**
+- Disabled hover-only visuals on mobile by scoping hover styles to md+ for CategoryCard.
+
