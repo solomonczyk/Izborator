@@ -3,6 +3,7 @@ import type { CategoryCardProps } from '@/components/category-card'
 import { FloatingCategoryCloud } from '@/components/floating-category-cloud'
 import { HeroSearch } from '@/components/hero-search'
 import { LanguageSwitcher } from '@/components/language-switcher'
+import { fetchHomeModel } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,58 +14,25 @@ export default async function HomePage({
 }) {
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'home' })
-  const categoryCards: CategoryCardProps[] = [
-    {
-      id: 'electronics',
-      title: 'Electronics',
-      hint: 'Phones, laptops, gadgets',
-      href: '/catalog?type=good&category=electronics',
-      priority: 'primary',
-    },
-    {
-      id: 'food',
-      title: 'Food & Drinks',
-      hint: 'Groceries and delivery',
-      href: '/catalog?type=good&category=food',
-      priority: 'primary',
-    },
-    {
-      id: 'fashion',
-      title: 'Fashion',
-      hint: 'Clothes and shoes',
-      href: '/catalog?type=good&category=fashion',
-    },
-    {
-      id: 'home',
-      title: 'Home & Garden',
-      hint: 'Furniture and decor',
-      href: '/catalog?type=good&category=home',
-    },
-    {
-      id: 'sport',
-      title: 'Sport & Leisure',
-      hint: 'Outdoor and fitness',
-      href: '/catalog?type=good&category=sport',
-    },
-    {
-      id: 'auto',
-      title: 'Auto',
-      hint: 'Cars and accessories',
-      href: '/catalog?type=good&category=auto',
-    },
-    {
-      id: 'services',
-      title: 'Services',
-      hint: 'Repair, beauty, events',
-      href: '/catalog?type=service',
-    },
-    {
-      id: 'finance',
-      title: 'Finance',
-      hint: 'Insurance and banking',
-      href: '/catalog?type=service&category=finance',
-    },
-  ]
+  const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || process.env.TENANT_ID || 'default'
+  const homeModel = await fetchHomeModel({ tenantId, locale })
+  const hero = homeModel?.hero ?? {
+    title: t('title'),
+    subtitle: t('subtitle'),
+    searchPlaceholder: t('search_placeholder'),
+    showTypeToggle: true,
+    showCitySelect: false,
+    defaultType: 'all' as const,
+  }
+  const categoryCards: CategoryCardProps[] =
+    homeModel?.categoryCards.map((card) => ({
+      id: card.id,
+      title: card.title,
+      hint: card.hint,
+      href: card.href,
+      priority: card.priority,
+      analyticsId: card.analytics_id,
+    })) ?? []
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
@@ -82,7 +50,14 @@ export default async function HomePage({
           <div className="relative w-full md:min-h-[640px]">
             <div className="relative z-10 flex min-h-[520px] items-center justify-center">
               <div className="relative flex w-full max-w-[720px] items-center justify-center md:min-w-[520px] min-h-[320px] md:min-h-[360px] lg:min-h-[420px]">
-                <HeroSearch title={t('title')} subtitle={t('subtitle')} />
+                <HeroSearch
+                  title={hero.title}
+                  subtitle={hero.subtitle}
+                  showTypeToggle={hero.showTypeToggle}
+                  defaultType={hero.defaultType}
+                  showCitySelect={hero.showCitySelect}
+                  searchPlaceholder={hero.searchPlaceholder}
+                />
               </div>
             </div>
             <FloatingCategoryCloud categories={categoryCards} />

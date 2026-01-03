@@ -12080,3 +12080,15 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Disabled proximity motion when prefers-reduced-motion is enabled.
 - Added global reduced-motion rule to turn off transitions/animations.
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.6.1
+
+**Time:** 13:35
+
+**Changes:**
+- Added /api/v1/home endpoint with HomeModel payload and observability logging.
+- Wired Home page to fetch HomeModel (tenant/locale) and render hero + cards from data.
+- Added HomeModel types to frontend API utilities.
+

@@ -24,6 +24,35 @@ export interface City {
   is_active: boolean
 }
 
+export type HomeHero = {
+  title: string
+  subtitle?: string
+  searchPlaceholder: string
+  showTypeToggle: boolean
+  showCitySelect: boolean
+  defaultType: "all" | "good" | "service"
+}
+
+export type HomeCategoryCard = {
+  id: string
+  title: string
+  hint?: string
+  icon_key?: string
+  href: string
+  priority?: "primary" | "secondary"
+  weight?: number
+  domain?: "good" | "service" | "all"
+  analytics_id?: string
+}
+
+export type HomeModel = {
+  version: "1"
+  tenant_id: string
+  locale: string
+  hero: HomeHero
+  categoryCards: HomeCategoryCard[]
+}
+
 /**
  * Загружает дерево категорий
  */
@@ -85,6 +114,35 @@ export async function fetchCities(): Promise<City[]> {
   }
 
   return data
+}
+
+export async function fetchHomeModel(params: {
+  tenantId: string
+  locale?: string
+}): Promise<HomeModel | null> {
+  try {
+    const url = new URL(`${API_BASE}/api/v1/home`)
+    url.searchParams.set("tenant_id", params.tenantId)
+    if (params.locale) {
+      url.searchParams.set("locale", params.locale)
+    }
+
+    const res = await fetch(url.toString(), {
+      cache: 'no-store',
+      next: { revalidate: 0 },
+    })
+
+    if (!res.ok) {
+      console.warn(`Failed to fetch home model: ${res.status}`)
+      return null
+    }
+
+    const data = (await res.json()) as HomeModel
+    return data
+  } catch (error) {
+    console.warn('Home model API unavailable:', error instanceof Error ? error.message : String(error))
+    return null
+  }
 }
 
 /**

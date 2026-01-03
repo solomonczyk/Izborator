@@ -32,6 +32,7 @@ type Router struct {
 // Handlers содержит все обработчики
 type Handlers struct {
 	Health     *handlers.HealthHandler
+	Home       *handlers.HomeHandler
 	Products   *handlers.ProductsHandler
 	Stats      *handlers.StatsHandler
 	Categories *handlers.CategoriesHandler
@@ -64,6 +65,7 @@ func New(log *logger.Logger, productsService *products.Service, priceHistoryServ
 
 	handlers := &Handlers{
 		Health:     handlers.NewHealthHandler(pgPool, redisPool, log),
+		Home:       handlers.NewHomeHandler(log, translator),
 		Products:   handlers.NewProductsHandler(productsService, priceHistoryService, categoriesService, citiesService, log, translator),
 		Stats:      handlers.NewStatsHandler(scrapingStatsService, log, translator),
 		Categories: handlers.NewCategoriesHandler(categoriesService, log, translator),
@@ -95,6 +97,7 @@ func setupRoutes(r *chi.Mux, h *Handlers, translator *i18n.Translator, redisClie
 
 	// API v1 роуты
 	r.Route("/api/v1", func(api chi.Router) {
+		api.With(httpMiddleware.CacheMiddleware(redisClient, log, time.Minute)).Get("/home", h.Home.GetHome)
 		// Статистика парсинга
 		api.Route("/stats", func(sr chi.Router) {
 			sr.Get("/overall", h.Stats.GetOverallStats)

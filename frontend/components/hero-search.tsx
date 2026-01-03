@@ -8,6 +8,7 @@ type HeroSearchProps = {
   showCitySelect?: boolean
   cityOptions?: Array<{ value: string; label: string }>
   defaultCity?: string
+  searchPlaceholder?: string
 }
 
 export function HeroSearch({
@@ -18,6 +19,7 @@ export function HeroSearch({
   showCitySelect = false,
   cityOptions,
   defaultCity,
+  searchPlaceholder,
 }: HeroSearchProps) {
   return (
     <div className="w-full max-w-3xl text-center">
@@ -34,6 +36,7 @@ export function HeroSearch({
           showCitySelect={showCitySelect}
           cityOptions={cityOptions}
           defaultCity={defaultCity}
+          searchPlaceholder={searchPlaceholder}
         />
       </div>
     </div>

@@ -13,6 +13,7 @@ type SearchFormProps = {
   showCitySelect?: boolean
   cityOptions?: Array<{ value: string; label: string }>
   defaultCity?: string
+  searchPlaceholder?: string
 }
 
 export function SearchForm({
@@ -21,6 +22,7 @@ export function SearchForm({
   showCitySelect = false,
   cityOptions = [],
   defaultCity = "",
+  searchPlaceholder,
 }: SearchFormProps) {
   const t = useTranslations('home')
   const tCatalog = useTranslations('catalog')
@@ -35,7 +37,7 @@ export function SearchForm({
         <input
           type="text"
           name="q"
-          placeholder={t('search_placeholder')}
+          placeholder={searchPlaceholder ?? t('search_placeholder')}
           className="w-full px-6 py-5 text-lg border-2 border-slate-300 rounded-2xl shadow-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
           autoFocus
         />
