@@ -4,16 +4,23 @@
 
 import React from 'react'
 import { useTranslations } from 'next-intl'
+import { CitySelect } from '@/components/city-select'
 import { TypeToggle } from '@/components/type-toggle'
 
 type SearchFormProps = {
   showTypeToggle?: boolean
   defaultType?: "all" | "good" | "service"
+  showCitySelect?: boolean
+  cityOptions?: Array<{ value: string; label: string }>
+  defaultCity?: string
 }
 
 export function SearchForm({
   showTypeToggle = false,
   defaultType = "all",
+  showCitySelect = false,
+  cityOptions = [],
+  defaultCity = "",
 }: SearchFormProps) {
   const t = useTranslations('home')
   const tCatalog = useTranslations('catalog')
@@ -39,17 +46,27 @@ export function SearchForm({
           {t('search_button')}
         </button>
       </div>
-      {showTypeToggle ? (
-        <div className="mt-4 flex justify-center">
-          <TypeToggle
-            ariaLabel={tCatalog('type')}
-            defaultValue={defaultType}
-            labels={{
-              all: tCatalog('type_all'),
-              goods: tCatalog('type_goods'),
-              services: tCatalog('type_services'),
-            }}
-          />
+      {showTypeToggle || showCitySelect ? (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+          {showTypeToggle ? (
+            <TypeToggle
+              ariaLabel={tCatalog('type')}
+              defaultValue={defaultType}
+              labels={{
+                all: tCatalog('type_all'),
+                goods: tCatalog('type_goods'),
+                services: tCatalog('type_services'),
+              }}
+            />
+          ) : null}
+          {showCitySelect ? (
+            <CitySelect
+              label={tCatalog('city')}
+              allLabel={tCatalog('all_cities')}
+              options={cityOptions}
+              defaultValue={defaultCity}
+            />
+          ) : null}
         </div>
       ) : null}
     </form>

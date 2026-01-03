@@ -5,6 +5,9 @@ type HeroSearchProps = {
   subtitle?: string
   showTypeToggle?: boolean
   defaultType?: "all" | "good" | "service"
+  showCitySelect?: boolean
+  cityOptions?: Array<{ value: string; label: string }>
+  defaultCity?: string
 }
 
 export function HeroSearch({
@@ -12,6 +15,9 @@ export function HeroSearch({
   subtitle,
   showTypeToggle = true,
   defaultType = "all",
+  showCitySelect = false,
+  cityOptions,
+  defaultCity,
 }: HeroSearchProps) {
   return (
     <div className="w-full max-w-3xl text-center">
@@ -22,7 +28,13 @@ export function HeroSearch({
         <p className="mt-4 text-lg text-slate-600 md:text-2xl">{subtitle}</p>
       ) : null}
       <div className="mt-10">
-        <SearchForm showTypeToggle={showTypeToggle} defaultType={defaultType} />
+        <SearchForm
+          showTypeToggle={showTypeToggle}
+          defaultType={defaultType}
+          showCitySelect={showCitySelect}
+          cityOptions={cityOptions}
+          defaultCity={defaultCity}
+        />
       </div>
     </div>
   )

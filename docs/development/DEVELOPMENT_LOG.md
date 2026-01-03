@@ -11983,3 +11983,16 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 
 **Notes:**
 - Reference video in frontend/public kept out of commits.
+
+---
+
+### 2026-01-03 - Home/Discover H-01.2.3
+
+**Time:** 11:47
+
+**Changes:**
+- Added CitySelect component (feature-flagged, UI only).
+- Wired city select into SearchForm and HeroSearch props.
+
+**Notes:**
+- Untracked reference video in frontend/public remains excluded.
