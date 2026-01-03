@@ -12250,3 +12250,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Added a lightweight home meta prefetch on the home page.
 
+
+---
+
+### 2026-01-03 - Queue v1 (redis client)
+
+**Time:** 16:29
+
+**Changes:**
+- Added a Redis-backed queue client with publish/consume helpers.
+
