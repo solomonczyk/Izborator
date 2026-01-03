@@ -35,7 +35,7 @@ export function SearchForm({
     >
       <div className="relative">
         <input
-          type="text"
+          type="search"
           name="q"
           placeholder={searchPlaceholder ?? t('search_placeholder')}
           className="w-full px-6 py-5 text-lg border-2 border-slate-300 rounded-2xl shadow-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"

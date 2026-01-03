@@ -39,7 +39,7 @@ export function TypeToggle({
               value={inputValue}
               defaultChecked={defaultValue === option.value}
             />
-            <span className="rounded-full px-3 py-1 text-slate-600 transition-colors peer-checked:bg-blue-600 peer-checked:text-white">
+            <span className="rounded-full px-3 py-1 text-slate-600 transition-colors peer-checked:bg-blue-600 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-blue-200 peer-focus-visible:ring-offset-2">
               {option.label}
             </span>
           </label>
