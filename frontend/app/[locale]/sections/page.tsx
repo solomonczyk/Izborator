@@ -95,6 +95,12 @@ export default function SectionsPage() {
     >
       {sections.map((s, idx) => {
         const progress = Math.round(((idx + 1) / sections.length) * 100)
+        const floating = [
+          sections[(idx + 1) % sections.length],
+          sections[(idx + 2) % sections.length],
+          sections[(idx + 3) % sections.length],
+        ]
+
         return (
           <section
             key={s.id}
@@ -152,45 +158,76 @@ export default function SectionsPage() {
                     </div>
                   </div>
 
-                  <div className="pointer-events-none absolute -left-24 top-6 hidden xl:block">
-                    <div className="w-[260px] rounded-[28px] border border-white/70 bg-white/70 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur motion-safe:animate-[float_6s_ease-in-out_infinite]">
+                  <Link
+                    href={floating[0].href}
+                    className="absolute -left-24 top-6 hidden xl:block"
+                  >
+                    <div
+                      className="w-[260px] rounded-[28px] border border-white/70 bg-white/70 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur motion-safe:animate-[float_6s_ease-in-out_infinite]"
+                      style={{
+                        ["--card-accent" as string]: floating[0].accent,
+                        ["--card-accent-soft" as string]: floating[0].accentSoft,
+                        animationDelay: "0.2s",
+                      }}
+                    >
                       <div
                         className="h-32 rounded-2xl"
-                        style={{ background: `linear-gradient(140deg, rgba(255,255,255,0.9), var(--accent-soft))` }}
+                        style={{ background: "linear-gradient(140deg, rgba(255,255,255,0.9), var(--card-accent-soft))" }}
                       />
-                      <div className="mt-3 text-xs text-slate-500">Витрина</div>
-                      <div className="text-sm font-semibold text-slate-900">Топ-подборка</div>
+                      <div className="mt-3 text-xs uppercase tracking-[0.3em] text-slate-500">Категория</div>
+                      <div className={`${rubik.className} text-sm font-semibold text-slate-900`}>{floating[0].title}</div>
+                      <div className="mt-2 text-xs text-slate-400">Открыть</div>
                     </div>
-                  </div>
+                  </Link>
 
-                  <div className="pointer-events-none absolute -right-28 top-0 hidden xl:block">
-                    <div className="w-[240px] rounded-[24px] border border-white/70 bg-white/65 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.16)] backdrop-blur motion-safe:animate-[float_5s_ease-in-out_infinite]">
+                  <Link
+                    href={floating[1].href}
+                    className="absolute -right-28 top-0 hidden xl:block"
+                  >
+                    <div
+                      className="w-[240px] rounded-[24px] border border-white/70 bg-white/65 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.16)] backdrop-blur motion-safe:animate-[float_5s_ease-in-out_infinite]"
+                      style={{
+                        ["--card-accent" as string]: floating[1].accent,
+                        ["--card-accent-soft" as string]: floating[1].accentSoft,
+                        animationDelay: "0.6s",
+                      }}
+                    >
                       <div className="flex gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
-                        <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
-                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--card-accent)" }} />
+                        <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-slate-100" />
                       </div>
                       <div
                         className="mt-3 h-24 rounded-2xl"
-                        style={{ background: `linear-gradient(160deg, rgba(255,255,255,0.9), var(--accent-soft))` }}
+                        style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.9), var(--card-accent-soft))" }}
                       />
-                      <div className="mt-3 text-xs text-slate-500">Сценарий</div>
-                      <div className="text-sm font-semibold text-slate-900">Свежие решения</div>
+                      <div className="mt-3 text-xs uppercase tracking-[0.3em] text-slate-500">Категория</div>
+                      <div className={`${rubik.className} text-sm font-semibold text-slate-900`}>{floating[1].title}</div>
+                      <div className="mt-2 text-xs text-slate-400">Открыть</div>
                     </div>
-                  </div>
+                  </Link>
 
-                  <div className="pointer-events-none absolute right-10 -bottom-16 hidden lg:block">
-                    <div className="w-[200px] rounded-[22px] border border-white/70 bg-white/70 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.16)] backdrop-blur motion-safe:animate-[float_7s_ease-in-out_infinite]">
-                      <div className="text-xs uppercase tracking-[0.3em] text-slate-500">Поток</div>
-                      <div className="mt-2 text-2xl font-semibold text-slate-900">{progress}%</div>
-                      <div className="mt-3 h-2 w-full rounded-full bg-slate-200">
-                        <div
-                          className="h-full rounded-full"
-                          style={{ width: `${progress}%`, background: "var(--accent)" }}
-                        />
-                      </div>
+                  <Link
+                    href={floating[2].href}
+                    className="absolute right-10 -bottom-16 hidden lg:block"
+                  >
+                    <div
+                      className="w-[200px] rounded-[22px] border border-white/70 bg-white/70 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.16)] backdrop-blur motion-safe:animate-[float_7s_ease-in-out_infinite]"
+                      style={{
+                        ["--card-accent" as string]: floating[2].accent,
+                        ["--card-accent-soft" as string]: floating[2].accentSoft,
+                        animationDelay: "1s",
+                      }}
+                    >
+                      <div
+                        className="h-16 rounded-xl"
+                        style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.9), var(--card-accent-soft))" }}
+                      />
+                      <div className="mt-3 text-xs uppercase tracking-[0.3em] text-slate-500">Категория</div>
+                      <div className={`${rubik.className} text-sm font-semibold text-slate-900`}>{floating[2].title}</div>
+                      <div className="mt-2 text-xs text-slate-400">Открыть</div>
                     </div>
-                  </div>
+                  </Link>
                 </div>
               </div>
 
