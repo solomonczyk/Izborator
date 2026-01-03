@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	_ "embed"
@@ -35,10 +36,16 @@ type CategoryCard struct {
 	AnalyticsID string `json:"analytics_id,omitempty"`
 }
 
+type TenantLocaleConfig struct {
+	Hero          *Hero          `json:"hero,omitempty"`
+	CategoryCards []CategoryCard `json:"categoryCards,omitempty"`
+}
+
 type TenantConfig struct {
 	Version       string         `json:"version"`
 	Hero          Hero           `json:"hero"`
 	CategoryCards []CategoryCard `json:"categoryCards"`
+	Locales       map[string]TenantLocaleConfig `json:"locales,omitempty"`
 }
 
 type Config map[string]TenantConfig
@@ -65,4 +72,36 @@ func Get(tenantID string) (TenantConfig, error) {
 		return TenantConfig{}, ErrTenantNotFound
 	}
 	return tenantConfig, nil
+}
+
+func Resolve(tenantID, locale string) (TenantConfig, error) {
+	config, err := Get(tenantID)
+	if err != nil {
+		return TenantConfig{}, err
+	}
+	if locale == "" || len(config.Locales) == 0 {
+		return config, nil
+	}
+
+	normalized := strings.ToLower(locale)
+	if override, ok := config.Locales[normalized]; ok {
+		return applyLocale(config, override), nil
+	}
+	if parts := strings.SplitN(normalized, "-", 2); len(parts) > 1 {
+		if override, ok := config.Locales[parts[0]]; ok {
+			return applyLocale(config, override), nil
+		}
+	}
+
+	return config, nil
+}
+
+func applyLocale(config TenantConfig, override TenantLocaleConfig) TenantConfig {
+	if override.Hero != nil {
+		config.Hero = *override.Hero
+	}
+	if len(override.CategoryCards) > 0 {
+		config.CategoryCards = override.CategoryCards
+	}
+	return config
 }

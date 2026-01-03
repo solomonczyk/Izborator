@@ -12199,3 +12199,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Added /api/v1/home/meta endpoint for lightweight home prefetch.
 
+
+---
+
+### 2026-01-03 - Home/Discover locale overrides
+
+**Time:** 15:06
+
+**Changes:**
+- Added locale override support in home config (per-tenant locales map).
+- Home API resolves locale overrides when present.
+

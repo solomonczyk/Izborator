@@ -138,7 +138,7 @@ func (h *HomeHandler) GetHomeMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildHomeModel(tenantID, locale string) (homeModel, error) {
-	config, err := homeconfig.Get(tenantID)
+	config, err := homeconfig.Resolve(tenantID, locale)
 	if err != nil {
 		return homeModel{}, err
 	}
