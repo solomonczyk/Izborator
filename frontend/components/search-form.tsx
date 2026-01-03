@@ -26,18 +26,21 @@ export function SearchForm({
 }: SearchFormProps) {
   const t = useTranslations('home')
   const tCatalog = useTranslations('catalog')
+  const resolvedPlaceholder = searchPlaceholder ?? t('search_placeholder')
 
   return (
-    <form 
-      method="GET" 
+    <form
+      method="GET"
       action={`/catalog`}
+      role="search"
       className="w-full max-w-3xl mx-auto"
     >
       <div className="relative">
         <input
           type="search"
           name="q"
-          placeholder={searchPlaceholder ?? t('search_placeholder')}
+          aria-label={resolvedPlaceholder}
+          placeholder={resolvedPlaceholder}
           className="w-full px-6 py-5 text-lg border-2 border-slate-300 rounded-2xl shadow-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
           autoFocus
         />

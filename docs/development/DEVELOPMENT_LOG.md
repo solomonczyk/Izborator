@@ -12210,3 +12210,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Added locale override support in home config (per-tenant locales map).
 - Home API resolves locale overrides when present.
 
+
+---
+
+### 2026-01-03 - Home/Discover search accessibility
+
+**Time:** 15:32
+
+**Changes:**
+- Added role="search" and aria-label for the home search input.
+
