@@ -4,9 +4,19 @@
 
 import React from 'react'
 import { useTranslations } from 'next-intl'
+import { TypeToggle } from '@/components/type-toggle'
 
-export function SearchForm() {
+type SearchFormProps = {
+  showTypeToggle?: boolean
+  defaultType?: "all" | "good" | "service"
+}
+
+export function SearchForm({
+  showTypeToggle = false,
+  defaultType = "all",
+}: SearchFormProps) {
   const t = useTranslations('home')
+  const tCatalog = useTranslations('catalog')
 
   return (
     <form 
@@ -29,6 +39,19 @@ export function SearchForm() {
           {t('search_button')}
         </button>
       </div>
+      {showTypeToggle ? (
+        <div className="mt-4 flex justify-center">
+          <TypeToggle
+            ariaLabel={tCatalog('type')}
+            defaultValue={defaultType}
+            labels={{
+              all: tCatalog('type_all'),
+              goods: tCatalog('type_goods'),
+              services: tCatalog('type_services'),
+            }}
+          />
+        </div>
+      ) : null}
     </form>
   )
 }

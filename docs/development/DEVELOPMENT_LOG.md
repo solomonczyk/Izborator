@@ -11967,3 +11967,19 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Улучшить валидацию в AutoConfig для более точной генерации селекторов
 
 ---
+
+---
+
+### 2026-01-03 - Home/Discover docs + H-01.1/H-01.2
+
+**Time:** 11:34
+
+**Changes:**
+- Organized UX/UI specs into docs/ux/home-discover.
+- Home page skeleton updated (header, centered hero, cloud placeholder, footer).
+- Added Safe Center sizing constraints for the hero block.
+- Added HeroSearch component and integrated it into the home page.
+- Added TypeToggle (feature-flag) and wired it into SearchForm.
+
+**Notes:**
+- Reference video in frontend/public kept out of commits.
