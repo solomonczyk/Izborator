@@ -12114,3 +12114,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Added focus-visible ring for TypeToggle options.
 - Updated search input to type="search" for semantic correctness.
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.7.2
+
+**Time:** 14:03
+
+**Changes:**
+- Enforced minimum card height for mobile tap targets (CategoryCard).
+
