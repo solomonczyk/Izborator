@@ -17,6 +17,7 @@
 
 - Switched `/[locale]/sections` to a light, glassmorphism narrative layout with floating cards and soft gradients.
 - Added bottom navigation with progress and scroll hint to mirror the reference flow.
+- Moved float keyframes to `frontend/app/globals.css` to keep the page server-safe.
 
 ### 2026-01-02 - UI reference for sections prototype
 

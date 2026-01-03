@@ -93,18 +93,6 @@ export default function SectionsPage() {
     <main
       className={`${manrope.className} relative h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth text-slate-900`}
     >
-      <style jsx global>{`
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-          100% { transform: translateY(0px); }
-        }
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-
       {sections.map((s, idx) => {
         const progress = Math.round(((idx + 1) / sections.length) * 100)
         return (
