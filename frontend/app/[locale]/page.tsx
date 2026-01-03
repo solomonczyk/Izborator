@@ -3,7 +3,7 @@ import type { CategoryCardProps } from '@/components/category-card'
 import { FloatingCategoryCloud } from '@/components/floating-category-cloud'
 import { HeroSearch } from '@/components/hero-search'
 import { LanguageSwitcher } from '@/components/language-switcher'
-import { fetchCities, fetchHomeModel } from '@/lib/api'
+import { fetchCities, fetchHomeMeta, fetchHomeModel } from '@/lib/api'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +15,7 @@ export default async function HomePage({
   const { locale } = await params
   const t = await getTranslations({ locale, namespace: 'home' })
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || process.env.TENANT_ID || 'default'
+  void fetchHomeMeta({ tenantId, locale })
   const homeModel = await fetchHomeModel({ tenantId, locale })
   const isLoading = !homeModel
   const hero = homeModel?.hero ?? {

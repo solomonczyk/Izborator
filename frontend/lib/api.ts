@@ -53,6 +53,16 @@ export type HomeModel = {
   categoryCards: HomeCategoryCard[]
 }
 
+export type HomeMeta = {
+  version: "1"
+  tenant_id: string
+  locale: string
+  cards_count: number
+  showTypeToggle: boolean
+  showCitySelect: boolean
+  defaultType: "all" | "good" | "service"
+}
+
 /**
  * Загружает дерево категорий
  */
@@ -145,6 +155,38 @@ export async function fetchHomeModel(params: {
     return data as HomeModel
   } catch (error) {
     console.warn('Home model API unavailable:', error instanceof Error ? error.message : String(error))
+    return null
+  }
+}
+
+export async function fetchHomeMeta(params: {
+  tenantId: string
+  locale?: string
+}): Promise<HomeMeta | null> {
+  try {
+    const url = new URL(`${API_BASE}/api/v1/home/meta`)
+    url.searchParams.set("tenant_id", params.tenantId)
+    if (params.locale) {
+      url.searchParams.set("locale", params.locale)
+    }
+
+    const res = await fetch(url.toString(), {
+      next: { revalidate: 60 },
+    })
+
+    if (!res.ok) {
+      console.warn(`Failed to fetch home meta: ${res.status}`)
+      return null
+    }
+
+    const data = (await res.json()) as Partial<HomeMeta>
+    if (!data || data.version !== "1") {
+      console.warn(`Home meta version mismatch: ${data?.version ?? 'unknown'}`)
+      return null
+    }
+    return data as HomeMeta
+  } catch (error) {
+    console.warn('Home meta API unavailable:', error instanceof Error ? error.message : String(error))
     return null
   }
 }

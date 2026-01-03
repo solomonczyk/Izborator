@@ -12240,3 +12240,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Added a skip-to-search link and anchor for keyboard navigation.
 
+
+---
+
+### 2026-01-03 - Home/Discover home meta prefetch
+
+**Time:** 15:59
+
+**Changes:**
+- Added a lightweight home meta prefetch on the home page.
+
