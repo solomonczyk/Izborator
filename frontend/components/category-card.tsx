@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from '@/navigation'
 
-type CategoryCardProps = {
+export type CategoryCardProps = {
   id: string
   title: string
   hint?: string

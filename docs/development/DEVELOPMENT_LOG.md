@@ -12026,3 +12026,15 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Added aria-label and explicit tabIndex to CategoryCard for keyboard accessibility.
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.4.1
+
+**Time:** 12:15
+
+**Changes:**
+- Added FloatingCategoryCloud layout (desktop ring positions, mobile grid).
+- Wired mock category cards into Home page and removed placeholder.
+- Exported CategoryCardProps type for reuse.
+
