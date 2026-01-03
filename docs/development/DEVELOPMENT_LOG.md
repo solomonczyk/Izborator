@@ -12169,3 +12169,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Sorted category cards by priority and weight before layout placement.
 - Exposed card weight in data attributes for debugging.
 
+
+---
+
+### 2026-01-03 - Home/Discover motion flag
+
+**Time:** 14:47
+
+**Changes:**
+- Forced card scale to 1 when NEXT_PUBLIC_DISABLE_MOTION is enabled.
+

@@ -119,3 +119,7 @@ body[data-motion="off"] * {
   animation: none !important;
   transition: none !important;
 }
+
+body[data-motion="off"] .group {
+  --card-scale: 1 !important;
+}
