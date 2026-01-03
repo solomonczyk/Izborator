@@ -12048,3 +12048,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Disabled hover-only visuals on mobile by scoping hover styles to md+ for CategoryCard.
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.5.1
+
+**Time:** 12:35
+
+**Changes:**
+- Added global animation tokens (duration, easing, amplitude) to globals.css.
+

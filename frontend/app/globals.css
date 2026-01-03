@@ -3,6 +3,20 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --motion-instant: 80ms;
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --motion-slow: 220ms;
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-base: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --move-xs: 4px;
+  --move-sm: 8px;
+  --move-md: 12px;
+  --scale-hover: 1.03;
+  --scale-press: 0.98;
+  --rotate-xs: 2deg;
+  --rotate-sm: 4deg;
 }
 
 @theme inline {
