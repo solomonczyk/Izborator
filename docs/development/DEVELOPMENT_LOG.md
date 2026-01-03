@@ -12069,3 +12069,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Added proximity motion for category cards (rAF + pointer proximity).
 - Updated CategoryCard hover/active transitions to use motion tokens.
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.5.3
+
+**Time:** 12:57
+
+**Changes:**
+- Disabled proximity motion when prefers-reduced-motion is enabled.
+- Added global reduced-motion rule to turn off transitions/animations.
+

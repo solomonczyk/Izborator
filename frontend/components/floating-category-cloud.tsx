@@ -30,6 +30,9 @@ export function FloatingCategoryCloud({
     if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
       return
     }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
 
     const rootStyles = getComputedStyle(document.documentElement)
     const maxMove = parseFloat(rootStyles.getPropertyValue('--move-md')) || 12
