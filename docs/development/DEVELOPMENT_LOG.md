@@ -12006,3 +12006,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Added CategoryCard component (title, hint, link, hover/focus/active styles).
 
+
+---
+
+### 2026-01-03 - CI lint fix (ineffassign)
+
+**Time:** 12:00
+
+**Changes:**
+- Removed ineffectual assignment in semantic stats aggregation (golangci-lint).
+

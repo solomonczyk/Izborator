@@ -51,19 +51,11 @@ func (s *Service) RecordSemanticValidation(result semantic.SemanticValidationRes
 	if logEvery > 0 && total%logEvery == 0 {
 		validRate := 0.0
 		avgMissing := 0.0
-		requiredCount := 2.0
 		if total > 0 {
 			validRate = float64(valid) / float64(total)
 			avgMissing = float64(missingSum) / float64(total)
 		}
-		switch domain {
-		case "services":
-			requiredCount = 2.0
-		case "goods":
-			requiredCount = 2.0
-		default:
-			requiredCount = 2.0
-		}
+		requiredCount := 2.0
 		semanticCoverage := 1.0
 		if requiredCount > 0 {
 			semanticCoverage = 1.0 - (avgMissing / requiredCount)
