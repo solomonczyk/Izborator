@@ -114,3 +114,8 @@ select option[value=""] {
     transition: none !important;
   }
 }
+
+body[data-motion="off"] * {
+  animation: none !important;
+  transition: none !important;
+}

@@ -18,9 +18,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const motionDisabled = process.env.NEXT_PUBLIC_DISABLE_MOTION === 'true'
+
   return (
     <html suppressHydrationWarning>
       <body
+        data-motion={motionDisabled ? 'off' : 'on'}
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning
       >

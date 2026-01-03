@@ -12147,3 +12147,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Home API now loads config via internal/homeconfig and returns 404 for unknown tenant.
 - Added Cache-Control for /api/v1/home responses.
 
+
+---
+
+### 2026-01-03 - Home/Discover QA hooks
+
+**Time:** 14:36
+
+**Changes:**
+- Added data-motion hooks for proximity/hover/active states.
+- Added NEXT_PUBLIC_DISABLE_MOTION flag support (body data-motion + client checks).
+

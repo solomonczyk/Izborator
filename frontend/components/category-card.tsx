@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react'
+'use client'
+
+import { useState, type ReactNode } from 'react'
 import { Link } from '@/navigation'
 
 export type CategoryCardProps = {
@@ -20,6 +22,7 @@ export function CategoryCard({
   priority = 'secondary',
   analyticsId,
 }: CategoryCardProps) {
+  const [motionState, setMotionState] = useState<'idle' | 'hover' | 'active'>('idle')
   const ariaLabel = hint ? `${title}. ${hint}` : title
 
   return (
@@ -27,6 +30,7 @@ export function CategoryCard({
       href={href}
       tabIndex={0}
       aria-label={ariaLabel}
+      data-motion={motionState}
       data-card-id={id}
       data-priority={priority}
       data-analytics-id={analyticsId}
@@ -36,6 +40,12 @@ export function CategoryCard({
         transition:
           'transform var(--motion-fast) var(--ease-out-soft), box-shadow var(--motion-fast) var(--ease-out-soft), border-color var(--motion-fast) var(--ease-out-soft)',
       }}
+      onPointerEnter={() => setMotionState('hover')}
+      onPointerLeave={() => setMotionState('idle')}
+      onFocus={() => setMotionState('hover')}
+      onBlur={() => setMotionState('idle')}
+      onPointerDown={() => setMotionState('active')}
+      onPointerUp={() => setMotionState('hover')}
     >
       {icon ? (
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition-colors md:group-hover:text-slate-700">

@@ -26,6 +26,7 @@ export function FloatingCategoryCloud({
   isLoading = false,
 }: FloatingCategoryCloudProps) {
   const visible = categories.slice(0, maxVisible)
+  const motionDisabled = process.env.NEXT_PUBLIC_DISABLE_MOTION === 'true'
   const skeletons = Array.from({ length: maxVisible }, (_, index) => ({
     id: `skeleton-${index}`,
   }))
@@ -33,6 +34,9 @@ export function FloatingCategoryCloud({
   const cardRefs = useRef<Array<HTMLDivElement | null>>([])
 
   useEffect(() => {
+    if (motionDisabled) {
+      return
+    }
     if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
       return
     }
@@ -59,6 +63,7 @@ export function FloatingCategoryCloud({
           card.style.setProperty('--proximity-x', '0px')
           card.style.setProperty('--proximity-y', '0px')
           card.style.setProperty('--proximity-rotate', '0deg')
+          card.dataset.motion = 'idle'
           return
         }
         const rect = card.getBoundingClientRect()
@@ -76,10 +81,12 @@ export function FloatingCategoryCloud({
           card.style.setProperty('--proximity-x', `${-nx * move}px`)
           card.style.setProperty('--proximity-y', `${-ny * move}px`)
           card.style.setProperty('--proximity-rotate', `${nx * rotateMax}deg`)
+          card.dataset.motion = 'proximity'
         } else {
           card.style.setProperty('--proximity-x', '0px')
           card.style.setProperty('--proximity-y', '0px')
           card.style.setProperty('--proximity-rotate', '0deg')
+          card.dataset.motion = 'idle'
         }
       })
     }
@@ -139,6 +146,7 @@ export function FloatingCategoryCloud({
             ref={(node) => {
               cardRefs.current[index] = node
             }}
+            data-motion="idle"
             className={`absolute ${positions[index % positions.length]} w-[220px]`}
             style={{
               transform:
