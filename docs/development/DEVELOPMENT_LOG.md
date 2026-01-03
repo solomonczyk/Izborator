@@ -8,6 +8,17 @@
 
 ---
 
+### 2026-01-02 - Sections prototype UI overhaul (mechanical scroll-snap)
+
+- Rebuilt `/[locale]/sections` with mechanical-style scroll-snap sections, animated dial panel, and progress indicators.
+- Added custom typography via `next/font/google` and layered gradient backgrounds.
+
+### 2026-01-02 - UI reference for sections prototype
+
+- Reference video: rontend/public/Microsoft Edge _ ????? ?? ??? and 17 more pages - Personal - Microsoft? Edge 2026-01-02 17-34-57.mp4.
+- Goal: match the scrolling/sectioned mechanics from the Microsoft Edge Year in Review page.
+
+
 ### 2026-01-02 - Fix semantic validation import cycle
 
 - Moved semantic validation result type to `internal/semantic` to break the `processor -> scraper -> scrapingstats` import cycle.
