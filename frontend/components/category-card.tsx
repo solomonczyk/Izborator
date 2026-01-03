@@ -10,6 +10,7 @@ export type CategoryCardProps = {
   icon?: ReactNode
   href: string
   priority?: 'primary' | 'secondary'
+  weight?: number
   analyticsId?: string
 }
 
@@ -20,6 +21,7 @@ export function CategoryCard({
   icon,
   href,
   priority = 'secondary',
+  weight,
   analyticsId,
 }: CategoryCardProps) {
   const [motionState, setMotionState] = useState<'idle' | 'hover' | 'active'>('idle')
@@ -33,6 +35,7 @@ export function CategoryCard({
       data-motion={motionState}
       data-card-id={id}
       data-priority={priority}
+      data-weight={weight}
       data-analytics-id={analyticsId}
       className="group flex w-full min-h-[96px] items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm md:hover:border-slate-300 md:hover:shadow-md md:hover:[--card-scale:var(--scale-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 focus-visible:ring-offset-2 active:[--card-scale:var(--scale-press)]"
       style={{

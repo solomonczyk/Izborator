@@ -32,6 +32,7 @@ export default async function HomePage({
       hint: card.hint,
       href: card.href,
       priority: card.priority,
+      weight: card.weight,
       analyticsId: card.analytics_id,
     })) ?? []
 

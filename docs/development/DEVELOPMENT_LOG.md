@@ -12158,3 +12158,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Added data-motion hooks for proximity/hover/active states.
 - Added NEXT_PUBLIC_DISABLE_MOTION flag support (body data-motion + client checks).
 
+
+---
+
+### 2026-01-03 - Home/Discover layout ordering
+
+**Time:** 14:43
+
+**Changes:**
+- Sorted category cards by priority and weight before layout placement.
+- Exposed card weight in data attributes for debugging.
+

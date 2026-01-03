@@ -25,7 +25,21 @@ export function FloatingCategoryCloud({
   maxVisible = 8,
   isLoading = false,
 }: FloatingCategoryCloudProps) {
-  const visible = categories.slice(0, maxVisible)
+  const sorted = [...categories].sort((a, b) => {
+    const priorityRank = (value?: string) => (value === 'primary' ? 0 : 1)
+    const rankA = priorityRank(a.priority)
+    const rankB = priorityRank(b.priority)
+    if (rankA !== rankB) {
+      return rankA - rankB
+    }
+    const weightA = a.weight ?? 0
+    const weightB = b.weight ?? 0
+    if (weightA !== weightB) {
+      return weightB - weightA
+    }
+    return a.title.localeCompare(b.title)
+  })
+  const visible = sorted.slice(0, maxVisible)
   const motionDisabled = process.env.NEXT_PUBLIC_DISABLE_MOTION === 'true'
   const skeletons = Array.from({ length: maxVisible }, (_, index) => ({
     id: `skeleton-${index}`,
