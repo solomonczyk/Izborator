@@ -137,8 +137,12 @@ export async function fetchHomeModel(params: {
       return null
     }
 
-    const data = (await res.json()) as HomeModel
-    return data
+    const data = (await res.json()) as Partial<HomeModel>
+    if (!data || data.version !== "1") {
+      console.warn(`Home model version mismatch: ${data?.version ?? 'unknown'}`)
+      return null
+    }
+    return data as HomeModel
   } catch (error) {
     console.warn('Home model API unavailable:', error instanceof Error ? error.message : String(error))
     return null

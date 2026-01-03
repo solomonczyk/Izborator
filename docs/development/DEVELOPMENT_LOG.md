@@ -12220,3 +12220,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Added role="search" and aria-label for the home search input.
 
+
+---
+
+### 2026-01-03 - Home/Discover home model version guard
+
+**Time:** 15:38
+
+**Changes:**
+- Added version mismatch guard when fetching HomeModel in the frontend.
+
