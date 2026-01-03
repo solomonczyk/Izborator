@@ -12058,3 +12058,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Added global animation tokens (duration, easing, amplitude) to globals.css.
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.5.2
+
+**Time:** 12:50
+
+**Changes:**
+- Added proximity motion for category cards (rAF + pointer proximity).
+- Updated CategoryCard hover/active transitions to use motion tokens.
+
