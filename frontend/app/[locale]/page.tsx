@@ -44,6 +44,12 @@ export default async function HomePage({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+      <a
+        href="#home-search"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow"
+      >
+        Skip to search
+      </a>
       <header className="absolute inset-x-0 top-0 z-10">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4">
           <div className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">

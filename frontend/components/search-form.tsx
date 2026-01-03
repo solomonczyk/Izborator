@@ -39,6 +39,7 @@ export function SearchForm({
         <input
           type="search"
           name="q"
+          id="home-search"
           aria-label={resolvedPlaceholder}
           placeholder={resolvedPlaceholder}
           className="w-full px-6 py-5 text-lg border-2 border-slate-300 rounded-2xl shadow-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"

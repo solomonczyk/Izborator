@@ -12230,3 +12230,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Added version mismatch guard when fetching HomeModel in the frontend.
 
+
+---
+
+### 2026-01-03 - Home/Discover skip-to-search
+
+**Time:** 15:47
+
+**Changes:**
+- Added a skip-to-search link and anchor for keyboard navigation.
+
