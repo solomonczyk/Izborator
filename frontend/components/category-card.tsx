@@ -43,8 +43,8 @@ export function CategoryCard({
         </div>
       ) : null}
       <div className="text-left">
-        <div className="text-base font-semibold text-slate-900">{title}</div>
-        {hint ? <div className="text-xs text-slate-500">{hint}</div> : null}
+        <div className="text-base font-semibold text-slate-900 truncate">{title}</div>
+        {hint ? <div className="text-xs text-slate-500 truncate">{hint}</div> : null}
       </div>
     </Link>
   )

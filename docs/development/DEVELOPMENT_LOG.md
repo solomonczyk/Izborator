@@ -12124,3 +12124,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Enforced minimum card height for mobile tap targets (CategoryCard).
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.8
+
+**Time:** 14:08
+
+**Changes:**
+- Made proximity listener passive for smoother pointer handling.
+- Polished card text layout with single-line truncation.
+

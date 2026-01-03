@@ -103,7 +103,7 @@ export function FloatingCategoryCloud({
       scheduleUpdate()
     }
 
-    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointermove', handlePointerMove, { passive: true })
     window.addEventListener('pointerleave', handlePointerLeave)
 
     return () => {
