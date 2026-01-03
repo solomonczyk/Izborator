@@ -12016,3 +12016,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Removed ineffectual assignment in semantic stats aggregation (golangci-lint).
 
+
+---
+
+### 2026-01-03 - Home/Discover H-01.3.2
+
+**Time:** 12:03
+
+**Changes:**
+- Added aria-label and explicit tabIndex to CategoryCard for keyboard accessibility.
+

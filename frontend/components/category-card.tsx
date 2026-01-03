@@ -20,9 +20,13 @@ export function CategoryCard({
   priority = 'secondary',
   analyticsId,
 }: CategoryCardProps) {
+  const ariaLabel = hint ? `${title}. ${hint}` : title
+
   return (
     <Link
       href={href}
+      tabIndex={0}
+      aria-label={ariaLabel}
       data-card-id={id}
       data-priority={priority}
       data-analytics-id={analyticsId}
