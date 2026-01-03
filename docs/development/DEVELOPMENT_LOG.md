@@ -13,6 +13,11 @@
 - Rebuilt `/[locale]/sections` with mechanical-style scroll-snap sections, animated dial panel, and progress indicators.
 - Added custom typography via `next/font/google` and layered gradient backgrounds.
 
+### 2026-01-02 - Sections prototype UI refocus (Edge-like story layout)
+
+- Switched `/[locale]/sections` to a light, glassmorphism narrative layout with floating cards and soft gradients.
+- Added bottom navigation with progress and scroll hint to mirror the reference flow.
+
 ### 2026-01-02 - UI reference for sections prototype
 
 - Reference video: rontend/public/Microsoft Edge _ ????? ?? ??? and 17 more pages - Personal - Microsoft? Edge 2026-01-02 17-34-57.mp4.

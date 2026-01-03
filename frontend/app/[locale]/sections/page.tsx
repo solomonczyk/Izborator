@@ -1,300 +1,225 @@
-import Link from "next/link"
-import { IBM_Plex_Mono, Rubik } from "next/font/google"
+﻿import { Link } from "@/navigation"
+import { Manrope, Rubik } from "next/font/google"
 
-const rubik = Rubik({
+const manrope = Manrope({
   subsets: ["latin", "cyrillic"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 })
 
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "600"],
+const rubik = Rubik({
+  subsets: ["latin", "cyrillic"],
+  weight: ["500", "600", "700"],
   display: "swap",
 })
 
 const sections = [
   {
     id: "electronics",
-    title: "???????????",
-    blurb: "???????, ????? ??? ? ???????, ??????? ?????????? ? ???? ??????.",
+    title: "Электроника",
+    blurb: "Гаджеты, умный дом и техника, которые собираются в одну историю.",
     href: "/catalog?type=good&category=electronics",
-    mode: "GOODS",
-    accent: "#22d3ee",
-    accentSoft: "rgba(34, 211, 238, 0.35)",
-    progress: 68,
-    stats: [
-      { label: "???????", value: "24" },
-      { label: "?????", value: "4.8k" },
-      { label: "??????", value: "0.8s" },
-    ],
+    accent: "#f07c4a",
+    accentSoft: "rgba(240, 124, 74, 0.35)",
+    background: "linear-gradient(120deg, #e6eaee 0%, #f2ebe4 45%, #f6d6c4 100%)",
   },
   {
     id: "food",
-    title: "??? ? ???????",
-    blurb: "??????????? ??? ???????: ?? ????????? ???????? ?? ??????? ?????.",
+    title: "Еда и напитки",
+    blurb: "Гастрономия с продуманными наборами, сезонными предложениями и вкусом.",
     href: "/catalog?type=good&category=food",
-    mode: "GOODS",
-    accent: "#34d399",
-    accentSoft: "rgba(52, 211, 153, 0.35)",
-    progress: 54,
-    stats: [
-      { label: "????", value: "12" },
-      { label: "????", value: "2.1k" },
-      { label: "????", value: "0.6s" },
-    ],
+    accent: "#e39b5f",
+    accentSoft: "rgba(227, 155, 95, 0.35)",
+    background: "linear-gradient(120deg, #e7ecea 0%, #f2efe7 50%, #f7dfc4 100%)",
   },
   {
     id: "fashion",
-    title: "???? ? ?????",
-    blurb: "????????? ? ???????, ????????? ? ????? ??????? ??????.",
+    title: "Мода и обувь",
+    blurb: "Коллекции и капсулы, которые можно собрать по настроению и сезону.",
     href: "/catalog?type=good&category=fashion",
-    mode: "GOODS",
-    accent: "#a78bfa",
-    accentSoft: "rgba(167, 139, 250, 0.35)",
-    progress: 72,
-    stats: [
-      { label: "???????", value: "18" },
-      { label: "???????", value: "64" },
-      { label: "?????", value: "3.2" },
-    ],
+    accent: "#b08fe6",
+    accentSoft: "rgba(176, 143, 230, 0.35)",
+    background: "linear-gradient(120deg, #e9edf1 0%, #efe9f3 45%, #e3d2f5 100%)",
   },
   {
     id: "home",
-    title: "??? ? ???",
-    blurb: "????????????, ??? ?????? ?????? ????????? ????? ???????? ????.",
+    title: "Дом и сад",
+    blurb: "Уют и функциональность: всё, чтобы пространство работало на вас.",
     href: "/catalog?type=good&category=home",
-    mode: "GOODS",
-    accent: "#f97316",
-    accentSoft: "rgba(249, 115, 22, 0.35)",
-    progress: 46,
-    stats: [
-      { label: "????????", value: "11" },
-      { label: "??????", value: "740" },
-      { label: "?????", value: "0.9" },
-    ],
+    accent: "#f28f57",
+    accentSoft: "rgba(242, 143, 87, 0.35)",
+    background: "linear-gradient(120deg, #ecebea 0%, #f3ede5 45%, #f4d7c1 100%)",
   },
   {
     id: "sport",
-    title: "????? ? ?????",
-    blurb: "???????? ????????: ??????????, ???????????, ??????????????.",
+    title: "Спорт и отдых",
+    blurb: "Экипировка, путешествия и восстановление для активных сценариев.",
     href: "/catalog?type=good&category=sport",
-    mode: "GOODS",
-    accent: "#38bdf8",
-    accentSoft: "rgba(56, 189, 248, 0.35)",
-    progress: 61,
-    stats: [
-      { label: "??????????", value: "15" },
-      { label: "?????", value: "118" },
-      { label: "????", value: "2.4" },
-    ],
+    accent: "#5fb2e6",
+    accentSoft: "rgba(95, 178, 230, 0.35)",
+    background: "linear-gradient(120deg, #e6eef3 0%, #ecf2f1 45%, #cfe2f4 100%)",
   },
   {
     id: "auto",
-    title: "????-????",
-    blurb: "????????, ??? ?????? ? ??????? ???????? ? ?????? ??????.",
+    title: "Авто-мото",
+    blurb: "Каталоги, где детали, сервис и подборки работают вместе.",
     href: "/catalog?type=good&category=auto",
-    mode: "GOODS",
-    accent: "#f43f5e",
-    accentSoft: "rgba(244, 63, 94, 0.35)",
-    progress: 57,
-    stats: [
-      { label: "????", value: "19" },
-      { label: "????????", value: "3.6" },
-      { label: "????", value: "0.7s" },
-    ],
+    accent: "#f56b88",
+    accentSoft: "rgba(245, 107, 136, 0.35)",
+    background: "linear-gradient(120deg, #e9eaef 0%, #f2e7eb 45%, #f7cdd6 100%)",
   },
   {
     id: "services",
-    title: "??????",
-    blurb: "?????? ???????? ???????: ?????, ???????, ???? ? ???????.",
+    title: "Услуги",
+    blurb: "Чистая механика сервиса: время, маршрут, команда и результат.",
     href: "/catalog?type=service",
-    mode: "SERVICE",
-    accent: "#f59e0b",
-    accentSoft: "rgba(245, 158, 11, 0.35)",
-    progress: 80,
-    stats: [
-      { label: "????????", value: "27" },
-      { label: "?????????", value: "5" },
-      { label: "????", value: "0.5s" },
-    ],
+    accent: "#f3a63a",
+    accentSoft: "rgba(243, 166, 58, 0.35)",
+    background: "linear-gradient(120deg, #ecebe7 0%, #f4eee2 45%, #f6e1c0 100%)",
   },
   {
     id: "finance",
-    title: "?????????? ??????",
-    blurb: "??????, ??????? ???????, ???????? ? ???????? ???????.",
+    title: "Финансовые услуги",
+    blurb: "Потоки, которые считают, защищают и ускоряют решения.",
     href: "/catalog?type=service&category=finance",
-    mode: "SERVICE",
-    accent: "#14b8a6",
-    accentSoft: "rgba(20, 184, 166, 0.35)",
-    progress: 63,
-    stats: [
-      { label: "????????", value: "9" },
-      { label: "????", value: "0.3" },
-      { label: "?????", value: "1.1k" },
-    ],
+    accent: "#3db6a5",
+    accentSoft: "rgba(61, 182, 165, 0.35)",
+    background: "linear-gradient(120deg, #e4eeea 0%, #eaf2ef 45%, #cceae1 100%)",
   },
 ]
 
 export default function SectionsPage() {
   return (
     <main
-      className={`${rubik.className} relative h-screen overflow-y-scroll snap-y snap-mandatory bg-[#0b0d12] text-white`}
+      className={`${manrope.className} relative h-screen overflow-y-scroll snap-y snap-mandatory scroll-smooth text-slate-900`}
     >
       <style jsx global>{`
-        @keyframes rise {
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+          100% { transform: translateY(0px); }
+        }
+        @keyframes fadeUp {
           from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes drift {
-          from { transform: translateY(0); }
-          50% { transform: translateY(-12px); }
-          to { transform: translateY(0); }
-        }
-        @keyframes spinSlow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
       `}</style>
 
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(148,163,184,0.15),transparent_40%),radial-gradient(circle_at_80%_10%,rgba(56,189,248,0.12),transparent_35%),radial-gradient(circle_at_50%_80%,rgba(15,23,42,0.9),transparent_55%)]" />
-        <div className="absolute inset-0 opacity-40 mix-blend-soft-light [background-image:linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:64px_64px]" />
-      </div>
-
-      <nav className="hidden lg:flex fixed left-8 top-1/2 -translate-y-1/2 flex-col gap-4 z-20">
-        {sections.map((s, idx) => (
-          <a
+      {sections.map((s, idx) => {
+        const progress = Math.round(((idx + 1) / sections.length) * 100)
+        return (
+          <section
             key={s.id}
-            href={`#${s.id}`}
-            className="group flex items-center gap-3 text-xs uppercase tracking-[0.35em] text-white/40 hover:text-white"
+            id={s.id}
+            style={{
+              background: s.background,
+              ["--accent" as string]: s.accent,
+              ["--accent-soft" as string]: s.accentSoft,
+            }}
+            className="relative h-screen snap-start overflow-hidden"
           >
-            <span className={`${plexMono.className} text-[11px]`}>{`0${idx + 1}`}</span>
-            <span className="h-px w-10 bg-white/20 group-hover:bg-white" />
-          </a>
-        ))}
-      </nav>
+            <div className="absolute inset-0">
+              <div
+                className="absolute -left-20 -top-16 h-72 w-72 rounded-full blur-3xl"
+                style={{ background: "var(--accent-soft)" }}
+              />
+              <div
+                className="absolute right-0 bottom-0 h-80 w-80 rounded-full blur-[120px]"
+                style={{ background: "var(--accent)" }}
+              />
+              <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.7),transparent_55%),radial-gradient(circle_at_80%_30%,rgba(255,255,255,0.5),transparent_60%)]" />
+            </div>
 
-      {sections.map((s, idx) => (
-        <section
-          key={s.id}
-          id={s.id}
-          style={{
-            ["--accent" as string]: s.accent,
-            ["--accent-soft" as string]: s.accentSoft,
-          }}
-          className="relative h-screen snap-start flex items-center justify-center px-6"
-        >
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute -left-20 top-10 h-64 w-64 rounded-full blur-3xl" style={{ background: "var(--accent-soft)" }} />
-            <div className="absolute right-0 bottom-0 h-72 w-72 rounded-full blur-[120px]" style={{ background: "var(--accent)" }} />
-          </div>
+            <div className="relative z-10 flex h-full flex-col justify-between px-6 py-10 md:px-12">
+              <header className="flex items-center justify-between text-xs uppercase tracking-[0.35em] text-slate-500">
+                <span className={rubik.className}>Izborator</span>
+                <span className={rubik.className}>Раздел {idx + 1} / {sections.length}</span>
+              </header>
 
-          <div className="grid w-full max-w-6xl gap-10 lg:grid-cols-[1.15fr_0.85fr] items-center">
-            <div className="space-y-6">
-              <div className={`${plexMono.className} text-xs uppercase tracking-[0.4em] text-white/40 motion-safe:animate-[rise_0.8s_ease-out]`}>
-                ?????? {idx + 1} / {sections.length}
+              <div className="relative flex flex-1 items-center justify-center">
+                <div className="relative w-full max-w-3xl">
+                  <div className="rounded-[36px] border border-white/70 bg-white/70 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl md:p-12">
+                    <div className="text-xs uppercase tracking-[0.4em] text-slate-500">
+                      Категория
+                    </div>
+                    <h1 className={`${rubik.className} mt-4 text-3xl font-semibold leading-tight text-slate-900 md:text-5xl`}>
+                      {s.title}
+                    </h1>
+                    <p className="mt-4 text-base text-slate-600 md:text-lg">
+                      {s.blurb}
+                    </p>
+                    <div className="mt-8 flex flex-wrap gap-3">
+                      <Link
+                        href={s.href}
+                        className="rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/25"
+                      >
+                        Открыть каталог
+                      </Link>
+                      <a
+                        href={idx < sections.length - 1 ? `#${sections[idx + 1].id}` : `#${sections[0].id}`}
+                        className="rounded-full border border-white/70 bg-white/60 px-6 py-3 text-sm font-semibold text-slate-800"
+                      >
+                        Далее
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="pointer-events-none absolute -left-24 top-6 hidden xl:block">
+                    <div className="w-[260px] rounded-[28px] border border-white/70 bg-white/70 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.18)] backdrop-blur motion-safe:animate-[float_6s_ease-in-out_infinite]">
+                      <div
+                        className="h-32 rounded-2xl"
+                        style={{ background: `linear-gradient(140deg, rgba(255,255,255,0.9), var(--accent-soft))` }}
+                      />
+                      <div className="mt-3 text-xs text-slate-500">Витрина</div>
+                      <div className="text-sm font-semibold text-slate-900">Топ-подборка</div>
+                    </div>
+                  </div>
+
+                  <div className="pointer-events-none absolute -right-28 top-0 hidden xl:block">
+                    <div className="w-[240px] rounded-[24px] border border-white/70 bg-white/65 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.16)] backdrop-blur motion-safe:animate-[float_5s_ease-in-out_infinite]">
+                      <div className="flex gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-amber-300" />
+                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+                      </div>
+                      <div
+                        className="mt-3 h-24 rounded-2xl"
+                        style={{ background: `linear-gradient(160deg, rgba(255,255,255,0.9), var(--accent-soft))` }}
+                      />
+                      <div className="mt-3 text-xs text-slate-500">Сценарий</div>
+                      <div className="text-sm font-semibold text-slate-900">Свежие решения</div>
+                    </div>
+                  </div>
+
+                  <div className="pointer-events-none absolute right-10 -bottom-16 hidden lg:block">
+                    <div className="w-[200px] rounded-[22px] border border-white/70 bg-white/70 p-4 shadow-[0_20px_50px_rgba(15,23,42,0.16)] backdrop-blur motion-safe:animate-[float_7s_ease-in-out_infinite]">
+                      <div className="text-xs uppercase tracking-[0.3em] text-slate-500">Поток</div>
+                      <div className="mt-2 text-2xl font-semibold text-slate-900">{progress}%</div>
+                      <div className="mt-3 h-2 w-full rounded-full bg-slate-200">
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${progress}%`, background: "var(--accent)" }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <h1 className="text-4xl sm:text-6xl font-semibold leading-[0.95] motion-safe:animate-[rise_0.9s_ease-out]">
-                {s.title}
-              </h1>
-              <p className="text-white/70 text-lg leading-relaxed max-w-xl motion-safe:animate-[rise_1s_ease-out]">
-                {s.blurb}
-              </p>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <span
-                  className={`${plexMono.className} rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/70`}
-                >
-                  {s.mode}
-                </span>
-                <span className="text-xs text-white/50">?????? ???????</span>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <Link
-                  href={s.href}
-                  className="inline-flex items-center justify-center rounded-full bg-white text-slate-950 px-6 py-3 text-sm font-semibold shadow-[0_10px_30px_rgba(255,255,255,0.2)] hover:shadow-[0_12px_38px_rgba(255,255,255,0.25)]"
-                >
-                  ??????? ???????
-                </Link>
+              <footer className="flex items-center justify-between text-xs text-slate-500">
+                <span className="hidden sm:inline">Нажмите «Далее» или прокрутите</span>
                 <a
                   href={idx < sections.length - 1 ? `#${sections[idx + 1].id}` : `#${sections[0].id}`}
-                  className="inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white/80 hover:text-white"
+                  className="rounded-full bg-slate-900 px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.3em] text-white"
                 >
-                  ?????
+                  Далее →
                 </a>
-              </div>
+                <span>Прогресс {progress}%</span>
+              </footer>
             </div>
-
-            <div className="relative">
-              <div className="rounded-[32px] border border-white/10 bg-white/5 p-6 backdrop-blur">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full" style={{ background: "var(--accent)" }} />
-                    <span className={`${plexMono.className} text-[11px] uppercase tracking-[0.35em] text-white/60`}>
-                      Module
-                    </span>
-                  </div>
-                  <span className={`${plexMono.className} text-xs text-white/50`}>{`IDX-${idx + 1}`}</span>
-                </div>
-
-                <div className="mt-6 flex flex-col items-center gap-6">
-                  <div className="relative w-full max-w-[240px]">
-                    <div className="aspect-square rounded-full border border-white/15 p-6">
-                      <div
-                        className="absolute inset-6 rounded-full border border-white/10"
-                        style={{ background: "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), transparent 55%)" }}
-                      />
-                      <div
-                        className="absolute inset-0 rounded-full motion-safe:animate-[spinSlow_16s_linear_infinite]"
-                        style={{
-                          background: `conic-gradient(from 210deg, var(--accent), rgba(255,255,255,0.1), transparent 55%, var(--accent))`,
-                          opacity: 0.6,
-                        }}
-                      />
-                      <div className="absolute left-1/2 top-1/2 h-2 w-20 -translate-y-1/2 origin-left rotate-[20deg]" style={{ background: "var(--accent)" }} />
-                      <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
-                    </div>
-                  </div>
-
-                  <div className="w-full space-y-3">
-                    <div className="flex items-center justify-between text-xs text-white/60">
-                      <span className={`${plexMono.className} uppercase tracking-[0.2em]`}>Progress</span>
-                      <span className={`${plexMono.className}`}>{s.progress}%</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-white/10">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${s.progress}%`, background: "var(--accent)" }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid w-full grid-cols-3 gap-3">
-                    {s.stats.map((stat) => (
-                      <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <div className={`${plexMono.className} text-xs text-white/50 uppercase tracking-[0.2em]`}>
-                          {stat.label}
-                        </div>
-                        <div className="text-lg font-semibold mt-1" style={{ color: "var(--accent)" }}>
-                          {stat.value}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute -right-6 -bottom-6 hidden lg:block">
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-xs text-white/60 shadow-lg motion-safe:animate-[drift_5s_ease-in-out_infinite]">
-                  ??????? ???? ??? ????????? ??????
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      ))}
+          </section>
+        )
+      })}
     </main>
   )
 }
