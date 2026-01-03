@@ -1,0 +1,89 @@
+{
+  "default": {
+    "version": "1",
+    "hero": {
+      "title": "Find products and services",
+      "subtitle": "Compare offers in one place",
+      "searchPlaceholder": "What are you looking for?",
+      "showTypeToggle": true,
+      "showCitySelect": false,
+      "defaultType": "all"
+    },
+    "categoryCards": [
+      {
+        "id": "electronics",
+        "title": "Electronics",
+        "hint": "Phones, laptops, gadgets",
+        "href": "/catalog?type=good&category=electronics",
+        "priority": "primary",
+        "weight": 10,
+        "domain": "good",
+        "analytics_id": "home_card_electronics"
+      },
+      {
+        "id": "food",
+        "title": "Food and drinks",
+        "hint": "Groceries and delivery",
+        "href": "/catalog?type=good&category=food",
+        "priority": "primary",
+        "weight": 9,
+        "domain": "good",
+        "analytics_id": "home_card_food"
+      },
+      {
+        "id": "fashion",
+        "title": "Fashion",
+        "hint": "Clothes and shoes",
+        "href": "/catalog?type=good&category=fashion",
+        "weight": 8,
+        "domain": "good",
+        "analytics_id": "home_card_fashion"
+      },
+      {
+        "id": "home",
+        "title": "Home and garden",
+        "hint": "Furniture and decor",
+        "href": "/catalog?type=good&category=home",
+        "weight": 7,
+        "domain": "good",
+        "analytics_id": "home_card_home"
+      },
+      {
+        "id": "sport",
+        "title": "Sport and leisure",
+        "hint": "Outdoor and fitness",
+        "href": "/catalog?type=good&category=sport",
+        "weight": 6,
+        "domain": "good",
+        "analytics_id": "home_card_sport"
+      },
+      {
+        "id": "auto",
+        "title": "Auto",
+        "hint": "Cars and accessories",
+        "href": "/catalog?type=good&category=auto",
+        "weight": 5,
+        "domain": "good",
+        "analytics_id": "home_card_auto"
+      },
+      {
+        "id": "services",
+        "title": "Services",
+        "hint": "Repair, beauty, events",
+        "href": "/catalog?type=service",
+        "weight": 4,
+        "domain": "service",
+        "analytics_id": "home_card_services"
+      },
+      {
+        "id": "finance",
+        "title": "Finance",
+        "hint": "Insurance and banking",
+        "href": "/catalog?type=service&category=finance",
+        "weight": 3,
+        "domain": "service",
+        "analytics_id": "home_card_finance"
+      }
+    ]
+  }
+}

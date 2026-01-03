@@ -12135,3 +12135,15 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Made proximity listener passive for smoother pointer handling.
 - Polished card text layout with single-line truncation.
 
+
+---
+
+### 2026-01-03 - Home/Discover config wiring
+
+**Time:** 14:23
+
+**Changes:**
+- Moved HomeModel data into embedded home_config_v1.json (per-tenant config).
+- Home API now loads config via internal/homeconfig and returns 404 for unknown tenant.
+- Added Cache-Control for /api/v1/home responses.
+

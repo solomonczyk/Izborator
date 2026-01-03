@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
 	appErrors "github.com/solomonczyk/izborator/internal/errors"
+	"github.com/solomonczyk/izborator/internal/homeconfig"
 	"github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/http/validation"
 	"github.com/solomonczyk/izborator/internal/i18n"
@@ -23,26 +25,9 @@ func NewHomeHandler(log *logger.Logger, translator *i18n.Translator) *HomeHandle
 	}
 }
 
-type homeHero struct {
-	Title             string `json:"title"`
-	Subtitle          string `json:"subtitle,omitempty"`
-	SearchPlaceholder string `json:"searchPlaceholder"`
-	ShowTypeToggle    bool   `json:"showTypeToggle"`
-	ShowCitySelect    bool   `json:"showCitySelect"`
-	DefaultType       string `json:"defaultType"`
-}
+type homeHero = homeconfig.Hero
 
-type homeCategoryCard struct {
-	ID          string `json:"id"`
-	Title       string `json:"title"`
-	Hint        string `json:"hint,omitempty"`
-	IconKey     string `json:"icon_key,omitempty"`
-	Href        string `json:"href"`
-	Priority    string `json:"priority,omitempty"`
-	Weight      int    `json:"weight,omitempty"`
-	Domain      string `json:"domain,omitempty"`
-	AnalyticsID string `json:"analytics_id,omitempty"`
-}
+type homeCategoryCard = homeconfig.CategoryCard
 
 type homeModel struct {
 	Version       string             `json:"version"`
@@ -69,7 +54,18 @@ func (h *HomeHandler) GetHome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	model := buildHomeModel(tenantID, locale)
+	model, err := buildHomeModel(tenantID, locale)
+	if err != nil {
+		if errors.Is(err, homeconfig.ErrTenantNotFound) {
+			appErr := appErrors.NewNotFound("home config not found for tenant")
+			h.RespondAppError(w, r, appErr)
+			return
+		}
+		appErr := appErrors.NewInternalError("Failed to load home config", err)
+		h.RespondAppError(w, r, appErr)
+		return
+	}
+	w.Header().Set("Cache-Control", "public, max-age=60, s-maxage=300, stale-while-revalidate=600")
 	h.RespondJSON(w, http.StatusOK, model)
 
 	ms := time.Since(start).Milliseconds()
@@ -89,88 +85,18 @@ func (h *HomeHandler) GetHome(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func buildHomeModel(tenantID, locale string) homeModel {
-	return homeModel{
-		Version:  "1",
-		TenantID: tenantID,
-		Locale:   locale,
-		Hero: homeHero{
-			Title:             "Find products and services",
-			Subtitle:          "Compare offers in one place",
-			SearchPlaceholder: "What are you looking for?",
-			ShowTypeToggle:    true,
-			ShowCitySelect:    false,
-			DefaultType:       "all",
-		},
-		CategoryCards: []homeCategoryCard{
-			{
-				ID:       "electronics",
-				Title:    "Electronics",
-				Hint:     "Phones, laptops, gadgets",
-				Href:     "/catalog?type=good&category=electronics",
-				Priority: "primary",
-				Weight:   10,
-				Domain:   "good",
-			},
-			{
-				ID:       "food",
-				Title:    "Food and drinks",
-				Hint:     "Groceries and delivery",
-				Href:     "/catalog?type=good&category=food",
-				Priority: "primary",
-				Weight:   9,
-				Domain:   "good",
-			},
-			{
-				ID:     "fashion",
-				Title:  "Fashion",
-				Hint:   "Clothes and shoes",
-				Href:   "/catalog?type=good&category=fashion",
-				Weight: 8,
-				Domain: "good",
-			},
-			{
-				ID:     "home",
-				Title:  "Home and garden",
-				Hint:   "Furniture and decor",
-				Href:   "/catalog?type=good&category=home",
-				Weight: 7,
-				Domain: "good",
-			},
-			{
-				ID:     "sport",
-				Title:  "Sport and leisure",
-				Hint:   "Outdoor and fitness",
-				Href:   "/catalog?type=good&category=sport",
-				Weight: 6,
-				Domain: "good",
-			},
-			{
-				ID:     "auto",
-				Title:  "Auto",
-				Hint:   "Cars and accessories",
-				Href:   "/catalog?type=good&category=auto",
-				Weight: 5,
-				Domain: "good",
-			},
-			{
-				ID:     "services",
-				Title:  "Services",
-				Hint:   "Repair, beauty, events",
-				Href:   "/catalog?type=service",
-				Weight: 4,
-				Domain: "service",
-			},
-			{
-				ID:     "finance",
-				Title:  "Finance",
-				Hint:   "Insurance and banking",
-				Href:   "/catalog?type=service&category=finance",
-				Weight: 3,
-				Domain: "service",
-			},
-		},
+func buildHomeModel(tenantID, locale string) (homeModel, error) {
+	config, err := homeconfig.Get(tenantID)
+	if err != nil {
+		return homeModel{}, err
 	}
+	return homeModel{
+		Version:       config.Version,
+		TenantID:      tenantID,
+		Locale:        locale,
+		Hero:          config.Hero,
+		CategoryCards: config.CategoryCards,
+	}, nil
 }
 
 func parseWarnMsEnv(key string, fallback int) int {
