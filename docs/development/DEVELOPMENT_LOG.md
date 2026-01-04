@@ -12295,3 +12295,39 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Removed reference video from frontend/public.
 
 ---
+
+### 2026-01-04 - Category sources consolidation
+
+**Time:** 2026-01-04 14:43
+
+**Changes:**
+- Promoted canonical category tree + comparison rules into docs/category_tree.
+- Added ePonuda L1 mapping and Google taxonomy import + L1 extractor.
+- Added Google mapping stub and extended category source check script.
+- Updated category_tree index/DoD to reflect canonical structure.
+
+---
+
+### 2026-01-04 - Canonical tree L2 + mapping validation
+
+**Time:** 2026-01-04 14:55
+
+**Changes:**
+- Expanded canonical_tree_v1.json with initial L2 categories.
+- Updated ePonuda mapping to target L2 ids where appropriate.
+- Strengthened category source checks to validate target levels.
+
+---
+
+### 2026-01-04 - Category sources raw sync + legacy note
+
+**Time:** 15:37
+
+**Changes:**
+- Synced raw source files into docs/category_tree/sources/*/raw.
+- Updated category_tree index + mappings to reference new raw paths.
+- Updated Google taxonomy extractor input path to category_tree.
+- Marked docs/category_sources as legacy.
+- Ran category source check script (OK).
+
+---

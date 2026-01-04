@@ -1,0 +1,221 @@
+{
+  "version": "1",
+  "levels": [
+    "L1",
+    "L2",
+    "L3"
+  ],
+  "categories": [
+    {
+      "id": "elektronika",
+      "title": "Elektronika",
+      "level": "L1",
+      "flags": [],
+      "children": [
+        {
+          "id": "telefoni",
+          "title": "Telefoni",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "racunari",
+          "title": "Racunari",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "audio-video",
+          "title": "Audio & Video",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "foto-i-kamere",
+          "title": "Foto i kamere",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "gaming",
+          "title": "Gaming",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "dodatna-oprema",
+          "title": "Dodatna oprema",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "kuca-i-basta",
+      "title": "Kuca i basta",
+      "level": "L1",
+      "flags": [],
+      "children": [
+        {
+          "id": "bela-tehnika",
+          "title": "Bela tehnika",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "kucna-hemija",
+          "title": "Kucna hemija",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "kucni-aparati",
+          "title": "Kucni aparati",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "kuhinjski-aparati",
+          "title": "Kuhinjski aparati",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "namestaj",
+          "title": "Namestaj",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "masine-i-alati",
+          "title": "Masine i alati",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "odeca-i-obuca",
+      "title": "Odeca i obuca",
+      "level": "L1",
+      "flags": [],
+      "children": [
+        {
+          "id": "zene",
+          "title": "Zene",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "muskarci",
+          "title": "Muskarci",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        },
+        {
+          "id": "modni-dodaci",
+          "title": "Modni dodaci",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "sport-i-rekreacija",
+      "title": "Sport i rekreacija",
+      "level": "L1",
+      "flags": [],
+      "children": []
+    },
+    {
+      "id": "lepota-i-zdravlje",
+      "title": "Lepota i zdravlje",
+      "level": "L1",
+      "flags": [],
+      "children": []
+    },
+    {
+      "id": "deca",
+      "title": "Deca",
+      "level": "L1",
+      "flags": [],
+      "children": [
+        {
+          "id": "sve-za-decu-i-bebe",
+          "title": "Sve za decu i bebe",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "auto-i-moto",
+      "title": "Auto i moto",
+      "level": "L1",
+      "flags": [],
+      "children": [
+        {
+          "id": "automobili",
+          "title": "Automobili",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "kucni-ljubimci",
+      "title": "Kucni ljubimci",
+      "level": "L1",
+      "flags": [],
+      "children": []
+    },
+    {
+      "id": "knjige-i-zabava",
+      "title": "Knjige i zabava",
+      "level": "L1",
+      "flags": [],
+      "children": [
+        {
+          "id": "knjige",
+          "title": "Knjige",
+          "level": "L2",
+          "flags": [],
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": "hrana-i-pice",
+      "title": "Hrana i pice",
+      "level": "L1",
+      "flags": [],
+      "children": []
+    },
+    {
+      "id": "erotika",
+      "title": "Erotika",
+      "level": "L1",
+      "flags": [
+        "restricted"
+      ],
+      "children": []
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "source": "google",
+  "version": "2021-09-21",
+  "mapping_type": "semantic",
+  "raw_source": "docs/category_tree/sources/google/raw/taxonomy.en-US.txt",
+  "derived_source": "docs/category_tree/sources/google/taxonomy_l1.json",
+  "l1_map": [
+    {
+      "source_title": "Animals & Pet Supplies",
+      "source_slug": "animals-and-pet-supplies",
+      "action": "review"
+    },
+    {
+      "source_title": "Apparel & Accessories",
+      "source_slug": "apparel-and-accessories",
+      "action": "review"
+    },
+    {
+      "source_title": "Arts & Entertainment",
+      "source_slug": "arts-and-entertainment",
+      "action": "review"
+    },
+    {
+      "source_title": "Baby & Toddler",
+      "source_slug": "baby-and-toddler",
+      "action": "review"
+    },
+    {
+      "source_title": "Business & Industrial",
+      "source_slug": "business-and-industrial",
+      "action": "review"
+    },
+    {
+      "source_title": "Cameras & Optics",
+      "source_slug": "cameras-and-optics",
+      "action": "review"
+    },
+    {
+      "source_title": "Electronics",
+      "source_slug": "electronics",
+      "action": "review"
+    },
+    {
+      "source_title": "Food, Beverages & Tobacco",
+      "source_slug": "food-beverages-and-tobacco",
+      "action": "review"
+    },
+    {
+      "source_title": "Furniture",
+      "source_slug": "furniture",
+      "action": "review"
+    },
+    {
+      "source_title": "Hardware",
+      "source_slug": "hardware",
+      "action": "review"
+    },
+    {
+      "source_title": "Health & Beauty",
+      "source_slug": "health-and-beauty",
+      "action": "review"
+    },
+    {
+      "source_title": "Home & Garden",
+      "source_slug": "home-and-garden",
+      "action": "review"
+    },
+    {
+      "source_title": "Luggage & Bags",
+      "source_slug": "luggage-and-bags",
+      "action": "review"
+    },
+    {
+      "source_title": "Mature",
+      "source_slug": "mature",
+      "action": "review"
+    },
+    {
+      "source_title": "Media",
+      "source_slug": "media",
+      "action": "review"
+    },
+    {
+      "source_title": "Office Supplies",
+      "source_slug": "office-supplies",
+      "action": "review"
+    },
+    {
+      "source_title": "Religious & Ceremonial",
+      "source_slug": "religious-and-ceremonial",
+      "action": "review"
+    },
+    {
+      "source_title": "Software",
+      "source_slug": "software",
+      "action": "review"
+    },
+    {
+      "source_title": "Sporting Goods",
+      "source_slug": "sporting-goods",
+      "action": "review"
+    },
+    {
+      "source_title": "Toys & Games",
+      "source_slug": "toys-and-games",
+      "action": "review"
+    },
+    {
+      "source_title": "Vehicles & Parts",
+      "source_slug": "vehicles-and-parts",
+      "action": "review"
+    }
+  ]
+}

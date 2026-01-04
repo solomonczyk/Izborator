@@ -1,0 +1,90 @@
+{
+  "source": "google",
+  "version": "2021-09-21",
+  "l1": [
+    {
+      "title": "Animals & Pet Supplies",
+      "slug": "animals-and-pet-supplies"
+    },
+    {
+      "title": "Apparel & Accessories",
+      "slug": "apparel-and-accessories"
+    },
+    {
+      "title": "Arts & Entertainment",
+      "slug": "arts-and-entertainment"
+    },
+    {
+      "title": "Baby & Toddler",
+      "slug": "baby-and-toddler"
+    },
+    {
+      "title": "Business & Industrial",
+      "slug": "business-and-industrial"
+    },
+    {
+      "title": "Cameras & Optics",
+      "slug": "cameras-and-optics"
+    },
+    {
+      "title": "Electronics",
+      "slug": "electronics"
+    },
+    {
+      "title": "Food, Beverages & Tobacco",
+      "slug": "food-beverages-and-tobacco"
+    },
+    {
+      "title": "Furniture",
+      "slug": "furniture"
+    },
+    {
+      "title": "Hardware",
+      "slug": "hardware"
+    },
+    {
+      "title": "Health & Beauty",
+      "slug": "health-and-beauty"
+    },
+    {
+      "title": "Home & Garden",
+      "slug": "home-and-garden"
+    },
+    {
+      "title": "Luggage & Bags",
+      "slug": "luggage-and-bags"
+    },
+    {
+      "title": "Mature",
+      "slug": "mature"
+    },
+    {
+      "title": "Media",
+      "slug": "media"
+    },
+    {
+      "title": "Office Supplies",
+      "slug": "office-supplies"
+    },
+    {
+      "title": "Religious & Ceremonial",
+      "slug": "religious-and-ceremonial"
+    },
+    {
+      "title": "Software",
+      "slug": "software"
+    },
+    {
+      "title": "Sporting Goods",
+      "slug": "sporting-goods"
+    },
+    {
+      "title": "Toys & Games",
+      "slug": "toys-and-games"
+    },
+    {
+      "title": "Vehicles & Parts",
+      "slug": "vehicles-and-parts"
+    }
+  ]
+}

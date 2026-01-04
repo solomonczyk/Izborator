@@ -1,0 +1,176 @@
+{
+  "source": "eponuda",
+  "version": "1",
+  "mapping_type": "structural",
+  "raw_source": "docs/category_tree/sources/eponuda/raw/tree_v1.json",
+  "rules_ref": "docs/category_tree/sources/eponuda/map.md",
+  "l1_map": [
+    {
+      "source_id": "audio-video",
+      "source_title": "Audio-video",
+      "action": "map",
+      "target_id": "audio-video",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "motorna-vozila",
+      "source_title": "Automobili",
+      "action": "map",
+      "target_id": "automobili",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "bela-tehnika",
+      "source_title": "Bela Tehnika",
+      "action": "map",
+      "target_id": "bela-tehnika",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "deca",
+      "source_title": "Deca",
+      "action": "map",
+      "target_id": "deca",
+      "target_level": "L1"
+    },
+    {
+      "source_id": "erotika",
+      "source_title": "Erotika",
+      "action": "map",
+      "target_id": "erotika",
+      "target_level": "L1",
+      "flags": [
+        "restricted"
+      ]
+    },
+    {
+      "source_id": "fotoaparati-kamere",
+      "source_title": "Fotoaparati & Kamere",
+      "action": "map",
+      "target_id": "foto-i-kamere",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "hrana-i-pice",
+      "source_title": "Hrana i pice",
+      "action": "map",
+      "target_id": "hrana-i-pice",
+      "target_level": "L1"
+    },
+    {
+      "source_id": "knjige",
+      "source_title": "Knjige",
+      "action": "map",
+      "target_id": "knjige",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "kuca-i-basta",
+      "source_title": "Kuca i basta",
+      "action": "map",
+      "target_id": "kuca-i-basta",
+      "target_level": "L1"
+    },
+    {
+      "source_id": "kucna-hemija",
+      "source_title": "Kucna hemija",
+      "action": "map",
+      "target_id": "kucna-hemija",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "kucni-aparati",
+      "source_title": "Kucni aparati",
+      "action": "map",
+      "target_id": "kucni-aparati",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "kucni-ljubimci",
+      "source_title": "Kucni ljubimci",
+      "action": "map",
+      "target_id": "kucni-ljubimci",
+      "target_level": "L1"
+    },
+    {
+      "source_id": "kuhinjski-aparati",
+      "source_title": "Kuhinjski aparati",
+      "action": "map",
+      "target_id": "kuhinjski-aparati",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "zdravlje-i-lepota",
+      "source_title": "Lepota i zdravlje",
+      "action": "map",
+      "target_id": "lepota-i-zdravlje",
+      "target_level": "L1",
+      "flags": [
+        "needs_review"
+      ]
+    },
+    {
+      "source_id": "masine-alati",
+      "source_title": "Masine & Alati",
+      "action": "map",
+      "target_id": "masine-i-alati",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "modni-dodaci",
+      "source_title": "Modni dodaci",
+      "action": "map",
+      "target_id": "modni-dodaci",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "muskarci",
+      "source_title": "Muskarci",
+      "action": "map",
+      "target_id": "muskarci",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "namestaj",
+      "source_title": "Namestaj",
+      "action": "map",
+      "target_id": "namestaj",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "racunari",
+      "source_title": "Racunari",
+      "action": "map",
+      "target_id": "racunari",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "sport-i-rekreacija",
+      "source_title": "Sport i Rekreacija",
+      "action": "map",
+      "target_id": "sport-i-rekreacija",
+      "target_level": "L1"
+    },
+    {
+      "source_id": "sve-za-decu-i-bebe",
+      "source_title": "Sve za decu i bebe",
+      "action": "map",
+      "target_id": "sve-za-decu-i-bebe",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "telefoni",
+      "source_title": "Telefoni",
+      "action": "map",
+      "target_id": "telefoni",
+      "target_level": "L2"
+    },
+    {
+      "source_id": "zene",
+      "source_title": "Zene",
+      "action": "map",
+      "target_id": "zene",
+      "target_level": "L2"
+    }
+  ]
+}
