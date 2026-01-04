@@ -1,89 +1,110 @@
-﻿import { getTranslations } from 'next-intl/server'
-import type { CategoryCardProps } from '@/components/category-card'
-import { FloatingCategoryCloud } from '@/components/floating-category-cloud'
-import { HeroSearch } from '@/components/hero-search'
-import { LanguageSwitcher } from '@/components/language-switcher'
-import { fetchCities, fetchHomeMeta, fetchHomeModel } from '@/lib/api'
+import { HeroSearch } from "@/components/hero-search";
+import { FloatingCategoryCloud } from "@/components/floating-category-cloud";
+import type { HomeModel } from "@/types/home";
 
-export const dynamic = 'force-dynamic'
+const ORBIT_BAND = 24;
+const ORBIT_BAND_PX = ORBIT_BAND * 4;
+const DEBUG_ORBIT =
+  process.env.NODE_ENV !== "production" &&
+  process.env.NEXT_PUBLIC_DEBUG_CLOUD === "1";
 
-export default async function HomePage({
-  params,
-}: {
-  params: Promise<{ locale: string }>
-}) {
-  const { locale } = await params
-  const t = await getTranslations({ locale, namespace: 'home' })
-  const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || process.env.TENANT_ID || 'default'
-  void fetchHomeMeta({ tenantId, locale })
-  const homeModel = await fetchHomeModel({ tenantId, locale })
-  const isLoading = !homeModel
-  const hero = homeModel?.hero ?? {
-    title: t('title'),
-    subtitle: t('subtitle'),
-    searchPlaceholder: t('search_placeholder'),
-    showTypeToggle: true,
-    showCitySelect: false,
-    defaultType: 'all' as const,
-  }
-  const cityOptions = hero.showCitySelect
-    ? (await fetchCities()).map((city) => ({
-        value: city.slug,
-        label: city.name_sr,
-      }))
-    : []
-  const categoryCards: CategoryCardProps[] =
-    homeModel?.categoryCards.map((card) => ({
-      id: card.id,
-      title: card.title,
-      hint: card.hint,
-      href: card.href,
-      priority: card.priority,
-      weight: card.weight,
-      analyticsId: card.analytics_id,
-    })) ?? []
+async function getHomeModel(): Promise<HomeModel> {
+  return {
+    version: "2",
+    tenant_id: "default",
+    locale: "en",
+    hero: {
+      title: "Find goods and services",
+      subtitle: "Search or browse categories",
+      searchPlaceholder: "What are you looking for?",
+      showTypeToggle: true,
+      showCitySelect: false,
+      defaultType: "all",
+    },
+    featuredCategories: [],
+  };
+}
+
+export default async function HomePage() {
+  await getHomeModel();
+
+  const handleHeroSubmit = (query: string) => {
+    console.log(query);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <a
-        href="#home-search"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow"
-      >
-        Skip to search
-      </a>
-      <header className="absolute inset-x-0 top-0 z-10">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">
-            Izborator
-          </div>
-          <LanguageSwitcher />
-        </div>
-      </header>
+    <main className="min-h-screen">
+      {/* Header — если уже подключается глобально, тут не нужен */}
 
-      <main className="min-h-screen">
-        <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col items-center justify-center px-4 py-24">
-          <div className="relative w-full md:min-h-[640px]">
-            <div className="relative z-10 flex min-h-[520px] items-center justify-center">
-              <div className="relative flex w-full max-w-[720px] items-center justify-center md:min-w-[520px] min-h-[320px] md:min-h-[360px] lg:min-h-[420px]">
-                <HeroSearch
-                  title={hero.title}
-                  subtitle={hero.subtitle}
-                  showTypeToggle={hero.showTypeToggle}
-                  defaultType={hero.defaultType}
-                  showCitySelect={hero.showCitySelect}
-                  cityOptions={cityOptions}
-                  searchPlaceholder={hero.searchPlaceholder}
-                />
-              </div>
+      {/* Scene container */}
+      <section className="relative min-h-screen overflow-hidden">
+        {/* Dead zones (не кликаются и не перекрывают центр) */}
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
+          {/* TODO: FloatingCategoryCloud will live here */}
+        </div>
+
+        {/* Layout frame */}
+        <div className="relative mx-auto min-h-screen max-w-6xl px-4">
+          {/* Orbit zone (пространство вокруг Safe Center под будущее облако) */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+          >
+            <FloatingCategoryCloud />
+            {DEBUG_ORBIT ? (
+              <div className="absolute inset-0">
+              {/* Top band */}
+              <div
+                className="absolute left-0 right-0 top-0 bg-sky-200/30 opacity-0 md:opacity-100"
+                style={{ height: ORBIT_BAND_PX }}
+              />
+              {/* Bottom band */}
+              <div
+                className="absolute left-0 right-0 bottom-0 bg-sky-200/30 opacity-0 md:opacity-100"
+                style={{ height: ORBIT_BAND_PX }}
+              />
+              {/* Left band */}
+              <div
+                className="absolute left-0 bg-sky-200/30 opacity-0 md:opacity-100"
+                style={{
+                  top: ORBIT_BAND_PX,
+                  bottom: ORBIT_BAND_PX,
+                  width: ORBIT_BAND_PX,
+                }}
+              />
+              {/* Right band */}
+              <div
+                className="absolute right-0 bg-sky-200/30 opacity-0 md:opacity-100"
+                style={{
+                  top: ORBIT_BAND_PX,
+                  bottom: ORBIT_BAND_PX,
+                  width: ORBIT_BAND_PX,
+                }}
+              />
+              {/* Center keep-out (dead zone вокруг Safe Center) */}
+              <div
+                className="absolute bg-rose-200/20 opacity-0 md:opacity-100"
+                style={{
+                  left: ORBIT_BAND_PX,
+                  right: ORBIT_BAND_PX,
+                  top: ORBIT_BAND_PX,
+                  bottom: ORBIT_BAND_PX,
+                }}
+              />
             </div>
-            <FloatingCategoryCloud categories={categoryCards} isLoading={isLoading} />
+            ) : null}
+          </div>
+
+          {/* Safe Center */}
+          <div className="relative z-10 flex min-h-screen items-center justify-center">
+            <div className="w-full max-w-2xl">
+              <HeroSearch onSubmit={handleHeroSubmit} />
+            </div>
           </div>
         </div>
-      </main>
+      </section>
 
-      <footer className="pb-8 text-center text-xs text-slate-400">
-        {t('footer_text')}
-      </footer>
-    </div>
-  )
+      {/* Footer — если уже подключается глобально, тут не нужен */}
+    </main>
+  );
 }

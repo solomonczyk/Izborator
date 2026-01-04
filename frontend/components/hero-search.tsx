@@ -1,44 +1,44 @@
-import { SearchForm } from '@/components/search-form'
-
 type HeroSearchProps = {
-  title: string
-  subtitle?: string
-  showTypeToggle?: boolean
-  defaultType?: "all" | "good" | "service"
-  showCitySelect?: boolean
-  cityOptions?: Array<{ value: string; label: string }>
-  defaultCity?: string
-  searchPlaceholder?: string
-}
+  onSubmit?: (q: string) => void;
+};
 
-export function HeroSearch({
-  title,
-  subtitle,
-  showTypeToggle = true,
-  defaultType = "all",
-  showCitySelect = false,
-  cityOptions,
-  defaultCity,
-  searchPlaceholder,
-}: HeroSearchProps) {
+export function HeroSearch({ onSubmit }: HeroSearchProps) {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    const q = String(data.get("q") || "");
+    onSubmit?.(q);
+  };
+
   return (
-    <div className="w-full max-w-3xl text-center">
-      <h1 className="text-4xl font-bold text-slate-900 md:text-5xl lg:text-6xl">
-        {title}
-      </h1>
-      {subtitle ? (
-        <p className="mt-4 text-lg text-slate-600 md:text-2xl">{subtitle}</p>
-      ) : null}
-      <div className="mt-10">
-        <SearchForm
-          showTypeToggle={showTypeToggle}
-          defaultType={defaultType}
-          showCitySelect={showCitySelect}
-          cityOptions={cityOptions}
-          defaultCity={defaultCity}
-          searchPlaceholder={searchPlaceholder}
-        />
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="text-2xl font-semibold text-slate-900">
+        Найдите товары и услуги
       </div>
+      <div className="mt-2 text-slate-600">
+        Введите запрос, или выберите категорию вокруг
+      </div>
+
+      <form className="mt-6 flex gap-3" onSubmit={handleSubmit}>
+        <label htmlFor="hero-search" className="sr-only">
+          Поиск товаров и услуг
+        </label>
+        <input
+          id="hero-search"
+          name="q"
+          type="search"
+          placeholder="Что вы ищете?"
+          className="h-14 flex-1 rounded-xl border border-slate-200 px-4 outline-none focus:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        />
+        <button
+          aria-label="Найти"
+          type="submit"
+          className="h-14 rounded-xl bg-slate-900 px-5 font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 focus-visible:ring-offset-2"
+        >
+          Найти
+        </button>
+      </form>
     </div>
-  )
+  );
 }

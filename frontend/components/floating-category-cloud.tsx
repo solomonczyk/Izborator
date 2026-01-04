@@ -1,185 +1,100 @@
-'use client'
+import { CategoryCard } from "@/components/category-card";
 
-import { useEffect, useRef } from 'react'
-import { CategoryCard, type CategoryCardProps } from '@/components/category-card'
+const DEBUG_CLOUD =
+  process.env.NODE_ENV !== "production" &&
+  process.env.NEXT_PUBLIC_DEBUG_CLOUD === "1";
 
-type FloatingCategoryCloudProps = {
-  categories: CategoryCardProps[]
-  maxVisible?: number
-  isLoading?: boolean
-}
+const MOCK_CATEGORIES = [
+  {
+    id: "electronics",
+    title: "Electronics",
+    hint: "Phones, laptops, gadgets",
+    href: "/catalog?type=good&category=electronics",
+    positionClass: "left-4 top-4 w-56",
+  },
+  {
+    id: "food",
+    title: "Food & Drink",
+    hint: "Groceries and cafes",
+    href: "/catalog?type=good&category=food",
+    positionClass: "left-1/2 top-6 w-56 -translate-x-1/2",
+  },
+  {
+    id: "fashion",
+    title: "Fashion",
+    hint: "Clothes and shoes",
+    href: "/catalog?type=good&category=fashion",
+    positionClass: "right-4 top-8 w-56",
+  },
+  {
+    id: "home",
+    title: "Home & Garden",
+    hint: "Furniture and decor",
+    href: "/catalog?type=good&category=home",
+    positionClass: "left-0 top-32 w-56",
+  },
+  {
+    id: "services",
+    title: "Services",
+    hint: "Repairs and delivery",
+    href: "/catalog?type=service",
+    positionClass: "right-0 bottom-32 w-56",
+  },
+  {
+    id: "sport",
+    title: "Sport & Leisure",
+    hint: "Outdoor and fitness",
+    href: "/catalog?type=good&category=sport",
+    positionClass: "left-6 bottom-10 w-56",
+  },
+  {
+    id: "auto",
+    title: "Auto",
+    hint: "Parts and accessories",
+    href: "/catalog?type=good&category=auto",
+    positionClass: "left-1/2 bottom-6 w-56 -translate-x-1/2",
+  },
+  {
+    id: "finance",
+    title: "Finance",
+    hint: "Payments and loans",
+    href: "/catalog?type=service&category=finance",
+    positionClass: "right-6 bottom-8 w-56",
+  },
+] as const;
 
-const positions = [
-  'left-[8%] top-[6%] -translate-x-1/2',
-  'left-1/2 top-[2%] -translate-x-1/2',
-  'right-[8%] top-[8%] translate-x-1/2',
-  'left-[6%] top-1/2 -translate-x-1/2 -translate-y-1/2',
-  'right-[6%] top-1/2 translate-x-1/2 -translate-y-1/2',
-  'left-[10%] bottom-[6%] -translate-x-1/2',
-  'left-1/2 bottom-[2%] -translate-x-1/2',
-  'right-[10%] bottom-[6%] translate-x-1/2',
-]
-
-export function FloatingCategoryCloud({
-  categories,
-  maxVisible = 8,
-  isLoading = false,
-}: FloatingCategoryCloudProps) {
-  const sorted = [...categories].sort((a, b) => {
-    const priorityRank = (value?: string) => (value === 'primary' ? 0 : 1)
-    const rankA = priorityRank(a.priority)
-    const rankB = priorityRank(b.priority)
-    if (rankA !== rankB) {
-      return rankA - rankB
-    }
-    const weightA = a.weight ?? 0
-    const weightB = b.weight ?? 0
-    if (weightA !== weightB) {
-      return weightB - weightA
-    }
-    return a.title.localeCompare(b.title)
-  })
-  const visible = sorted.slice(0, maxVisible)
-  const motionDisabled = process.env.NEXT_PUBLIC_DISABLE_MOTION === 'true'
-  const skeletons = Array.from({ length: maxVisible }, (_, index) => ({
-    id: `skeleton-${index}`,
-  }))
-  const items = isLoading ? skeletons : visible
-  const cardRefs = useRef<Array<HTMLDivElement | null>>([])
-
-  useEffect(() => {
-    if (motionDisabled) {
-      return
-    }
-    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-      return
-    }
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return
-    }
-
-    const rootStyles = getComputedStyle(document.documentElement)
-    const maxMove = parseFloat(rootStyles.getPropertyValue('--move-md')) || 12
-    const rotateMax = parseFloat(rootStyles.getPropertyValue('--rotate-xs')) || 2
-    const radius = 120
-    let rafId = 0
-    let pointerX = 0
-    let pointerY = 0
-    let hasPointer = false
-
-    const update = () => {
-      rafId = 0
-      cardRefs.current.forEach((card) => {
-        if (!card) {
-          return
-        }
-        if (!hasPointer) {
-          card.style.setProperty('--proximity-x', '0px')
-          card.style.setProperty('--proximity-y', '0px')
-          card.style.setProperty('--proximity-rotate', '0deg')
-          card.dataset.motion = 'idle'
-          return
-        }
-        const rect = card.getBoundingClientRect()
-        const cx = rect.left + rect.width / 2
-        const cy = rect.top + rect.height / 2
-        const dx = pointerX - cx
-        const dy = pointerY - cy
-        const dist = Math.hypot(dx, dy)
-
-        if (dist > 0 && dist < radius) {
-          const strength = (radius - dist) / radius
-          const move = Math.min(maxMove, maxMove * strength)
-          const nx = dx / dist
-          const ny = dy / dist
-          card.style.setProperty('--proximity-x', `${-nx * move}px`)
-          card.style.setProperty('--proximity-y', `${-ny * move}px`)
-          card.style.setProperty('--proximity-rotate', `${nx * rotateMax}deg`)
-          card.dataset.motion = 'proximity'
-        } else {
-          card.style.setProperty('--proximity-x', '0px')
-          card.style.setProperty('--proximity-y', '0px')
-          card.style.setProperty('--proximity-rotate', '0deg')
-          card.dataset.motion = 'idle'
-        }
-      })
-    }
-
-    const scheduleUpdate = () => {
-      if (rafId) {
-        return
-      }
-      rafId = window.requestAnimationFrame(update)
-    }
-
-    const handlePointerMove = (event: PointerEvent) => {
-      pointerX = event.clientX
-      pointerY = event.clientY
-      hasPointer = true
-      scheduleUpdate()
-    }
-
-    const handlePointerLeave = () => {
-      hasPointer = false
-      scheduleUpdate()
-    }
-
-    window.addEventListener('pointermove', handlePointerMove, { passive: true })
-    window.addEventListener('pointerleave', handlePointerLeave)
-
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerleave', handlePointerLeave)
-      if (rafId) {
-        window.cancelAnimationFrame(rafId)
-      }
-    }
-  }, [])
-
-  if (!isLoading && visible.length === 0) {
-    return null
-  }
+export function FloatingCategoryCloud() {
+  const debugClass = DEBUG_CLOUD ? "ring-1 ring-slate-300/50" : "";
 
   return (
     <>
-      <div className="mt-10 grid grid-cols-2 gap-4 md:hidden">
-        {isLoading
-          ? skeletons.map((skeleton) => (
-              <div
-                key={skeleton.id}
-                className="h-[96px] rounded-2xl border border-slate-200 bg-white/80 shadow-sm animate-pulse"
-                aria-hidden="true"
-              />
-            ))
-          : visible.map((category) => <CategoryCard key={category.id} {...category} />)}
-      </div>
-      <div className="absolute inset-0 hidden md:block">
-        {items.map((category, index) => (
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 pointer-events-none hidden md:block"
+      >
+        {MOCK_CATEGORIES.map((category) => (
           <div
             key={category.id}
-            ref={(node) => {
-              cardRefs.current[index] = node
-            }}
-            data-motion="idle"
-            className={`absolute ${positions[index % positions.length]} w-[220px]`}
-            style={{
-              transform:
-                'translate(var(--proximity-x, 0px), var(--proximity-y, 0px)) rotate(var(--proximity-rotate, 0deg))',
-              transition: 'transform var(--motion-base) var(--ease-out-soft)',
-              willChange: 'transform',
-            }}
+            className={`absolute ${category.positionClass} ${debugClass}`}
           >
-            {isLoading ? (
-              <div
-                className="h-[112px] rounded-2xl border border-slate-200 bg-white/80 shadow-sm animate-pulse"
-                aria-hidden="true"
-              />
-            ) : (
-              <CategoryCard {...category} />
-            )}
+            <CategoryCard
+              title={category.title}
+              hint={category.hint}
+              href={category.href}
+            />
           </div>
         ))}
       </div>
+      <div className="grid grid-cols-2 gap-4 px-4 pb-8 pt-4 md:hidden">
+        {MOCK_CATEGORIES.map((category) => (
+          <CategoryCard
+            key={category.id}
+            title={category.title}
+            hint={category.hint}
+            href={category.href}
+          />
+        ))}
+      </div>
     </>
-  )
+  );
 }

@@ -12272,3 +12272,26 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Added worker consumer loop to process queued raw products.
 - Added processor helper to process single raw product payload.
 
+
+---
+
+### 2026-01-04 - Queue v1 config defaults
+
+**Time:** 08:12
+
+**Changes:**
+- Updated queue defaults to Redis and aligned env.example.
+
+### 2026-01-04 - Home/Discover H-01.2.x (cloud + hero wiring)
+
+**Time:** 13:32
+
+**Changes:**
+- Added CategoryCard and mock category data in FloatingCategoryCloud.
+- Added mobile grid fallback and orbit-constrained positions.
+- Added motion helper and HomeModel types/stub.
+- Wired HeroSearch submit handler (stub) and orbit debug flag.
+- Added orbit band constants and dev-only orbit overlay.
+- Removed reference video from frontend/public.
+
+---
