@@ -7,12 +7,20 @@ const ORBIT_BAND_PX = ORBIT_BAND * 4;
 const DEBUG_ORBIT =
   process.env.NODE_ENV !== "production" &&
   process.env.NEXT_PUBLIC_DEBUG_CLOUD === "1";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081";
 
-async function getHomeModel(): Promise<HomeModel> {
-  return {
+async function getHomeModel(params: {
+  tenantId: string;
+  locale: string;
+}): Promise<HomeModel> {
+  const url = new URL("/api/v1/home", API_BASE);
+  url.searchParams.set("tenant_id", params.tenantId);
+  url.searchParams.set("locale", params.locale);
+
+  const fallback: HomeModel = {
     version: "2",
-    tenant_id: "default",
-    locale: "en",
+    tenant_id: params.tenantId,
+    locale: params.locale,
     hero: {
       title: "Find goods and services",
       subtitle: "Search or browse categories",
@@ -23,10 +31,32 @@ async function getHomeModel(): Promise<HomeModel> {
     },
     featuredCategories: [],
   };
+
+  try {
+    const res = await fetch(url.toString(), { next: { revalidate: 60 } });
+    if (!res.ok) {
+      return fallback;
+    }
+    const data = (await res.json()) as HomeModel;
+    if (!data || data.version !== "2") {
+      return fallback;
+    }
+    return data;
+  } catch {
+    return fallback;
+  }
 }
 
-export default async function HomePage() {
-  await getHomeModel();
+export default async function HomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const tenantId =
+    process.env.NEXT_PUBLIC_TENANT_ID || process.env.TENANT_ID || "default";
+  const homeModel = await getHomeModel({ tenantId, locale });
+  const { hero, featuredCategories } = homeModel;
 
   const handleHeroSubmit = (query: string) => {
     console.log(query);
@@ -50,7 +80,7 @@ export default async function HomePage() {
             aria-hidden="true"
             className="absolute inset-0 pointer-events-none"
           >
-            <FloatingCategoryCloud />
+            <FloatingCategoryCloud categories={featuredCategories} />
             {DEBUG_ORBIT ? (
               <div className="absolute inset-0">
               {/* Top band */}
@@ -98,7 +128,13 @@ export default async function HomePage() {
           {/* Safe Center */}
           <div className="relative z-10 flex min-h-screen items-center justify-center">
             <div className="w-full max-w-2xl">
-              <HeroSearch onSubmit={handleHeroSubmit} />
+              <HeroSearch
+                title={hero.title}
+                subtitle={hero.subtitle}
+                searchPlaceholder={hero.searchPlaceholder}
+                submitLabel="Search"
+                onSubmit={handleHeroSubmit}
+              />
             </div>
           </div>
         </div>

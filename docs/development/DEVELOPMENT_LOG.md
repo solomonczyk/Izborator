@@ -12373,3 +12373,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Missing featured config falls back to empty list (no 404).
 
 ---
+
+### 2026-01-04 - HomeModel v2 wired in frontend
+
+**Time:** 16:53
+
+**Changes:**
+- Home page fetches /api/v1/home (tenant_id + locale) and renders hero + featured categories.
+- HeroSearch now accepts title/subtitle/placeholder props.
+- FloatingCategoryCloud renders featuredCategories with static orbit positions.
+
+---
