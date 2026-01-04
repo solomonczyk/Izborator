@@ -12394,3 +12394,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Skeletons use the same orbit positions for layout stability.
 
 ---
+
+### 2026-01-04 - Home cloud clickable layer
+
+**Time:** 17:03
+
+**Changes:**
+- Removed aria-hidden/pointer-events block from cloud wrapper so category cards are clickable.
+- Skeletons remain non-interactive.
+
+---

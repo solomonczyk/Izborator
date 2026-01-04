@@ -40,10 +40,7 @@ export function FloatingCategoryCloud({
 
   return (
     <>
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 pointer-events-none hidden md:block"
-      >
+      <div className="absolute inset-0 hidden md:block">
         {hasCategories
           ? visible.map((category, index) => (
               <div
