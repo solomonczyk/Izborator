@@ -2,7 +2,7 @@
 import React from "react"
 import { Link } from '@/navigation'
 import { getTranslations } from 'next-intl/server'
-import { fetchCategoriesTree, fetchCities, flattenCategories, type CategoryNode, type City } from '@/lib/api'
+import { apiFetch, fetchCategoriesTree, fetchCities, flattenCategories, type CategoryNode, type City } from '@/lib/api'
 import { ProductCard } from '@/components/product-card'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { TypeSelect } from "./type-select"
@@ -84,7 +84,7 @@ async function fetchCatalog(params: {
   url.searchParams.set("page", page.toString())
   url.searchParams.set("per_page", perPage.toString())
 
-  const res = await fetch(url.toString(), {
+  const res = await apiFetch(url, {
     next: { revalidate: 0 }, // Временно отключен кэш для теста
     cache: 'no-store', // Принудительно не кэшировать
   })
@@ -96,12 +96,11 @@ async function fetchCatalog(params: {
   return res.json()
 }
 
-async function fetchFacets(params: { type: "goods" | "services"; tenantId: string }): Promise<FacetSchemaResponse> {
+async function fetchFacets(params: { type: "goods" | "services" }): Promise<FacetSchemaResponse> {
   const url = new URL("/api/v1/products/facets", API_BASE)
   url.searchParams.set("type", params.type)
-  url.searchParams.set("tenant_id", params.tenantId)
 
-  const res = await fetch(url.toString(), {
+  const res = await apiFetch(url, {
     next: { revalidate: 300 },
   })
 
@@ -169,7 +168,7 @@ export default async function CatalogPage({
     sort,
     lang: locale,
   })
-  const facetsPromise = fetchFacets({ type: facetsType, tenantId })
+  const facetsPromise = fetchFacets({ type: facetsType })
 
   let facetSet = new Set<string>()
   let facetsCount = 0

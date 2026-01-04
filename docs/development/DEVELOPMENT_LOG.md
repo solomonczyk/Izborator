@@ -12433,3 +12433,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Added docs/contracts/catalog.md with Catalog API contract (v1).
 
 ---
+
+### 2026-01-04 - Centralized tenant_id in frontend fetches
+
+**Time:** 17:34
+
+**Changes:**
+- Added apiFetch helper to append tenant_id to backend requests.
+- Switched catalog/home/category/city fetches to apiFetch.
+- Removed manual tenant_id wiring from frontend fetch calls.
+
+---

@@ -1,13 +1,25 @@
-// API utilities для работы с backend
+// API utilities for backend requests
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081"
+const TENANT_ID =
+  process.env.NEXT_PUBLIC_TENANT_ID || process.env.TENANT_ID || "default"
+
+export async function apiFetch(
+  path: string | URL,
+  options?: RequestInit,
+): Promise<Response> {
+  const url =
+    typeof path === "string" ? new URL(path, API_BASE) : new URL(path.toString())
+  url.searchParams.set("tenant_id", TENANT_ID)
+  return fetch(url.toString(), options)
+}
 
 export interface CategoryNode {
   id: string
   slug: string
   code: string
-  name?: string      // Переведенное название (в зависимости от locale)
-  name_sr: string   // Сербское название (для обратной совместимости)
+  name?: string
+  name_sr: string
   name_sr_lc: string
   level: number
   is_active: boolean
@@ -63,52 +75,44 @@ export type HomeMeta = {
   defaultType: "all" | "good" | "service"
 }
 
-/**
- * Загружает дерево категорий
- */
 export async function fetchCategoriesTree(locale?: string): Promise<CategoryNode[]> {
   try {
-    // Передаем locale в query параметре для получения переведенных названий
-    const url = locale 
-      ? `${API_BASE}/api/v1/categories/tree?lang=${locale}`
-      : `${API_BASE}/api/v1/categories/tree`
-    
-    const res = await fetch(url, {
-      cache: 'no-store', // Не кэшируем - категории могут изменяться
-      next: { revalidate: 0 }, // Отключаем revalidation
+    const url = locale
+      ? `/api/v1/categories/tree?lang=${locale}`
+      : "/api/v1/categories/tree"
+
+    const res = await apiFetch(url, {
+      cache: "no-store",
+      next: { revalidate: 0 },
     })
 
     if (!res.ok) {
       console.warn(`Failed to fetch categories: ${res.status}`)
-      return [] // Возвращаем пустой массив вместо ошибки
+      return []
     }
 
     const data = await res.json()
-    
-    // API может вернуть объект или массив - нормализуем в массив
+
     if (Array.isArray(data)) {
       return data
-    } else if (data && typeof data === 'object') {
-      // Если это объект (одиночная категория), оборачиваем в массив
-      return [data]
-    } else {
-      console.warn('Categories API returned unexpected format:', data)
-      return []
     }
+    if (data && typeof data === "object") {
+      return [data]
+    }
+    console.warn("Categories API returned unexpected format:", data)
+    return []
   } catch (error) {
-    // Во время сборки API может быть недоступен - это нормально
-    // Возвращаем пустой массив, чтобы сборка не падала
-    console.warn('Categories API unavailable, returning empty array:', error instanceof Error ? error.message : String(error))
+    console.warn(
+      "Categories API unavailable, returning empty array:",
+      error instanceof Error ? error.message : String(error),
+    )
     return []
   }
 }
 
-/**
- * Загружает список активных городов
- */
 export async function fetchCities(): Promise<City[]> {
-  const res = await fetch(`${API_BASE}/api/v1/cities`, {
-    next: { revalidate: 3600 }, // Кэшируем на 1 час
+  const res = await apiFetch("/api/v1/cities", {
+    next: { revalidate: 3600 },
   })
 
   if (!res.ok) {
@@ -116,10 +120,9 @@ export async function fetchCities(): Promise<City[]> {
   }
 
   const data = await res.json()
-  
-  // Убеждаемся, что возвращаем массив
+
   if (!Array.isArray(data)) {
-    console.warn('Cities API returned non-array:', data)
+    console.warn("Cities API returned non-array:", data)
     return []
   }
 
@@ -127,18 +130,16 @@ export async function fetchCities(): Promise<City[]> {
 }
 
 export async function fetchHomeModel(params: {
-  tenantId: string
   locale?: string
 }): Promise<HomeModel | null> {
   try {
-    const url = new URL(`${API_BASE}/api/v1/home`)
-    url.searchParams.set("tenant_id", params.tenantId)
+    const url = new URL("/api/v1/home", API_BASE)
     if (params.locale) {
       url.searchParams.set("locale", params.locale)
     }
 
-    const res = await fetch(url.toString(), {
-      cache: 'no-store',
+    const res = await apiFetch(url, {
+      cache: "no-store",
       next: { revalidate: 0 },
     })
 
@@ -149,28 +150,29 @@ export async function fetchHomeModel(params: {
 
     const data = (await res.json()) as Partial<HomeModel>
     if (!data || data.version !== "1") {
-      console.warn(`Home model version mismatch: ${data?.version ?? 'unknown'}`)
+      console.warn(`Home model version mismatch: ${data?.version ?? "unknown"}`)
       return null
     }
     return data as HomeModel
   } catch (error) {
-    console.warn('Home model API unavailable:', error instanceof Error ? error.message : String(error))
+    console.warn(
+      "Home model API unavailable:",
+      error instanceof Error ? error.message : String(error),
+    )
     return null
   }
 }
 
 export async function fetchHomeMeta(params: {
-  tenantId: string
   locale?: string
 }): Promise<HomeMeta | null> {
   try {
-    const url = new URL(`${API_BASE}/api/v1/home/meta`)
-    url.searchParams.set("tenant_id", params.tenantId)
+    const url = new URL("/api/v1/home/meta", API_BASE)
     if (params.locale) {
       url.searchParams.set("locale", params.locale)
     }
 
-    const res = await fetch(url.toString(), {
+    const res = await apiFetch(url, {
       next: { revalidate: 60 },
     })
 
@@ -181,46 +183,46 @@ export async function fetchHomeMeta(params: {
 
     const data = (await res.json()) as Partial<HomeMeta>
     if (!data || data.version !== "1") {
-      console.warn(`Home meta version mismatch: ${data?.version ?? 'unknown'}`)
+      console.warn(`Home meta version mismatch: ${data?.version ?? "unknown"}`)
       return null
     }
     return data as HomeMeta
   } catch (error) {
-    console.warn('Home meta API unavailable:', error instanceof Error ? error.message : String(error))
+    console.warn(
+      "Home meta API unavailable:",
+      error instanceof Error ? error.message : String(error),
+    )
     return null
   }
 }
 
-/**
- * Преобразует дерево категорий в плоский список для select
- */
-export function flattenCategories(categories: CategoryNode[] | CategoryNode | null | undefined): Array<{ value: string; label: string; level: number }> {
+export function flattenCategories(
+  categories: CategoryNode[] | CategoryNode | null | undefined,
+): Array<{ value: string; label: string; level: number }> {
   const result: Array<{ value: string; label: string; level: number }> = []
 
-  // Проверяем, что categories существует
   if (!categories) {
     return result
   }
-  
-  // Если это не массив, но объект - оборачиваем в массив
-  const categoriesArray: CategoryNode[] = Array.isArray(categories) ? categories : [categories]
+
+  const categoriesArray: CategoryNode[] = Array.isArray(categories)
+    ? categories
+    : [categories]
 
   function traverse(nodes: CategoryNode[], level: number = 0) {
-    // Дополнительная проверка на случай, если nodes не массив
     if (!nodes || !Array.isArray(nodes)) {
       return
     }
 
     for (const node of nodes) {
-      // Проверяем is_active, если поле существует, иначе считаем активным
       if (node.is_active !== false) {
         const indent = "  ".repeat(level)
         result.push({
           value: node.slug,
-          label: `${indent}${node.name || node.name_sr}`, // Используем переведенное название, если есть
+          label: `${indent}${node.name || node.name_sr}`,
           level: node.level || level,
         })
-        
+
         if (node.children && node.children.length > 0) {
           traverse(node.children, level + 1)
         }
@@ -231,4 +233,3 @@ export function flattenCategories(categories: CategoryNode[] | CategoryNode | nu
   traverse(categoriesArray)
   return result
 }
-

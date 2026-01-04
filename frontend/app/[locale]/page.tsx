@@ -1,5 +1,6 @@
 import { HeroSearch } from "@/components/hero-search";
 import { FloatingCategoryCloud } from "@/components/floating-category-cloud";
+import { apiFetch } from "@/lib/api";
 import type { HomeModel } from "@/types/home";
 
 const ORBIT_BAND = 24;
@@ -7,20 +8,16 @@ const ORBIT_BAND_PX = ORBIT_BAND * 4;
 const DEBUG_ORBIT =
   process.env.NODE_ENV !== "production" &&
   process.env.NEXT_PUBLIC_DEBUG_CLOUD === "1";
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8081";
-
-async function getHomeModel(params: {
-  tenantId: string;
-  locale: string;
-}): Promise<HomeModel> {
-  const url = new URL("/api/v1/home", API_BASE);
-  url.searchParams.set("tenant_id", params.tenantId);
-  url.searchParams.set("locale", params.locale);
-
+async function getHomeModel(locale: string): Promise<HomeModel> {
+  const tenantId =
+    process.env.NEXT_PUBLIC_TENANT_ID || process.env.TENANT_ID || "default";
+  const path = locale
+    ? `/api/v1/home?locale=${encodeURIComponent(locale)}`
+    : "/api/v1/home";
   const fallback: HomeModel = {
     version: "2",
-    tenant_id: params.tenantId,
-    locale: params.locale,
+    tenant_id: tenantId,
+    locale,
     hero: {
       title: "Find goods and services",
       subtitle: "Search or browse categories",
@@ -33,7 +30,7 @@ async function getHomeModel(params: {
   };
 
   try {
-    const res = await fetch(url.toString(), { next: { revalidate: 60 } });
+    const res = await apiFetch(path, { next: { revalidate: 60 } });
     if (!res.ok) {
       return fallback;
     }
@@ -53,9 +50,7 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const tenantId =
-    process.env.NEXT_PUBLIC_TENANT_ID || process.env.TENANT_ID || "default";
-  const homeModel = await getHomeModel({ tenantId, locale });
+  const homeModel = await getHomeModel(locale);
   const { hero, featuredCategories } = homeModel;
 
   return (
