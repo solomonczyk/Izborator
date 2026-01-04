@@ -58,10 +58,6 @@ export default async function HomePage({
   const homeModel = await getHomeModel({ tenantId, locale });
   const { hero, featuredCategories } = homeModel;
 
-  const handleHeroSubmit = (query: string) => {
-    console.log(query);
-  };
-
   return (
     <main className="min-h-screen">
       {/* Header — если уже подключается глобально, тут не нужен */}
@@ -133,7 +129,7 @@ export default async function HomePage({
                 subtitle={hero.subtitle}
                 searchPlaceholder={hero.searchPlaceholder}
                 submitLabel="Search"
-                onSubmit={handleHeroSubmit}
+                action={`/${locale}/catalog`}
               />
             </div>
           </div>

@@ -12404,3 +12404,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Skeletons remain non-interactive.
 
 ---
+
+### 2026-01-04 - HeroSearch submit wired to catalog
+
+**Time:** 17:08
+
+**Changes:**
+- HeroSearch now uses GET form action to /[locale]/catalog.
+- Removed client-side onSubmit stub from home page.
+
+---

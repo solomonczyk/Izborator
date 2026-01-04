@@ -3,7 +3,7 @@ type HeroSearchProps = {
   subtitle?: string;
   searchPlaceholder?: string;
   submitLabel?: string;
-  onSubmit?: (q: string) => void;
+  action: string;
 };
 
 export function HeroSearch({
@@ -11,16 +11,8 @@ export function HeroSearch({
   subtitle,
   searchPlaceholder,
   submitLabel = "Search",
-  onSubmit,
+  action,
 }: HeroSearchProps) {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const data = new FormData(form);
-    const q = String(data.get("q") || "");
-    onSubmit?.(q);
-  };
-
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="text-2xl font-semibold text-slate-900">{title}</div>
@@ -28,7 +20,7 @@ export function HeroSearch({
         <div className="mt-2 text-slate-600">{subtitle}</div>
       ) : null}
 
-      <form className="mt-6 flex gap-3" onSubmit={handleSubmit}>
+      <form className="mt-6 flex gap-3" action={action} method="GET">
         <label htmlFor="hero-search" className="sr-only">
           Search products and services
         </label>
