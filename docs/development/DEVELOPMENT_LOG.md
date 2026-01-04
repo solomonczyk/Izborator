@@ -12384,3 +12384,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - FloatingCategoryCloud renders featuredCategories with static orbit positions.
 
 ---
+
+### 2026-01-04 - Home cloud skeleton fallback
+
+**Time:** 16:57
+
+**Changes:**
+- FloatingCategoryCloud renders skeleton placeholders when featuredCategories are empty.
+- Skeletons use the same orbit positions for layout stability.
+
+---

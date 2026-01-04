@@ -21,13 +21,16 @@ type FloatingCategoryCloudProps = {
   maxVisible?: number;
 };
 
+const SKELETON_ITEMS = Array.from({ length: 8 }, (_, index) => ({
+  id: `skeleton-${index + 1}`,
+  positionClass: POSITION_CLASSES[index],
+}));
+
 export function FloatingCategoryCloud({
   categories,
   maxVisible = 8,
 }: FloatingCategoryCloudProps) {
-  if (!categories || categories.length === 0) {
-    return null;
-  }
+  const hasCategories = Array.isArray(categories) && categories.length > 0;
 
   const sorted = [...categories].sort(
     (a, b) => (a.order || 0) - (b.order || 0),
@@ -41,23 +44,39 @@ export function FloatingCategoryCloud({
         aria-hidden="true"
         className="absolute inset-0 pointer-events-none hidden md:block"
       >
-        {visible.map((category, index) => (
-          <div
-            key={category.category_id}
-            className={`absolute ${POSITION_CLASSES[index]} pointer-events-auto ${debugClass}`}
-          >
-            <CategoryCard title={category.title} href={category.href} />
-          </div>
-        ))}
+        {hasCategories
+          ? visible.map((category, index) => (
+              <div
+                key={category.category_id}
+                className={`absolute ${POSITION_CLASSES[index]} pointer-events-auto ${debugClass}`}
+              >
+                <CategoryCard title={category.title} href={category.href} />
+              </div>
+            ))
+          : SKELETON_ITEMS.map((item) => (
+              <div
+                key={item.id}
+                className={`absolute ${item.positionClass} pointer-events-none ${debugClass}`}
+              >
+                <div className="h-20 w-full rounded-2xl border border-slate-200 bg-slate-100/70" />
+              </div>
+            ))}
       </div>
       <div className="grid grid-cols-2 gap-4 px-4 pb-8 pt-4 md:hidden">
-        {visible.map((category) => (
-          <CategoryCard
-            key={category.category_id}
-            title={category.title}
-            href={category.href}
-          />
-        ))}
+        {hasCategories
+          ? visible.map((category) => (
+              <CategoryCard
+                key={category.category_id}
+                title={category.title}
+                href={category.href}
+              />
+            ))
+          : SKELETON_ITEMS.map((item) => (
+              <div
+                key={item.id}
+                className="h-20 rounded-2xl border border-slate-200 bg-slate-100/70"
+              />
+            ))}
       </div>
     </>
   );
