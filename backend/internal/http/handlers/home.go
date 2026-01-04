@@ -8,6 +8,7 @@ import (
 	"time"
 
 	appErrors "github.com/solomonczyk/izborator/internal/errors"
+	"github.com/solomonczyk/izborator/internal/homebuilder"
 	"github.com/solomonczyk/izborator/internal/homeconfig"
 	"github.com/solomonczyk/izborator/internal/http/middleware"
 	"github.com/solomonczyk/izborator/internal/http/validation"
@@ -25,17 +26,7 @@ func NewHomeHandler(log *logger.Logger, translator *i18n.Translator) *HomeHandle
 	}
 }
 
-type homeHero = homeconfig.Hero
-
-type homeCategoryCard = homeconfig.CategoryCard
-
-type homeModel struct {
-	Version       string             `json:"version"`
-	TenantID      string             `json:"tenant_id"`
-	Locale        string             `json:"locale"`
-	Hero          homeHero           `json:"hero"`
-	CategoryCards []homeCategoryCard `json:"categoryCards"`
-}
+type homeModel = homebuilder.HomeModel
 
 type homeMeta struct {
 	Version        string `json:"version"`
@@ -79,7 +70,7 @@ func (h *HomeHandler) GetHome(w http.ResponseWriter, r *http.Request) {
 	h.RespondJSON(w, http.StatusOK, model)
 
 	ms := time.Since(start).Milliseconds()
-	cardsCount := len(model.CategoryCards)
+	cardsCount := len(model.FeaturedCategories)
 	warnMs := parseWarnMsEnv("HOME_MODEL_WARN_MS", 1500)
 	fields := map[string]interface{}{
 		"event":       "home_model",
@@ -127,7 +118,7 @@ func (h *HomeHandler) GetHomeMeta(w http.ResponseWriter, r *http.Request) {
 		Version:        model.Version,
 		TenantID:       model.TenantID,
 		Locale:         model.Locale,
-		CardsCount:     len(model.CategoryCards),
+		CardsCount:     len(model.FeaturedCategories),
 		ShowTypeToggle: model.Hero.ShowTypeToggle,
 		ShowCitySelect: model.Hero.ShowCitySelect,
 		DefaultType:    model.Hero.DefaultType,
@@ -138,17 +129,7 @@ func (h *HomeHandler) GetHomeMeta(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildHomeModel(tenantID, locale string) (homeModel, error) {
-	config, err := homeconfig.Resolve(tenantID, locale)
-	if err != nil {
-		return homeModel{}, err
-	}
-	return homeModel{
-		Version:       config.Version,
-		TenantID:      tenantID,
-		Locale:        locale,
-		Hero:          config.Hero,
-		CategoryCards: config.CategoryCards,
-	}, nil
+	return homebuilder.BuildHomeModel(tenantID, locale)
 }
 
 func parseWarnMsEnv(key string, fallback int) int {

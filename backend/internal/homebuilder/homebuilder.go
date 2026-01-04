@@ -70,12 +70,12 @@ func BuildHomeModel(tenantID, locale string) (HomeModel, error) {
 		return HomeModel{}, errors.New("tenant_id is required")
 	}
 
-	tenantConfig, err := resolveFeaturedConfig(tenantID)
+	homeConfig, err := homeconfig.Resolve(tenantID, locale)
 	if err != nil {
 		return HomeModel{}, err
 	}
 
-	homeConfig, err := homeconfig.Resolve(tenantID, locale)
+	tenantConfig, err := resolveFeaturedConfig(tenantID)
 	if err != nil {
 		return HomeModel{}, err
 	}
@@ -124,7 +124,7 @@ func resolveFeaturedConfig(tenantID string) (TenantFeaturedConfig, error) {
 	}
 	tenantConfig, ok := config.Tenants[tenantID]
 	if !ok {
-		return TenantFeaturedConfig{}, homeconfig.ErrTenantNotFound
+		return TenantFeaturedConfig{}, nil
 	}
 	return tenantConfig, nil
 }

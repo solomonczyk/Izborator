@@ -12362,3 +12362,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Builder resolves hero from homeconfig and generates hrefs for featured categories.
 
 ---
+
+### 2026-01-04 - Home API switched to HomeModel v2
+
+**Time:** 16:38
+
+**Changes:**
+- /api/v1/home now uses homebuilder.BuildHomeModel (canonical tree + featured rules).
+- Home meta/counts now reflect featuredCategories.
+- Missing featured config falls back to empty list (no 404).
+
+---
