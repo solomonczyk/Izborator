@@ -61,6 +61,7 @@ func setupTestServer(t *testing.T) (*httptest.Server, *storage.Postgres, func())
 	// Создаём тестовый роутер с chi
 	r := chi.NewRouter()
 	r.Route("/api/v1/products", func(r chi.Router) {
+		r.Get("/facets", handler.Facets)
 		r.Get("/search", handler.Search)
 		r.Get("/browse", handler.Browse)
 		r.Get("/{id}", handler.GetByID)

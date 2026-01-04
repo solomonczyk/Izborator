@@ -12444,3 +12444,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Removed manual tenant_id wiring from frontend fetch calls.
 
 ---
+
+### 2026-01-04 - Facets integration tests + test DB
+
+**Time:** 18:05
+
+**Changes:**
+- Added integration tests for /api/v1/products/facets (missing tenant_id -> 400, tenant_id -> 200) and wired /facets in test router.
+- Started test Postgres container on port 55433 and ran migrations.
+- go test ./... with TEST_DB_PORT=55433: handlers OK; storage fails on product_prices FK (shared DB/parallel tests).
+
+---
