@@ -12331,3 +12331,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Ran category source check script (OK).
 
 ---
+
+### 2026-01-04 - Legacy category_sources cleanup
+
+**Time:** 15:52
+
+**Changes:**
+- Removed legacy docs/category_sources contents.
+- Replaced with a minimal INDEX.md pointing to docs/category_tree.
+
+---
