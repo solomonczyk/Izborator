@@ -737,7 +737,7 @@ func (s *Service) SaveRawProduct(ctx context.Context, product *RawProduct) error
 
 	// Отправляем в очередь для дальнейшей обработки
 	if s.queue != nil {
-		if err := s.queue.Publish("scraping_tasks", product); err != nil {
+		if err := s.queue.Publish(s.queueTopic, product); err != nil {
 			s.logger.Error("Failed to publish to queue", map[string]interface{}{
 				"error": err,
 			})

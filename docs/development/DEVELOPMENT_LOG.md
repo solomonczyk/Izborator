@@ -12260,3 +12260,15 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 **Changes:**
 - Added a Redis-backed queue client with publish/consume helpers.
 
+
+---
+
+### 2026-01-04 - Queue v1 wiring
+
+**Time:** 07:54
+
+**Changes:**
+- Wired queue client into app/scraper with configurable topic.
+- Added worker consumer loop to process queued raw products.
+- Added processor helper to process single raw product payload.
+

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/solomonczyk/izborator/internal/ai"
 	"github.com/solomonczyk/izborator/internal/attributes"
 	"github.com/solomonczyk/izborator/internal/autoconfig"
@@ -19,6 +20,7 @@ import (
 	"github.com/solomonczyk/izborator/internal/processor"
 	"github.com/solomonczyk/izborator/internal/products"
 	"github.com/solomonczyk/izborator/internal/producttypes"
+	"github.com/solomonczyk/izborator/internal/queue"
 	"github.com/solomonczyk/izborator/internal/scraper"
 	"github.com/solomonczyk/izborator/internal/scrapingstats"
 	"github.com/solomonczyk/izborator/internal/storage"
@@ -34,6 +36,7 @@ type App struct {
 	pg    *storage.Postgres
 	meili *storage.Meilisearch
 	redis *storage.Redis
+	queueClient queue.Client
 
 	// Adapters (приватные)
 	scraperStorage       scraper.Storage
@@ -78,6 +81,11 @@ func (a *App) Logger() *logger.Logger {
 // Redis возвращает Redis клиент (может быть nil)
 func (a *App) Redis() *storage.Redis {
 	return a.redis
+}
+
+// QueueClient returns the configured queue client (can be nil).
+func (a *App) QueueClient() queue.Client {
+	return a.queueClient
 }
 
 // Postgres возвращает PostgreSQL хранилище (может быть nil)
@@ -293,8 +301,24 @@ func (a *App) initServices() {
 	// Scraping stats service
 	a.ScrapingStatsService = scrapingstats.New(a.scrapingStatsStorage, a.logger, a.config.QualityGates)
 
-	// Scraper service (queue пока nil)
-	a.ScraperService = scraper.New(a.scraperStorage, nil, a.ScrapingStatsService, a.logger)
+	var redisClient *redis.Client
+	if a.redis != nil {
+		redisClient = a.redis.Client()
+	}
+	queueClient, err := queue.New(&a.config.Queue, redisClient, a.logger)
+	if err != nil {
+		a.logger.Warn("Queue client init failed", map[string]interface{}{"error": err.Error()})
+	}
+	a.queueClient = queueClient
+
+	// Scraper service
+	a.ScraperService = scraper.New(
+		a.scraperStorage,
+		queueClient,
+		a.config.Queue.Topic,
+		a.ScrapingStatsService,
+		a.logger,
+	)
 
 	// Products service
 	a.ProductsService = products.New(a.productsStorage, a.logger)

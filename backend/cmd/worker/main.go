@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"flag"
 	"os"
 	"os/signal"
@@ -14,6 +16,7 @@ import (
 	"github.com/solomonczyk/izborator/internal/app"
 	"github.com/solomonczyk/izborator/internal/config"
 	"github.com/solomonczyk/izborator/internal/logger"
+	"github.com/solomonczyk/izborator/internal/queue"
 	"github.com/solomonczyk/izborator/internal/scraper"
 )
 
@@ -86,6 +89,20 @@ func main() {
 
 		// WaitGroup для отслеживания активных задач
 		var wg sync.WaitGroup
+
+		queueClient := application.QueueClient()
+		if queueClient != nil && cfg.Queue.Topic != "" {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				runQueueConsumer(ctx, application, queueClient, cfg.Queue.Topic, log)
+			}()
+		} else {
+			log.Info("Queue consumer disabled", map[string]interface{}{
+				"queue_type": cfg.Queue.Type,
+				"topic":      cfg.Queue.Topic,
+			})
+		}
 
 		// Тикеры (Таймеры)
 		// Процессинг запускаем часто (каждые 30 сек), чтобы быстро подхватывать новые данные
@@ -377,5 +394,33 @@ func runCatalogDiscovery(ctx context.Context, app *app.App, log *logger.Logger) 
 
 		// Пауза между магазинами
 		time.Sleep(5 * time.Second)
+	}
+}
+
+
+func runQueueConsumer(ctx context.Context, app *app.App, queueClient queue.Client, topic string, log *logger.Logger) {
+	log.Info("Queue consumer started", map[string]interface{}{
+		"topic": topic,
+	})
+
+	err := queueClient.Consume(ctx, topic, func(payload []byte) error {
+		var raw scraper.RawProduct
+		if err := json.Unmarshal(payload, &raw); err != nil {
+			log.Error("Queue payload decode failed", map[string]interface{}{
+				"topic": topic,
+				"error": err.Error(),
+			})
+			return err
+		}
+		if app.ProcessorService == nil {
+			return errors.New("processor service is not initialized")
+		}
+		return app.ProcessorService.ProcessRawProduct(ctx, &raw)
+	})
+	if err != nil && !errors.Is(err, context.Canceled) {
+		log.Warn("Queue consumer stopped", map[string]interface{}{
+			"topic": topic,
+			"error": err.Error(),
+		})
 	}
 }

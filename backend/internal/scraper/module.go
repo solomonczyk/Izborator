@@ -10,6 +10,7 @@ const (
 	maxRetryLimit         = 5
 	defaultRetryBackoffMs = 3000
 	maxRetryBackoffMs     = 60000
+	defaultQueueTopic     = "scraping_tasks"
 )
 
 // Storage интерфейс для работы с хранилищем данных парсинга
@@ -43,6 +44,7 @@ type Queue interface {
 type Service struct {
 	storage Storage
 	queue   Queue
+	queueTopic string
 	logger  *logger.Logger
 	stats   *scrapingstats.Service
 }
@@ -55,10 +57,14 @@ type CatalogResult struct {
 }
 
 // New создаёт новый сервис парсеров
-func New(storage Storage, queue Queue, stats *scrapingstats.Service, log *logger.Logger) *Service {
+func New(storage Storage, queue Queue, queueTopic string, stats *scrapingstats.Service, log *logger.Logger) *Service {
+	if queueTopic == "" {
+		queueTopic = defaultQueueTopic
+	}
 	return &Service{
 		storage: storage,
 		queue:   queue,
+		queueTopic: queueTopic,
 		logger:  log,
 		stats:   stats,
 	}

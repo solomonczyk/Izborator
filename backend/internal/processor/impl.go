@@ -80,6 +80,40 @@ func (s *Service) ProcessRawProducts(ctx context.Context, batchSize int) (int, e
 	return processedCount, nil
 }
 
+
+// ProcessRawProduct processes a single raw product payload (used by queue consumers).
+func (s *Service) ProcessRawProduct(ctx context.Context, raw *scraper.RawProduct) error {
+	if raw == nil {
+		return fmt.Errorf("raw product is nil")
+	}
+	if raw.ShopID == "" {
+		return fmt.Errorf("raw product shop_id is required")
+	}
+
+	if err := s.processRawProduct(ctx, raw); err != nil {
+		return err
+	}
+
+	if raw.ExternalID == "" {
+		s.logger.Warn("processor: raw product missing external_id", map[string]interface{}{
+			"shop_id": raw.ShopID,
+			"name":    raw.Name,
+		})
+		return nil
+	}
+
+	if err := s.rawStorage.MarkRawProductAsProcessed(raw.ShopID, raw.ExternalID); err != nil {
+		s.logger.Error("processor: failed to mark raw product as processed", map[string]interface{}{
+			"shop_id":     raw.ShopID,
+			"external_id": raw.ExternalID,
+			"error":       err.Error(),
+		})
+		return fmt.Errorf("failed to mark raw product as processed: %w", err)
+	}
+
+	return nil
+}
+
 // processRawProduct обрабатывает один сырой товар
 func (s *Service) processRawProduct(ctx context.Context, raw *scraper.RawProduct) error {
 	// Нормализуем данные
