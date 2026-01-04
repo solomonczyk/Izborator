@@ -12351,3 +12351,14 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Implemented lazy Load() helper to parse canonical tree once.
 
 ---
+
+### 2026-01-04 - HomeModel v2 builder (canonical tree + featured rules)
+
+**Time:** 16:26
+
+**Changes:**
+- Added homebuilder package that builds HomeModel v2 from canonical tree + featured config.
+- Added featured_v1.json with deterministic featured category list.
+- Builder resolves hero from homeconfig and generates hrefs for featured categories.
+
+---

@@ -1,0 +1,57 @@
+{
+  "version": "1",
+  "tenants": {
+    "default": {
+      "featured_categories": [
+        {
+          "category_id": "elektronika",
+          "priority": "primary",
+          "order": 1,
+          "type": "good"
+        },
+        {
+          "category_id": "odeca-i-obuca",
+          "priority": "primary",
+          "order": 2,
+          "type": "good"
+        },
+        {
+          "category_id": "kuca-i-basta",
+          "priority": "secondary",
+          "order": 3,
+          "type": "good"
+        },
+        {
+          "category_id": "sport-i-rekreacija",
+          "priority": "secondary",
+          "order": 4,
+          "type": "good"
+        },
+        {
+          "category_id": "auto-i-moto",
+          "priority": "secondary",
+          "order": 5,
+          "type": "good"
+        },
+        {
+          "category_id": "deca",
+          "priority": "secondary",
+          "order": 6,
+          "type": "good"
+        },
+        {
+          "category_id": "hrana-i-pice",
+          "priority": "secondary",
+          "order": 7,
+          "type": "good"
+        },
+        {
+          "category_id": "knjige-i-zabava",
+          "priority": "secondary",
+          "order": 8,
+          "type": "good"
+        }
+      ]
+    }
+  }
+}
