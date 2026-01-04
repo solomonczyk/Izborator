@@ -12414,3 +12414,22 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Removed client-side onSubmit stub from home page.
 
 ---
+
+### 2026-01-04 - Ops checks + lint
+
+**Time:** 17:22
+
+**Changes:**
+- Ran frontend lint (no errors).
+- SSH verification: ports 80/443 listening, nginx/front/backend containers up, localhost responds (301/200).
+
+---
+
+### 2026-01-04 - Catalog API contract
+
+**Time:** 17:26
+
+**Changes:**
+- Added docs/contracts/catalog.md with Catalog API contract (v1).
+
+---
