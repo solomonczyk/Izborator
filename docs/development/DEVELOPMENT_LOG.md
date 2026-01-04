@@ -12341,3 +12341,13 @@ ssh root@152.53.227.37 'cd ~/Izborator && docker-compose run --rm backend ./auto
 - Replaced with a minimal INDEX.md pointing to docs/category_tree.
 
 ---
+
+### 2026-01-04 - Canonical category tree loader (backend)
+
+**Time:** 16:14
+
+**Changes:**
+- Added backend/internal/categorytree package with embedded canonical_tree_v1.json.
+- Implemented lazy Load() helper to parse canonical tree once.
+
+---
